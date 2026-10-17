@@ -13,7 +13,7 @@
 set -euo pipefail
 target=${1:?zero1 or zero2}; shift
 [ $# -ge 1 ] || { echo "give at least one subdir" >&2; exit 2; }
-repo=$(cd "$(dirname "$0")/../.." && pwd)
+repo=${REPO_SRC:-$(cd "$(dirname "$0")/../.." && pwd)}   # REPO_SRC: build another source tree (e.g. git archive of an old commit)
 scratch=${SCRATCH:-$HOME/.cache/pitrex-build}
 mkdir -p "$scratch"
 rsync -a --exclude=.git --exclude=.idea "$repo"/ "$scratch"/
