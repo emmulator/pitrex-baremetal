@@ -1500,6 +1500,7 @@ MenuItemNew allCinematronicsMenu =
 };
 MenuItemNew zektorMenu;
 MenuItemNew otherArcadeMenu;
+MenuItemNew aaePickMenu;
 MenuItemNew segaMenu =
 {
   202,    // ID
@@ -1531,9 +1532,26 @@ MenuItemNew otherArcadeMenu =
   &arcadeMenu,    // has no parent
   &omegaMenu,    // ! firstChild must be set
   &segaMenu,    // ! left must be set
-  0,    // ! right must be set
+  &aaePickMenu,    // ! right must be set
   0,    // scrolltext
   {"","","","","", 0},    // no text
+};
+MenuItemNew aaePickMenu =
+{
+  6001,    // ID
+  "ALL AAE GAMES",    // name
+  0,    // no start directory
+  IMG_FILE_PREFIX "aae.img",    // AAE with no game: shows its own list of the ROM zips in roms/aae
+  0,    // no parameter
+  0,    // no parameter
+  0, // icon
+  0, // smallicon
+  &arcadeMenu,    // parent
+  0,    // no children
+  &otherArcadeMenu,    // left
+  0,    // no right
+  0,    // scrolltext
+  {"","","","","LISTS THE ROM ZIPS","FOUND IN ROMS/AAE", 0},    // text
 };
 
 //////////////////////////////////////////

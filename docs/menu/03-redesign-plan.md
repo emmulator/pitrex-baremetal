@@ -76,6 +76,7 @@ presets marked as Speedy and everything else as Exact.
 | 0 | Toolchain and baseline (**toolchain done 2026-10-17**; hardware boot of our own build still pending) | Pinned `arm-none-eabi-gcc` in a distrobox (F15); local build overrides instead of editing `Rules.mk` (F17); unmodified loader builds for zero1 and zero2 | Build; boot the unmodified loader on the PiTrex. Optional: UART cable for `printf` and serial upload (F17) |
 | 1 | Prove the pipeline | One new compiled entry: Vectorburner under COMPUTER (F13) | Launch from the menu; check exit behaviour |
 | 2a | Notes as sidecar files (**done 2026-10-17**, hardware test pending; see file 05) | The loader reads `menu/<key>.ini` for each entry's note lines; the compiled notes remain as fallback | Host test passes; try on the PiTrex |
+| 2b | AAE takes names and lists ROM zips (**done 2026-10-17**, hardware test pending; see file 06) | New `ALL AAE GAMES` entry; AAE picks from `roms/aae/*.zip` | Host test passes; try on the PiTrex |
 | 2 | Data-driven menu | Replace the linked structs with a table. Same entries, same behaviour | Every entry launches as before, spot-checked on hardware |
 | 3 | Discovery | Scan `vectrex/` and `piZeroN/`, merge with the catalog, apply sidecars | Host unit tests for parsing and classification, then hardware |
 | 4 | New UI | Hierarchical text menu | Hardware; compare against phase 2 behaviour |

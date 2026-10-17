@@ -146,7 +146,7 @@ $(BUILD_DIR)quantum.o: quantum.h quantum.c
 $(BUILD_DIR)starwars.o: starwars.h starwars.c machine/starwars.c sndhrdw/starwars.c machine/starwars.h sndhrdw/starwars.h
 	$(CC) $(CFLAGS) -o $(BUILD_DIR)starwars.o -c starwars.c
 
-$(BUILD_DIR)aaemain.o: aaemain.h aaemain.c
+$(BUILD_DIR)aaemain.o: aaemain.h aaemain.c aaeSelect.h
 	$(CC) $(CFLAGS) -o $(BUILD_DIR)aaemain.o -c aaemain.c
 
 $(TARGET): $(OBJS) $(LIBS_CHECK)

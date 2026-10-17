@@ -52,6 +52,7 @@ VBREAK not working
 #include "driver.h"
 #include "cpu_control.h"
 #include "aae_avg.h"
+#include "aaeSelect.h"
 
  UINT32 dwElapsedTicks;
  glist gamelist[256];
@@ -1356,6 +1357,166 @@ int checkForSpecialVectors(VectorPipelineBase ** cpbPointer,VectorPipeline **plP
   return CV_SPECIAL_NONE; // do not skip
 }
 
+#ifndef NO_PI
+// ---------------------------------------------------------------------------
+// Game selection (aaeSelect.h): the loader passes a number, a name, or nothing.
+// With nothing, list the games that have a ROM zip in roms/aae and let the player pick.
+// ---------------------------------------------------------------------------
+#define AAE_MAX_FILES 160
+static char aaeFileNames[AAE_MAX_FILES][32];
+static const char *aaeFilePtr[AAE_MAX_FILES];
+
+static int aaeDriverTable(const char **names, const char **descs)
+{
+  int count = 0;
+  while (count < AAE_MAX_GAMES - 1 && driver[count].name != 0)
+  {
+    names[count] = driver[count].name;
+    descs[count] = driver[count].desc;
+    count++;
+  }
+  return count;
+}
+
+// Shows a message for about two seconds.
+static void aaeShowMessage(char *line1, char *line2)
+{
+  for (int frame = 0; frame < 100; frame++)
+  {
+    v_WaitRecal();
+    v_printString(-100, 30, line1, 8, 0x5f);
+    if (line2 != 0) v_printString(-100, 0, line2, 5, 0x48);
+  }
+}
+
+static void c_aaePageText(char *out, int a, int b);
+
+static int aaePickGame(const char **names, const char **descs, int count)
+{
+  int nfiles = 0;
+  DIR *dp = opendir("0:/roms/aae");
+  if (dp != 0)
+  {
+    dirent *fi;
+    while ((fi = readdir(dp)) != 0 && nfiles < AAE_MAX_FILES)
+    {
+      if (fi->d_type == DT_DIR) continue;
+      int c = 0;
+      for (; c < 31 && fi->d_name[c] != 0; c++) aaeFileNames[nfiles][c] = fi->d_name[c];
+      aaeFileNames[nfiles][c] = 0;
+      aaeFilePtr[nfiles] = aaeFileNames[nfiles];
+      nfiles++;
+    }
+    closedir(dp);
+  }
+
+  int avail[AAE_MAX_GAMES];
+  int n = aaeCollect(aaeFilePtr, nfiles, names, descs, count, avail, AAE_MAX_GAMES);
+
+  // the button that started this program may still be down
+  while ((v_directReadButtons() & 0x0f) != 0) { }
+
+  const int rows = 8;
+  int sel = 0;
+  int top = 0;
+  int held = 0;
+  char line[56];
+  while (1)
+  {
+    v_WaitRecal();
+    v_readButtons();
+    v_readJoystick1Analog();
+
+    v_printString(-60, 105, "ARCADE GAMES", 8, 0x5f);
+    if (n == 0)
+    {
+      v_printString(-100, 40, "NO ROM ZIPS IN ROMS/AAE", 5, 0x48);
+      v_printString(-100, 20, "BUTTON 1 = BACK", 5, 0x48);
+    }
+    else
+    {
+      for (int r = 0; r < rows && top + r < n; r++)
+      {
+        const char *d = aaeTrim(descs[avail[top + r]]);
+        int c = 0;
+        line[c++] = (top + r == sel) ? '>' : ' ';
+        line[c++] = ' ';
+        for (int k = 0; d[k] != 0 && c < 44; k++) line[c++] = d[k];
+        line[c] = 0;
+        v_printString(-120, 80 - r * 16, line, 5, (top + r == sel) ? 0x5f : 0x40);
+      }
+      c_aaePageText(line, sel + 1, n);
+      v_printString(-120, -75, line, 5, 0x40);
+      v_printString(-120, -95, "STICK MOVE  4 PLAY  1 BACK", 5, 0x40);
+    }
+
+    uint8_t buttons = currentButtonState & 0x0f;
+    if (buttons == 0x08 && n > 0)                   // exactly button 4
+    {
+      while ((v_directReadButtons() & 0x0f) == 0x08) { }
+      return avail[sel];
+    }
+    if (buttons == 0x01) return AAE_BAD;           // exactly button 1: back out
+
+    int8_t jy = currentJoy1Y;                       // negative = down
+    if (jy > -30 && jy < 30)
+    {
+      held = 0;
+    }
+    else
+    {
+      if (held == 0 || (held > 25 && (held % 6) == 0))
+      {
+        if (jy <= -30 && sel < n - 1) sel++;
+        if (jy >= 30 && sel > 0) sel--;
+        if (sel < top) top = sel;
+        if (sel >= top + rows) top = sel - rows + 1;
+      }
+      held++;
+    }
+  }
+}
+
+// "3 OF 70"
+static void c_aaePageText(char *out, int a, int b)
+{
+  char tmp[12];
+  int c = 0;
+  int v[2] = { a, b };
+  for (int k = 0; k < 2; k++)
+  {
+    int t = 0;
+    int x = v[k];
+    if (x == 0) tmp[t++] = '0';
+    while (x > 0) { tmp[t++] = (char) ('0' + x % 10); x /= 10; }
+    while (t > 0) out[c++] = tmp[--t];
+    if (k == 0) { out[c++] = ' '; out[c++] = 'O'; out[c++] = 'F'; out[c++] = ' '; }
+  }
+  out[c] = 0;
+}
+
+// Returns the driver index to run, or a negative value when nothing should run.
+static int aaeResolveGame(void)
+{
+  const char *names[AAE_MAX_GAMES];
+  const char *descs[AAE_MAX_GAMES];
+  int count = aaeDriverTable(names, descs);
+  char *param = getLoadParameter(0);
+  int game = aaeParamToIndex(param, names, count);
+  if (game == AAE_PICK)
+  {
+    v_setRefresh(50);
+    game = aaePickGame(names, descs, count);
+  }
+  else if (game == AAE_BAD)
+  {
+    printf("AAE: unknown game parameter\n\r");
+    aaeShowMessage("UNKNOWN GAME", param);
+  }
+  return game;
+}
+#endif
+
 int main(int argc, char *argv[])
 {
   int smallwindow = 1;
@@ -1366,7 +1527,8 @@ int main(int argc, char *argv[])
   v_init();
   v_noSound();
     
-  gamenum = getLoadParameter(0)[0];
+  gamenum = aaeResolveGame();
+  if (gamenum < 0) return 0;      // nothing chosen, or an unknown game
   // special vectrex  interface settings for asteroids
   v_setRefresh(50);
   v_setClientHz(driver[gamenum].fps); // 62.5
