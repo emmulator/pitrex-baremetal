@@ -92,3 +92,38 @@ the missing Vectorburner entry.
 * Branch `menu-redesign`. Commits use the repo-local identity
   `emmulator <2083447+emmulator@users.noreply.github.com>`.
 * Do not push without the owner's say-so.
+
+## Arcade launcher (proposed, added 2026-10-17)
+
+Goal: a new ROM zip for a game the emulators already support appears in the menu with
+no recompile of the loader.
+
+**The obstacle (F11).** `aae.img` is told which game to run by one byte, an index into a
+table compiled into the emulator (`aae/aaemain.c:1369`, `driver[gamenum]`). The loader
+cannot turn a zip name into that byte unless it carries a copy of the table.
+
+**Option A: teach the emulator to take a name, and give it a picker *(preferred)*.**
+1. `aae.img` accepts a game **name**. A one-character parameter stays a numeric index
+   (existing menu entries keep working), a longer one is looked up in `driver[]` by name.
+2. With no parameter, `aae.img` shows its own picker: it scans `roms/aae/` and `roms/` for
+   `.zip` files whose names match a driver, and lists them with the driver's descriptive
+   name. This is the same idea as the Exact emulator's PICK A GAME.
+3. The loader gets one `ARCADE` entry that launches `aae.img` with no parameter.
+* Pro: the driver table stays in one place. A game the emulator learns later shows up on
+  its own. A new zip for an existing driver needs no rebuild at all.
+* Con: one change to the AAE emulator, and `aae.img` must be rebuilt once. A game the
+  emulator has no driver for still needs emulator work (Aztarac, Empire Strikes Back).
+* `cine.img` already takes names, so it only needs the same picker.
+* Needs a guard: today an out-of-range index is not checked.
+
+**Option B: a manifest on the card *(complements A)*.** The loader reads an optional
+`menu/arcade.ini` of `title | image | param` lines and adds those entries. This covers any
+emulator that already takes a parameter (`cine.img qb3`, a future emulator) and lets the
+owner pick display names, with no rebuild.
+
+**Not covered by either:** whether a zip is a complete romset. Split sets need their parent
+zip too (the ROM guide's Asteroids example). A missing file only shows up as an on-screen
+ROM load error after launch. A picker could mark known parent/clone pairs.
+
+**Order of work:** link Cosmic Chasm and QB3 as plain entries first (phase 1, no emulator
+change), then Option A, then Option B only if still wanted.
