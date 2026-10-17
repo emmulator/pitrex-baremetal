@@ -103,11 +103,18 @@ Consequences: logic that does not touch hardware (name parsing, classification, 
 data, list handling) can be written as plain C and unit-tested on a PC. Anything that
 draws or launches must be tried on the PiTrex.
 
-**F15. The ARM toolchain is not installed here. Verified (2026-10-17).**
-`arm-none-eabi-gcc` is not on `PATH`. `distrobox`, `toolbox` and `brew` are available on
-this machine. The author warns (quick-start page) that the newest GNU Arm toolchain
-gave him a linker error (`_kill`) and that he kept an older copy. Expect to pin a
-version. Whether the unmodified loader builds is still to be established.
+**F15. ARM toolchain: set up and working. Verified (2026-10-17).**
+`distrobox` container `pitrex-dev` (Ubuntu 22.04) with Ubuntu's `gcc-arm-none-eabi`
+10.3.1 (2021.07) and newlib. The unmodified upstream sources build cleanly with it:
+loader for zero1 (`pitrex.img` 196,700 bytes, `loader.pit` 689,356) and zero2
+(`loader.pit` 778,196, `pitrex7.img` 182,404), and `aae.img` for zero1 (1,484,564).
+These are within about 1% of the images on the card (built from a slightly later source
+state with other toolchain flags) but **not byte-identical**, so the first test of our own
+build on hardware is still needed. The author's warning about the newest Arm toolchain
+(`_kill` linker error) did not apply to this older release. `make` needs
+`MAKE_IMAGE= SERIAL_TRANSFER=` on the command line, since `Rules.mk` otherwise tries to
+copy to the author's folders and use his serial port. The repo tracks some build
+artifacts (59 `.img`/`.a`/`.o` files), so `docs/tools/build.sh` builds in a scratch copy.
 
 **F16. The "development image" in the README is a VM, not an emulator. Verified.**
 The README and the quick-start page (`vide.malban.de/pitrex/pitrex-baremetal-quick-start-unfinished`,
