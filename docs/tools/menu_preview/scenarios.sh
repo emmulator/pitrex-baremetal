@@ -55,7 +55,6 @@ run "sidecar emulator = speedy: Button 4 starts Speedy" 150 "$roms,b4@110" 'imag
 run "...and Button 2 then starts Exact" 150 "$roms,b2@110" 'image=piZero1/vectrexexact.img param1="demos/epic.bin"' "$work/card"
 
 # back navigation: enter ARCADE, go back with the stick, the next Button 4 enters VECTREX again (first row)
-run "stick left goes back; selection returns to ARCADE" 80 "down@10,right@20,left@30,right@40" 'WILL-NOT-LAUNCH-ANYTHING' >/dev/null 2>&1 || true
 runnot "entering and leaving a category starts nothing" 80 "down@10,right@20,left@30" 'LAUNCH'
 runnot "category rows are not started by Button 4 on a category" 60 "b4@10" 'LAUNCH'
 

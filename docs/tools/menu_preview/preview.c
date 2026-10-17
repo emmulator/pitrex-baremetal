@@ -64,7 +64,8 @@ static char cardRoot[PATH_MAX];
 typedef struct dirent dirent;
 
 void ensureMainPath(void) { if (chdir(cardRoot) != 0) perror("chdir card"); }
-uint8_t v_directReadButtons(void) { return currentButtonState; }
+/* the loader waits here for a button to be released; the preview has no live hardware to poll */
+uint8_t v_directReadButtons(void) { return 0; }
 void v_SettingsGUI(int own) { (void) own; printf("SETTINGS GUI opened\n"); fflush(stdout); }
 int v_saveIni(char *name) { printf("save ini %s\n", name); fflush(stdout); return 0; }
 int testRom(MenuItemNew *m) { (void) m; return 1; }
