@@ -9,9 +9,9 @@ Checked 2026-10-17 against upstream `457c5a9` and the owner's SD card layout.
 
 | Kind | Launched with | Games | Notes |
 |---|---|---|---|
-| Dedicated, optimised programs | own `.img` | Asteroids, Battle Zone, Black Widow, Red Baron, Lunar Lander, Gravitar, Space Duel, Tempest, Tailgunner, Star Wars (SBT) | Per FAQ #9/#10 only Vectrex, Tailgunner, Asteroids and Battlezone are hand-optimised with sound |
+| Dedicated programs | own `.img` | Asteroids, Battle Zone, Black Widow, Red Baron, Lunar Lander, Gravitar, Space Duel, Tempest, Tailgunner, Star Wars (SBT) | Per FAQ #9/#10 only Vectrex, Tailgunner, Asteroids and Battlezone are hand-optimised with sound |
 | AAE (generic emulator) | `aae.img` + one-byte game number (F11) | Asteroids Deluxe, Major Havoc, Quantum, Omega Race, Speed Freak, Armor Attack, Boxing Bugs, Ripoff, Star Castle, Sundance, War of the Worlds, Solar Quest, Star Hawk, Warrior, Zektor, Tac/Scan, Star Trek, Space Fury, Eliminator | 71 game variants in the driver table (`aae/aaemain.c`). Menu notes mark some "work in progress, flicker, no sound" |
-| Cinematronics emulator | `cine.img` + MAME-style name | Demon, Space Wars, Barrier (linked); Cosmic Chasm, QB3 (**defined but not linked**) | Name, not number |
+| Cinematronics emulator | `cine.img` + MAME-style name | Demon ("sort of"), Space Wars (input not working), Barrier ("strange game"); Cosmic Chasm ("not working, needs 68000") and QB3 ("crashing") are defined but deliberately not linked | Name, not number |
 | Native programs | own `.img` | ZBlast, Hyperoids, GS BASIC, Elite, WW VI, BZ2, Voom, Rebel Defender, Vectorburner (not yet in menu) | Not arcade ROMs |
 
 ## Candidates to add
@@ -23,14 +23,23 @@ Games from the AAE driver table that have no menu entry. "On card" = a ROM zip e
 
 | Game | Driver / how | Why it is interesting |
 |---|---|---|
-| Cosmic Chasm | `cine.img`, `cosmicchasm` (entry exists, unlinked) | Cinematronics vector game |
-| QB3 (Q*bert's Qubes) | `cine.img`, `qb3` (entry exists, unlinked) | Cinematronics vector game |
 | Vector Breakout | AAE `vbreak` (0x20) | Breakout on vector hardware (Clay Cowgill, 1999) |
 | Battlezone Plus | AAE `bzonep` (0x0f) | Clay Cowgill's enhanced Battlezone. The existing Battle Zone entry is the plain game |
 | Vortex, Aliens | AAE `vortex` (0x21), `alienst` (0x1f) | Tempest prototypes |
 | Tempest Multigame | AAE `tempestm` (0x19) | Clay Cowgill multi-game ROM |
 | Lunar Battle | AAE `lunarbat` (0x17), `lunarba1` (0x18) | Lunar Lander-hardware prototypes |
 | Delta Race | AAE `deltrace` (0x0b) | Omega Race bootleg |
+
+**Corrected 2026-10-17: Cosmic Chasm and QB3 are not candidates.** An earlier version of
+this file listed them as ready. Their menu entries exist but are deliberately unlinked, and
+the author's own notes on them read "NOT WORKING NEEDS 68000" (Cosmic Chasm) and
+"CRASHING" (QB3). They would need emulator work (a 68000 core), not a menu entry.
+
+**Expect the same caveats as the games already in the menu.** The author's notes (file 01)
+say nearly every AAE game has **no sound**, and Black Widow, Red Baron, Space Duel, Tempest,
+Major Havoc, Asteroids Deluxe, Quantum and Omega Race are marked "work in progress" with
+flicker. Only Lunar Lander is marked "working good". None of the candidates above has a
+note yet; assume AAE quality until tested.
 
 Revisions and bootlegs of games that are already in the menu (Asteroids Deluxe rev 1/2,
 Space Fury A/B, Eliminator sets, Star Wars rev 1, Tempest 1/2A/2B, Meteorites, Asterock...)

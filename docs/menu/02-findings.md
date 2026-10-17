@@ -81,7 +81,9 @@ code and a number. The ROM guide's folder rules apply (`roms/` vs `roms/aae/`).
 
 **F12. Some defined entries are unreachable. Verified.** `cosmicchasmMenu` (3011),
 `qb3Menu` (3012), `tailgunner2Menu` (2000), `aaeMenu` (6000) exist in the source but
-are not linked into the menu (see the end of file 01). The `id == 6000` special case in
+are not linked into the menu (see the end of file 01). The author's notes explain the two
+Cinematronics ones: Cosmic Chasm "NOT WORKING NEEDS 68000", QB3 "CRASHING". They were left out
+because they do not work. The `id == 6000` special case in
 `loadAndStart` suggests an AAE game selector that is not wired up. **Unverified**
 whether it works.
 

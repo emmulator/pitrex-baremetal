@@ -47,16 +47,17 @@ def row(n,depth):
     f=items[n]
     p1=prm(f[4]);p2=prm(f[5])
     params=', '.join(x for x in (p1,p2) if x)
-    w(f"| {'&nbsp;&nbsp;'*depth}{name(n)} | `{n}` | {f[0]} | {('`'+img(f[3])+'`') if img(f[3]) else '—'} | {params or '—'} |\n")
+    notes=' / '.join(x for x in re.findall(r'"((?:[^"\\]|\\.)*)"',' '.join(f[13:])) if x.strip())
+    w(f"| {'&nbsp;&nbsp;'*depth}{name(n)} | `{n}` | {f[0]} | {('`'+img(f[3])+'`') if img(f[3]) else '—'} | {params or '—'} | {notes or '—'} |\n")
     visited.add(n)
     for c in chain(ref(f[9])): row(c,depth+1)
 for t in top:
     f=items[t]
     w(f"\n### Top-level slot: `{t}` (id {f[0]})\n\n")
-    w("| Entry | C symbol | id | Image launched | Parameters passed |\n|---|---|---|---|---|\n")
+    w("| Entry | C symbol | id | Image launched | Parameters passed | Author's note in the menu |\n|---|---|---|---|---|---|\n")
     row(t,0)
 orph=[n for n in items if n not in visited]
 if orph:
     w("\n### Defined but not reachable from the top row\n\n")
-    w("| Entry | C symbol | id | Image launched | Parameters passed |\n|---|---|---|---|---|\n")
+    w("| Entry | C symbol | id | Image launched | Parameters passed | Author's note in the menu |\n|---|---|---|---|---|---|\n")
     for n in orph: row(n,0)

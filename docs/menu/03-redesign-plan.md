@@ -125,5 +125,6 @@ owner pick display names, with no rebuild.
 zip too (the ROM guide's Asteroids example). A missing file only shows up as an on-screen
 ROM load error after launch. A picker could mark known parent/clone pairs.
 
-**Order of work:** link Cosmic Chasm and QB3 as plain entries first (phase 1, no emulator
-change), then Option A, then Option B only if still wanted.
+**Order of work:** Vectorburner as a plain entry first (phase 1), then Option A, then Option B
+only if still wanted. (Cosmic Chasm and QB3 are not candidates: the author marks them as
+not working, see file 04.)
