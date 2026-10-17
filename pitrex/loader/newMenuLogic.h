@@ -617,14 +617,14 @@ static int nmBack(NmNav *n)
   return 1;
 }
 
-// "ARCADE / ATARI" for the current level
+// "ARCADE > ATARI" for the current level (the PiTrex font draws ">" as an arrow; it has no "/")
 static void nmPath(NmNav *n, char *out, int max)
 {
   out[0] = 0;
   int len = 0;
   for (int d = 0; d < n->depth; d++)
   {
-    if (d > 0 && len + 3 < max) { out[len++] = ' '; out[len++] = '/'; out[len++] = ' '; out[len] = 0; }
+    if (d > 0 && len + 3 < max) { out[len++] = ' '; out[len++] = '>'; out[len++] = ' '; out[len] = 0; }
     const char *t = n->parent[d]->title;
     for (int i = 0; t[i] != 0 && len < max - 1; i++) out[len++] = t[i];
     out[len] = 0;

@@ -137,7 +137,7 @@ int main(int argc, char **argv)
   CHECK(selectTitle("ATARI"), "back to ATARI");
   CHECK(nmEnter(&nav) == 0, "entering ATARI");
   nmPath(&nav, path, sizeof path);
-  CHECK(strcmp(path, "ARCADE / ATARI") == 0, "breadcrumb, got '%s'", path);
+  CHECK(strcmp(path, "ARCADE > ATARI") == 0, "breadcrumb, got '%s'", path);
   CHECK(selectTitle("MAJOR HAVOC"), "MAJOR HAVOC under ATARI");
   NmNode *mh = nmEnter(&nav);
   CHECK(mh != 0 && mh->param1 != 0 && mh->param1[0] == 0x2d && mh->param1[1] == 0, "Major Havoc passes game byte 0x2d");

@@ -68,6 +68,8 @@ for n in order:
     if r in idx and n not in ('vectrexMenu', 'arcadeMenu', 'computerMenu', 'videoMenu', 'audioMenu'):
         print('  mock[%d].right = &mock[%d];' % (i, idx[r]))
 print('}')
+for top in ('vectrexMenu', 'arcadeMenu', 'computerMenu', 'videoMenu', 'audioMenu', 'exactPickOne'):
+    print('#define %s (mock[%d])' % (top, idx[top]))
 print('static MenuItemNew *mockTops[5];')
 print('static void mockTopsInit(void)\n{')
 for k, top in enumerate(('vectrexMenu', 'arcadeMenu', 'computerMenu', 'videoMenu', 'audioMenu')):
