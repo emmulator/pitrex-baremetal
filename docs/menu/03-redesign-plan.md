@@ -63,6 +63,11 @@ presets marked as Speedy and everything else as Exact.
   Stick left (or Button 2) goes back. Button 4 launches. Button 1 launches and loads the
   saved state, as today (F3).
 * Text only, using the existing vector font. Icons and scroll text are optional extras.
+* **Keep the author's caveats (F18).** Today the entry screen shows its note lines ("NO SOUND",
+  "WORK IN PROGRESS, FLICKER") and "ROM NOT FOUND!". The redesign must keep both: the
+  built-in catalog carries its existing notes forward unchanged, discovered titles take
+  their notes from the sidecar `note=` lines, and the list shows a short tag (for example
+  `[NO SOUND]`) so the caveat is visible before opening the entry.
 
 ## Phases
 

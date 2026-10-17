@@ -87,6 +87,19 @@ because they do not work. The `id == 6000` special case in
 `loadAndStart` suggests an AAE game selector that is not wired up. **Unverified**
 whether it works.
 
+## Entry screen
+
+**F18. Notes and a ROM check are shown per entry. Verified.** `displayMenuItem()` (~line 2559)
+draws the selected entry's icon, its name, and then its `text[]` lines (the author's notes
+such as "NO SOUND"), 18 units apart starting at the vertical centre. It also shows
+**"ROM NOT FOUND!"** when the entry's ROM zip is missing: `initTestRoms()` tests, for every
+id below 10000, a hard-coded path (`testOneRomId()`, for example id 3001 tests
+`roms/aae/speedfrk.zip`). Ids with no case return OK. This checks ROM zips for the arcade
+entries only. It does **not** check that the entry's `.img` exists. The id is the
+key, so a new entry needs a unique id below 10000, and any ROM check needs a new `case`.
+A dynamic menu must replace this per-id table with real discovery and carry the notes with
+each entry.
+
 ## Native programs
 
 **F13. Vectorburner fits the existing COMPUTER category. Verified (package), integration
