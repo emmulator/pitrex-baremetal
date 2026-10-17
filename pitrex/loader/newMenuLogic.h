@@ -1,0 +1,402 @@
+// The "new menu": a plain vertical list of categories that you drill down into.
+// This file is the logic only (building the tree, navigation, finding programs on the
+// card). It has no hardware dependencies, so it can be unit tested on a PC
+// (docs/tools/test_new_menu.c). Drawing and file access are in loaderMain.c.
+//
+// Documentation: docs/menu/07-new-menu.md
+//
+// Needs the MenuItemNew type from loaderMain.c (or a copy of it in the test) before it.
+#ifndef NEW_MENU_LOGIC_H
+#define NEW_MENU_LOGIC_H
+
+#include <string.h>
+
+#define NM_MAX_NODES 240
+#define NM_MAX_LIST 128
+#define NM_MAX_DEPTH 4
+#define NM_MAX_TOPS 8
+#define NM_ROWS 8
+#define NM_MAX_PROGS 48
+#define NM_NAME_LEN 40
+
+typedef struct NmNode
+{
+  char title[36];
+  int id;                       // id of the compiled entry (0 = settings, 9999 = PICK A GAME)
+  const char *img;              // image to launch (0 for categories)
+  const char *param1;
+  const char *param2;
+  struct NmNode *child;         // first child
+  struct NmNode *right;         // next sibling
+  struct NmNode *parent;
+  MenuItemNew *src;             // the compiled entry this came from, 0 for discovered programs
+  int hidden;                   // set from a sidecar (hide = 1)
+  int discovered;               // found on the card, not compiled in
+  char key[NM_NAME_LEN];        // for discovered programs: image base name, used for the sidecar
+} NmNode;
+
+typedef struct
+{
+  NmNode pool[NM_MAX_NODES];
+  int used;
+  NmNode *tops[NM_MAX_TOPS];
+  int ntops;
+} NmTree;
+
+typedef struct
+{
+  NmTree *tree;
+  NmNode *parent[NM_MAX_DEPTH];     // the category we are inside, per depth
+  int savedSel[NM_MAX_DEPTH];       // selection to restore when going back
+  int savedTop[NM_MAX_DEPTH];
+  int depth;
+  NmNode *list[NM_MAX_LIST];
+  int count;
+  int sel;
+  int top;
+} NmNav;
+
+// ---- small text helpers -------------------------------------------------------------
+
+static char nmUpper(char c) { return (c >= 'a' && c <= 'z') ? (char) (c - 32) : c; }
+static char nmLower(char c) { return (c >= 'A' && c <= 'Z') ? (char) (c + 32) : c; }
+
+static void nmCopy(char *dst, const char *src, int max)
+{
+  int i = 0;
+  for (; src[i] != 0 && i < max - 1; i++) dst[i] = src[i];
+  dst[i] = 0;
+}
+
+// "  WEB WARS" -> "WEB WARS" (leading spaces are used for alignment in the old menu)
+static void nmCopyTrimmed(char *dst, const char *src, int max)
+{
+  while (*src == ' ') src++;
+  nmCopy(dst, src, max);
+  int n = (int) strlen(dst);
+  while (n > 0 && dst[n - 1] == ' ') dst[--n] = 0;
+}
+
+static int nmEqNoCase(const char *a, const char *b)
+{
+  while (*a != 0 && *b != 0)
+  {
+    if (nmLower(*a) != nmLower(*b)) return 0;
+    a++;
+    b++;
+  }
+  return *a == 0 && *b == 0;
+}
+
+// "VECTOR_BURNER" -> "VECTOR BURNER": upper case, '_' and '-' become spaces
+static void nmPrettyTitle(const char *base, char *out, int max)
+{
+  int n = 0;
+  for (; base[n] != 0 && n < max - 1; n++)
+  {
+    char c = base[n];
+    out[n] = (c == '_' || c == '-') ? ' ' : nmUpper(c);
+  }
+  out[n] = 0;
+}
+
+// Image path -> base name without folder and ".img", lower case. 0 if there is no image.
+static int nmImageBase(const char *img, char *out, int max)
+{
+  if (img == 0 || *img == 0) return 0;
+  const char *base = img;
+  for (const char *p = img; *p != 0; p++)
+    if (*p == '/') base = p + 1;
+  int len = (int) strlen(base);
+  if (len > 4 && nmEqNoCase(base + len - 4, ".img")) len -= 4;
+  if (len <= 0 || len >= max) return 0;
+  for (int i = 0; i < len; i++) out[i] = nmLower(base[i]);
+  out[len] = 0;
+  return 1;
+}
+
+// ---- building the tree from the compiled-in menu ------------------------------------
+
+// The category slots have no name in the compiled data (they are drawn as icons).
+static const char *nmFallbackTitle(int id)
+{
+  switch (id)
+  {
+    case 0: return "SETTINGS";
+    case 1: return "VECTREX";
+    case 2: return "ARCADE";
+    case 3: return "COMPUTER";
+    case 4: return "VIDEO";
+    case 5: return "AUDIO";
+    case 102: return "SPEEDY VECTREX";
+    case 107: return "EXACT VECTREX";
+    default: return "?";
+  }
+}
+
+static NmNode *nmNewNode(NmTree *t)
+{
+  if (t->used >= NM_MAX_NODES) return 0;
+  NmNode *n = &t->pool[t->used++];
+  memset(n, 0, sizeof *n);
+  return n;
+}
+
+static NmNode *nmCloneNode(NmTree *t, MenuItemNew *m, NmNode *parent, int depth)
+{
+  NmNode *n = nmNewNode(t);
+  if (n == 0) return 0;
+  n->id = m->id;
+  n->src = m;
+  n->parent = parent;
+  if (m->DISPLAYNAME != 0 && m->DISPLAYNAME[0] != 0)
+    nmCopyTrimmed(n->title, m->DISPLAYNAME, (int) sizeof n->title);
+  else
+    nmCopy(n->title, nmFallbackTitle(m->id), (int) sizeof n->title);
+  if (m->img != 0 && m->img[0] != 0)
+  {
+    n->img = m->img;
+    n->param1 = m->param1;
+    n->param2 = m->param2;
+  }
+  if (depth < 4)
+  {
+    NmNode *prev = 0;
+    int guard = 0;
+    for (MenuItemNew *c = (MenuItemNew *) m->child; c != 0 && guard < NM_MAX_LIST; c = (MenuItemNew *) c->right, guard++)
+    {
+      // a category with no image and no children is empty: leave it out
+      if ((c->img == 0 || c->img[0] == 0) && c->child == 0) continue;
+      NmNode *k = nmCloneNode(t, c, n, depth + 1);
+      if (k == 0) break;
+      if (prev != 0) prev->right = k; else n->child = k;
+      prev = k;
+    }
+  }
+  return n;
+}
+
+// roots: the compiled top-level category entries, in the order they should be listed.
+static void nmBuildTree(NmTree *t, MenuItemNew *const *roots, int nroots)
+{
+  memset(t, 0, sizeof *t);
+  for (int i = 0; i < nroots && t->ntops < NM_MAX_TOPS; i++)
+  {
+    NmNode *n = nmCloneNode(t, roots[i], 0, 0);
+    if (n != 0) t->tops[t->ntops++] = n;
+  }
+}
+
+// A category node that is not in the compiled menu (SETTINGS, PROGRAMS).
+static NmNode *nmAddTop(NmTree *t, const char *title, int id)
+{
+  if (t->ntops >= NM_MAX_TOPS) return 0;
+  NmNode *n = nmNewNode(t);
+  if (n == 0) return 0;
+  nmCopy(n->title, title, (int) sizeof n->title);
+  n->id = id;
+  t->tops[t->ntops++] = n;
+  return n;
+}
+
+// Every image the compiled menu launches, as lower-case base names.
+static int nmCollectImages(NmNode *const *tops, int ntops, char (*out)[NM_NAME_LEN], int max)
+{
+  int count = 0;
+  // walk the pool order via explicit stack to avoid recursion
+  NmNode *stack[NM_MAX_NODES];
+  int sp = 0;
+  for (int i = 0; i < ntops && sp < NM_MAX_NODES; i++) stack[sp++] = tops[i];
+  while (sp > 0)
+  {
+    NmNode *n = stack[--sp];
+    char base[NM_NAME_LEN];
+    if (nmImageBase(n->img, base, sizeof base))
+    {
+      int dup = 0;
+      for (int k = 0; k < count; k++) if (strcmp(out[k], base) == 0) dup = 1;
+      if (!dup && count < max) nmCopy(out[count++], base, NM_NAME_LEN);
+    }
+    for (NmNode *c = n->child; c != 0 && sp < NM_MAX_NODES; c = c->right) stack[sp++] = c;
+  }
+  return count;
+}
+
+// ---- finding programs on the card ---------------------------------------------------
+
+// Images that are part of the boot chain and never a program to start.
+static int nmIsSystemImage(const char *base)
+{
+  return strcmp(base, "pitrex") == 0 || strcmp(base, "pitrex7") == 0;
+}
+
+// files: names found in the image folder (piZero1 or piZero2). Fills out[] with the base
+// names of the .img files that the compiled menu does not already launch, sorted.
+static int nmDiscover(const char *const *files, int nfiles,
+                      char (*known)[NM_NAME_LEN], int nknown,
+                      char (*out)[NM_NAME_LEN], int max)
+{
+  int n = 0;
+  for (int f = 0; f < nfiles; f++)
+  {
+    const char *name = files[f];
+    if (name[0] == '.') continue;
+    int len = (int) strlen(name);
+    if (len <= 4 || !nmEqNoCase(name + len - 4, ".img")) continue;
+    char base[NM_NAME_LEN];
+    if (!nmImageBase(name, base, sizeof base)) continue;
+    if (nmIsSystemImage(base)) continue;
+    int skip = 0;
+    for (int k = 0; k < nknown; k++) if (strcmp(known[k], base) == 0) skip = 1;
+    for (int k = 0; k < n; k++) if (strcmp(out[k], base) == 0) skip = 1;
+    if (skip || n >= max) continue;
+    nmCopy(out[n++], base, NM_NAME_LEN);
+  }
+  for (int a = 1; a < n; a++)                   // insertion sort
+  {
+    char v[NM_NAME_LEN];
+    nmCopy(v, out[a], NM_NAME_LEN);
+    int b = a - 1;
+    while (b >= 0 && strcmp(out[b], v) > 0)
+    {
+      nmCopy(out[b + 1], out[b], NM_NAME_LEN);
+      b--;
+    }
+    nmCopy(out[b + 1], v, NM_NAME_LEN);
+  }
+  return n;
+}
+
+// Adds the discovered programs as children of node "into". image: e.g. "piZero1/".
+// Returns how many were added.
+static int nmAddPrograms(NmTree *t, NmNode *into, const char *imageDir,
+                         char (*bases)[NM_NAME_LEN], int nbases,
+                         char (*imgPaths)[56])
+{
+  NmNode *prev = 0;
+  int added = 0;
+  for (int i = 0; i < nbases && i < NM_MAX_PROGS; i++)
+  {
+    NmNode *n = nmNewNode(t);
+    if (n == 0) break;
+    nmCopy(imgPaths[i], imageDir, 56);
+    int dl = (int) strlen(imgPaths[i]);
+    nmCopy(imgPaths[i] + dl, bases[i], 56 - dl);
+    dl = (int) strlen(imgPaths[i]);
+    nmCopy(imgPaths[i] + dl, ".img", 56 - dl);
+    nmPrettyTitle(bases[i], n->title, (int) sizeof n->title);
+    nmCopy(n->key, bases[i], NM_NAME_LEN);
+    n->img = imgPaths[i];
+    n->parent = into;
+    n->discovered = 1;
+    if (prev != 0) prev->right = n; else into->child = n;
+    prev = n;
+    added++;
+  }
+  return added;
+}
+
+// ---- navigation ---------------------------------------------------------------------
+
+static void nmFixWindow(NmNav *n)
+{
+  if (n->count == 0) { n->sel = 0; n->top = 0; return; }
+  if (n->sel >= n->count) n->sel = n->count - 1;
+  if (n->sel < 0) n->sel = 0;
+  if (n->sel < n->top) n->top = n->sel;
+  if (n->sel >= n->top + NM_ROWS) n->top = n->sel - NM_ROWS + 1;
+  if (n->top < 0) n->top = 0;
+}
+
+// Fills list[] for the current depth, leaving out hidden nodes.
+static void nmRebuild(NmNav *n)
+{
+  n->count = 0;
+  if (n->depth == 0)
+  {
+    for (int i = 0; i < n->tree->ntops && n->count < NM_MAX_LIST; i++)
+      if (!n->tree->tops[i]->hidden) n->list[n->count++] = n->tree->tops[i];
+  }
+  else
+  {
+    NmNode *p = n->parent[n->depth - 1];
+    for (NmNode *c = p->child; c != 0 && n->count < NM_MAX_LIST; c = c->right)
+      if (!c->hidden) n->list[n->count++] = c;
+  }
+  nmFixWindow(n);
+}
+
+static void nmInit(NmNav *n, NmTree *t)
+{
+  memset(n, 0, sizeof *n);
+  n->tree = t;
+  nmRebuild(n);
+}
+
+static NmNode *nmCurrent(NmNav *n)
+{
+  return (n->count > 0) ? n->list[n->sel] : 0;
+}
+
+static void nmMove(NmNav *n, int dir)
+{
+  if (n->count == 0) return;
+  n->sel += dir;
+  if (n->sel < 0) n->sel = 0;
+  if (n->sel >= n->count) n->sel = n->count - 1;
+  nmFixWindow(n);
+}
+
+static int nmHasVisibleChild(NmNode *c)
+{
+  for (c = c->child; c != 0; c = c->right) if (!c->hidden) return 1;
+  return 0;
+}
+
+// Enter the selected category, or return the selected entry so the caller can start it.
+// Returns 0 when it went into a category (or there is nothing selected).
+static NmNode *nmEnter(NmNav *n)
+{
+  NmNode *c = nmCurrent(n);
+  if (c == 0) return 0;
+  if (nmHasVisibleChild(c))
+  {
+    if (n->depth >= NM_MAX_DEPTH) return 0;
+    n->parent[n->depth] = c;
+    n->savedSel[n->depth] = n->sel;
+    n->savedTop[n->depth] = n->top;
+    n->depth++;
+    n->sel = 0;
+    n->top = 0;
+    nmRebuild(n);
+    return 0;
+  }
+  return c;
+}
+
+// Go up one level. Returns 1 if it moved.
+static int nmBack(NmNav *n)
+{
+  if (n->depth == 0) return 0;
+  n->depth--;
+  n->sel = n->savedSel[n->depth];
+  n->top = n->savedTop[n->depth];
+  nmRebuild(n);
+  return 1;
+}
+
+// "ARCADE / ATARI" for the current level
+static void nmPath(NmNav *n, char *out, int max)
+{
+  out[0] = 0;
+  int len = 0;
+  for (int d = 0; d < n->depth; d++)
+  {
+    if (d > 0 && len + 3 < max) { out[len++] = ' '; out[len++] = '/'; out[len++] = ' '; out[len] = 0; }
+    const char *t = n->parent[d]->title;
+    for (int i = 0; t[i] != 0 && len < max - 1; i++) out[len++] = t[i];
+    out[len] = 0;
+  }
+}
+
+#endif

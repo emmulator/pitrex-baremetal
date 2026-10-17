@@ -138,6 +138,16 @@ int main(int argc, char **argv)
     files++;
   }
   fclose(f);
+  /* hide and title (used by the new menu) */
+  {
+    SidecarText t; memset(&t, 0, sizeof t);
+    ini_parse_string("[entry]\ntitle = MY PROGRAM\nhide = 1\n", handler, &t);
+    if (!(t.hide == 1 && strcmp(t.title, "MY PROGRAM") == 0 && t.found == 0))
+    { printf("hide/title not parsed: hide=%d title='%s' found=%d\n", t.hide, t.title, t.found); fail++; }
+    memset(&t, 0, sizeof t);
+    ini_parse_string("hide = 0\n", handler, &t);
+    if (t.hide != 0) { printf("hide = 0 should not hide\n"); fail++; }
+  }
   printf("sidecar files parsed: %d (largest %zu bytes; loader buffer is %d)\n", files, biggest, 2047);
   if (biggest > 2047) { printf("FILE TOO LARGE FOR LOADER BUFFER\n"); fail++; }
   printf(fail ? "FAIL (%d)\n" : "PASS\n", fail);

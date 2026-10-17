@@ -16,7 +16,7 @@ loaderObjects: $(BUILD_DIR)bootStrapMain.o \
 $(BUILD_DIR)loaderEntry.o: loaderEntry.S
 	$(AS) $(CFLAGS) -D__ASSEMBLY__ -c loaderEntry.S -o $(BUILD_DIR)loaderEntry.o
 
-$(BUILD_DIR)loaderMain.o: loaderMain.c menuSidecar.h
+$(BUILD_DIR)loaderMain.o: loaderMain.c menuSidecar.h newMenuLogic.h
 	$(AS) $(CFLAGS) -D__ASSEMBLY__ -c loaderMain.c -o $(BUILD_DIR)loaderMain.o
 
 $(BUILD_DIR)bootStrapMain.o: bootStrapMain.c

@@ -72,6 +72,11 @@ typedef struct MenuItemNew {
   char *text[];
 } MenuItemNew;
 MenuItemNew *currentMenuItem;
+#include "newMenuLogic.h"
+
+int newMenuEnabled = 0;     // loader.ini: NEW_MENU = 1 selects the new list menu
+void newMenuFrame(void);
+static int newMenuIniHandler(void* user, const char* section, const char* name, const char* value);
 
 void ensureMainPath();
 
@@ -329,12 +334,23 @@ static int loaderIniHandler(void* user, const char* section, const char* name, c
   {
     skipWave = atoi(value);
   }
+  if (MATCH_NAME("NEW_MENU")) 
+  {
+    newMenuEnabled = atoi(value);
+  }
 #if RASPPI != 1 
   if (MATCH_NAME("USE_SMP")) 
   {
     useSMP = atoi(value);
   }
 #endif
+  return 1;
+}
+
+// For the "reinitializing" path (coming back from a program): read just NEW_MENU.
+static int newMenuIniHandler(void* user, const char* section, const char* name, const char* value)
+{
+  if (strcmp(name, "NEW_MENU") == 0) newMenuEnabled = atoi(value);
   return 1;
 }
 
@@ -478,6 +494,7 @@ int main(int argc, char *argv[])
   if (loaderSettings.flags & FLAG_IN_MENU)
   {
     printf("Loader is reinitializing...\r\n");
+    ini_parse("loader.ini", newMenuIniHandler, 0);   // only NEW_MENU: the other keys keep their values
     initMenu();
     currentMenuItem = (MenuItemNew *)loaderSettings.lastSelection;
     ymloaded = loadYM();
@@ -610,7 +627,7 @@ int main(int argc, char *argv[])
     if (b==70) bDir = -1;
     if (b==20) bDir = 1;
     v_printString(-100, 100, ss[0], 5, b);
-    displayMenu();
+    if (newMenuEnabled) newMenuFrame(); else displayMenu();
     if (ymloaded) v_playYM();      
   }
 }
@@ -2593,6 +2610,28 @@ static int sidecarIniHandler(void *user, const char *section, const char *name, 
   return 1;
 }
 
+// Reads menu/<key>.ini into *t. Returns 1 if the file exists.
+static int sidecarReadKey(const char *key, SidecarText *t)
+{
+  memset(t, 0, sizeof *t);
+  char path[128];
+  strcpy(path, "menu/");
+  strcat(path, key);
+  strcat(path, ".ini");
+
+  ensureMainPath();
+  FILE *f = fopen(path, "rb");
+  if (f == 0) return 0;                        // no sidecar: keep the compiled notes
+  int len = (int) fread(sidecarFile, 1, sizeof(sidecarFile) - 1, f);
+  fclose(f);
+  if (len <= 0) return 0;
+  for (int i = 0; i < len; i++)
+    if (sidecarFile[i] == '\r') sidecarFile[i] = '\n';
+  sidecarFile[len] = 0;
+  ini_parse_string(sidecarFile, sidecarIniHandler, t);
+  return 1;
+}
+
 static void loadSidecarText(MenuItemNew *m)
 {
   sidecar.found = 0;
@@ -2602,23 +2641,7 @@ static void loadSidecarText(MenuItemNew *m)
 
   char key[96];
   if (!sidecarKey(m->img, m->param1, m->param2, key, sizeof(key))) return;
-
-  char path[128];
-  strcpy(path, "menu/");
-  strcat(path, key);
-  strcat(path, ".ini");
-
-  ensureMainPath();
-  FILE *f = fopen(path, "rb");
-  if (f == 0) return;                          // no sidecar: keep the compiled notes
-  int len = (int) fread(sidecarFile, 1, sizeof(sidecarFile) - 1, f);
-  fclose(f);
-  if (len <= 0) return;
-  for (int i = 0; i < len; i++)
-    if (sidecarFile[i] == '\r') sidecarFile[i] = '\n';
-  sidecarFile[len] = 0;
-  sidecar.found = 0;
-  ini_parse_string(sidecarFile, sidecarIniHandler, &sidecar);
+  sidecarReadKey(key, &sidecar);
 }
 
 void displayMenuItem(MenuItemNew *m)
@@ -3101,6 +3124,228 @@ void oneSubDirOut()
 #define TIMING_MAX 25
 int timingAnalog=TIMING_MAX;
   
+// ---------------------------------------------------------------------------
+// The new menu (loader.ini: NEW_MENU = 1). A vertical list of categories; you drill down.
+// The logic is in newMenuLogic.h (tested on a PC), the entries come from the compiled
+// menu above plus the programs found in the image folder. Documentation: docs/menu/07-new-menu.md
+// ---------------------------------------------------------------------------
+#if RASPPI != 1
+#define NM_IMG_DIR "0:/piZero2"
+#else
+#define NM_IMG_DIR "0:/piZero1"
+#endif
+
+#define NM_MAX_FILES 160
+static NmTree nmTree;
+static NmNav nmNav;
+static NmNode *nmSettingsNode = 0;
+static int nmReady = 0;
+static int nmBrowse = 0;                       // 1 while the old PICK A GAME screen is in charge
+static char nmKnown[NM_MAX_NODES][NM_NAME_LEN];
+static char nmFound[NM_MAX_PROGS][NM_NAME_LEN];
+static char nmPaths[NM_MAX_PROGS][56];
+static char nmFileNames[NM_MAX_FILES][32];
+static const char *nmFilePtr[NM_MAX_FILES];
+static MenuItemNew nmLaunchItem;               // stand-in for a program found on the card
+static NmNode *nmNotesOwner = 0;
+static int nmHeld = 0;                         // frames the stick has been held up/down
+static int nmSideLatch = 0;                    // stick left/right already acted on
+static uint8_t nmLastButtons = 0;
+
+static void nmApplySidecars(void)
+{
+  SidecarText t;
+  for (int i = 0; i < nmTree.used; i++)
+  {
+    NmNode *n = &nmTree.pool[i];
+    if (n->img == 0 || n->id == 9999) continue;
+    char key[96];
+    if (!sidecarKey(n->img, n->param1, n->param2, key, sizeof key)) continue;
+    if (!sidecarReadKey(key, &t)) continue;
+    if (t.hide) n->hidden = 1;
+    if (n->discovered && t.title[0] != 0) nmCopy(n->title, t.title, (int) sizeof n->title);
+  }
+}
+
+static void newMenuInit(void)
+{
+  MenuItemNew *roots[5] = { &vectrexMenu, &arcadeMenu, &computerMenu, &videoMenu, &audioMenu };
+  nmBuildTree(&nmTree, roots, 5);
+
+  // programs in the image folder that the compiled menu does not start
+  int nfiles = 0;
+  DIR *dp = opendir(NM_IMG_DIR);
+  if (dp != 0)
+  {
+    dirent *fi;
+    while ((fi = readdir(dp)) != 0 && nfiles < NM_MAX_FILES)
+    {
+      if (fi->d_type == DT_DIR) continue;
+      nmCopy(nmFileNames[nfiles], fi->d_name, (int) sizeof nmFileNames[0]);
+      nmFilePtr[nfiles] = nmFileNames[nfiles];
+      nfiles++;
+    }
+    closedir(dp);
+  }
+  int nknown = nmCollectImages(nmTree.tops, nmTree.ntops, nmKnown, NM_MAX_NODES);
+  int nfound = nmDiscover(nmFilePtr, nfiles, nmKnown, nknown, nmFound, NM_MAX_PROGS);
+  if (nfound > 0)
+  {
+    NmNode *programs = nmAddTop(&nmTree, "PROGRAMS", 9001);
+    if (programs != 0) nmAddPrograms(&nmTree, programs, IMG_FILE_PREFIX, nmFound, nfound, nmPaths);
+  }
+  nmSettingsNode = nmAddTop(&nmTree, "SETTINGS", 0);
+
+  nmApplySidecars();
+  nmInit(&nmNav, &nmTree);
+  nmNotesOwner = 0;
+  printf("New menu: %i nodes, %i programs found\n\r", nmTree.used, nfound);
+}
+
+static void nmLaunch(NmNode *n, int button)
+{
+  if (n->src != 0)
+  {
+    loadAndStart(n->src, button);              // compiled entry: exactly as the old menu does it
+  }
+  else
+  {
+    nmLaunchItem.id = 0;
+    nmLaunchItem.img = (char *) n->img;
+    nmLaunchItem.param1 = 0;
+    nmLaunchItem.param2 = 0;
+    loadAndStart(&nmLaunchItem, button);
+  }
+}
+
+// button: 4 or 1 (the button that was pressed), 0 for the stick
+static void nmActivate(int button)
+{
+  NmNode *n = nmEnter(&nmNav);                 // goes into a category, else returns the entry
+  if (n == 0) return;
+  if (n == nmSettingsNode)
+  {
+    while ((v_directReadButtons() & 0x0f) != 0) { }
+    v_SettingsGUI(1);
+    v_saveIni("vectrexInterface.ini");
+    return;
+  }
+  if (n->id == 9999)                           // PICK A GAME: the old file browser takes over
+  {
+    nmBrowse = 1;
+    currentMenuItem = &exactPickOne;
+    selectionMade = 1;                         // ignore the stick until it is centred
+    return;
+  }
+  if (n->img == 0) return;                     // an empty category
+  nmLaunch(n, button == 1 ? 1 : 4);
+}
+
+static void nmDrawNotes(NmNode *n)
+{
+  if (n == 0 || n->img == 0) return;
+  if (nmNotesOwner != n)
+  {
+    nmNotesOwner = n;
+    sidecar.found = 0; sidecar.skip = 0; sidecar.rows = 0;
+    char key[96];
+    if (n->id != 9999 && sidecarKey(n->img, n->param1, n->param2, key, sizeof key))
+      sidecarReadKey(key, &sidecar);
+  }
+  int y = -52;
+  if (n->src != 0 && !testRom(n->src))
+  {
+    v_printString(-120, y, "ROM NOT FOUND!", 5, 0x5f);
+    y -= 14;
+  }
+  if (sidecar.found)
+  {
+    for (int r = 0; r < sidecar.rows && y > -118; r++)
+    {
+      if (sidecar.row[r][0] == 0) continue;
+      v_printString(-120, y, sidecar.row[r], 5, 0x48);
+      y -= 14;
+    }
+  }
+  else if (n->src != 0 && n->src->text != 0)
+  {
+    for (int r = 0; n->src->text[r] != 0 && y > -118; r++)
+    {
+      if (n->src->text[r][0] == 0) continue;
+      v_printString(-120, y, n->src->text[r], 5, 0x48);
+      y -= 14;
+    }
+  }
+}
+
+void newMenuFrame(void)
+{
+  if (!nmReady)
+  {
+    newMenuInit();
+    nmReady = 1;
+  }
+
+  if (nmBrowse)                                // old PICK A GAME screen; leave when it goes up/sideways
+  {
+    displayMenu();
+    if (currentMenuItem != &exactPickOne) nmBrowse = 0;
+    return;
+  }
+
+  char line[48];
+  char path[64];
+  nmPath(&nmNav, path, (int) sizeof path);
+  v_printString(-120, 86, path[0] ? path : "MAIN MENU", 5, 0x5f);
+
+  for (int r = 0; r < NM_ROWS && nmNav.top + r < nmNav.count; r++)
+  {
+    NmNode *n = nmNav.list[nmNav.top + r];
+    int c = 0;
+    line[c++] = (nmNav.top + r == nmNav.sel) ? '>' : ' ';
+    line[c++] = ' ';
+    for (int k = 0; n->title[k] != 0 && c < 40; k++) line[c++] = n->title[k];
+    if (nmHasVisibleChild(n) && c < 42) { line[c++] = ' '; line[c++] = '+'; }
+    line[c] = 0;
+    v_printString(-120, 68 - r * 14, line, 5, (nmNav.top + r == nmNav.sel) ? 0x5f : 0x40);
+  }
+  if (nmNav.top > 0) v_printString(100, 68, "^", 5, 0x40);
+  if (nmNav.top + NM_ROWS < nmNav.count) v_printString(100, 68 - (NM_ROWS - 1) * 14, "v", 5, 0x40);
+
+  NmNode *cur = nmCurrent(&nmNav);
+  if (!nmHasVisibleChild(cur != 0 ? cur : &nmTree.pool[0])) nmDrawNotes(cur);
+
+  // input: stick up/down moves (hold to repeat), right/button 4 enters or starts, left goes back
+  uint8_t buttons = currentButtonState & 0x0f;
+  int8_t jy = currentJoy1Y;                    // negative = down
+  int8_t jx = currentJoy1X;
+  if (jy > -30 && jy < 30)
+  {
+    nmHeld = 0;
+  }
+  else
+  {
+    if (nmHeld == 0 || (nmHeld > 25 && (nmHeld % 6) == 0)) nmMove(&nmNav, jy < 0 ? 1 : -1);
+    nmHeld++;
+  }
+  if (jx > -40 && jx < 40)
+  {
+    nmSideLatch = 0;
+  }
+  else if (!nmSideLatch)
+  {
+    nmSideLatch = 1;
+    if (jx < 0) nmBack(&nmNav);
+    else if (cur != 0 && nmHasVisibleChild(cur)) nmActivate(0);
+  }
+  if (buttons != nmLastButtons)                // act on the press, not while held
+  {
+    if (buttons == 0x08) nmActivate(4);
+    else if (buttons == 0x01) nmActivate(1);
+  }
+  nmLastButtons = buttons;
+}
+
 void displayMenu()
 {
   displayMenuItem(currentMenuItem);

@@ -77,6 +77,7 @@ presets marked as Speedy and everything else as Exact.
 | 1 | Prove the pipeline | One new compiled entry: Vectorburner under COMPUTER (F13) | Launch from the menu; check exit behaviour |
 | 2a | Notes as sidecar files (**done 2026-10-17**, hardware test pending; see file 05) | The loader reads `menu/<key>.ini` for each entry's note lines; the compiled notes remain as fallback | Host test passes; try on the PiTrex |
 | 2b | AAE takes names and lists ROM zips (**done 2026-10-17**, hardware test pending; see file 06) | New `ALL AAE GAMES` entry; AAE picks from `roms/aae/*.zip` | Host test passes; try on the PiTrex |
+| 3+4 | Discovery of programs and a new list menu, **off by default** (**done 2026-10-17**, hardware test pending; see file 07) | `NEW_MENU = 1` in `loader.ini` | Host test passes; try on the PiTrex |
 | 2 | Data-driven menu | Replace the linked structs with a table. Same entries, same behaviour | Every entry launches as before, spot-checked on hardware |
 | 3 | Discovery | Scan `vectrex/` and `piZeroN/`, merge with the catalog, apply sidecars | Host unit tests for parsing and classification, then hardware |
 | 4 | New UI | Hierarchical text menu | Hardware; compare against phase 2 behaviour |
@@ -85,7 +86,7 @@ presets marked as Speedy and everything else as Exact.
 Phases 1 and 2 are independently useful. If the redesign stalls, phase 1 alone fixes
 the missing Vectorburner entry.
 
-**Where things stand (2026-10-17):** the redesigned menu is **not built yet**. What exists is the
+**Where things stand (2026-10-17):** the redesigned menu exists as a first version behind a switch. What exists is the
 existing menu plus a VECTORBURNER entry (phase 1) and sidecar notes (phase 2a). Phases 2, 3 and
 4 are still to do.
 

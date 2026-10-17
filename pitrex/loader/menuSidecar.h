@@ -18,6 +18,8 @@ typedef struct
   int skip;                        // blank rows before the first line
   int rows;                        // number of lines in row[]
   char row[SC_MAX_ROWS][SC_ROW_LEN];
+  int hide;                        // 1: leave the entry out of the new menu
+  char title[32];                  // display name of a program found on the card (new menu)
 } SidecarText;
 
 // A parameter that is exactly one byte (the AAE game number) is written as xNN.
@@ -105,6 +107,17 @@ static void sidecarLine(SidecarText *t, const char *name, const char *value)
     if (v > SC_MAX_ROWS) v = SC_MAX_ROWS;
     t->skip = v;
     t->found = 1;
+  }
+  else if (strcmp(name, "hide") == 0)
+  {
+    t->hide = atoi(value) != 0;
+  }
+  else if (strcmp(name, "title") == 0)
+  {
+    int len = (int) strlen(value);
+    if (len > (int) sizeof(t->title) - 1) len = (int) sizeof(t->title) - 1;
+    memcpy(t->title, value, (size_t) len);
+    t->title[len] = 0;
   }
   else if (strcmp(name, "text") == 0)
   {
