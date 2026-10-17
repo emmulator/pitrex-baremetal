@@ -96,16 +96,38 @@ Unknown: whether it returns to the loader on exit.
 
 ## Process
 
-**F14. There is no PiTrex emulator. Verified for this repo.** Nothing in it builds the
-loader for a PC. QEMU's Pi Zero machine could run the ARM code but has no VIA or
+**F14. There is no PiTrex emulator. Verified for this repo; see also F16.** Nothing in it
+builds the loader for a PC. QEMU's Pi Zero machine could run the ARM code but has no VIA or
 Vectrex behind the GPIO pins, so there would be no vector output.
 Consequences: logic that does not touch hardware (name parsing, classification, menu
 data, list handling) can be written as plain C and unit-tested on a PC. Anything that
 draws or launches must be tried on the PiTrex.
 
-**F15. Toolchain not yet checked. Unverified.** The build needs `arm-none-eabi-gcc`
-(`HowToCompile.txt`). Whether it is installed here, and whether the unmodified loader
-builds, is the first thing to establish.
+**F15. The ARM toolchain is not installed here. Verified (2026-10-17).**
+`arm-none-eabi-gcc` is not on `PATH`. `distrobox`, `toolbox` and `brew` are available on
+this machine. The author warns (quick-start page) that the newest GNU Arm toolchain
+gave him a linker error (`_kill`) and that he kept an older copy. Expect to pin a
+version. Whether the unmodified loader builds is still to be established.
+
+**F16. The "development image" in the README is a VM, not an emulator. Verified.**
+The README and the quick-start page (`vide.malban.de/pitrex/pitrex-baremetal-quick-start-unfinished`,
+plain HTTP; the site's HTTPS fails here) point to `PiTrexBaremetalDev_Ubuntu_16.04.07.ova`,
+a VirtualBox appliance (user and password `ubuntu`) with Ubuntu 16.04, the GNU Arm
+cross-compiler and the sources. It builds images. It does not run them, and the page
+mentions no simulator. This repo's `sim/` directory is a 6502 arcade simulator and
+translator for the Atari ports, not a PiTrex or loader emulator. Not downloaded or
+inspected.
+
+**F17. The author's dev loop is serial upload plus UART printf. Verified (docs and
+Makefile), Unverified on this hardware.** Instead of swapping the SD card, `make` can
+push an image over a USB-serial cable to the running PiTrex loader with
+`PiTrexSerial/piserial` (`SERIAL_TRANSFER`, `Rules.mk`). Wiring is GND, TX and RX to the
+Pi's UART. The same cable shows every `printf` in a terminal. Your card already ships
+`piserial.lin` / `piserial.win` and `vterm.ini` (VTerm, the PC-to-PiTrex serial link).
+`Rules.mk` is configured for the author's machine (`MAKE_IMAGE = yes`, a hard-coded FTDI
+serial path, copy targets under `/media/sf_*`). `HowToCompile.txt` says to comment out
+`MAKE_IMAGE` or fix the paths or the build breaks. A fork should move these to local
+overrides.
 
 ## Open questions
 

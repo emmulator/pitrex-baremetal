@@ -68,7 +68,7 @@ presets marked as Speedy and everything else as Exact.
 
 | # | Phase | Result | Test |
 |---|---|---|---|
-| 0 | Toolchain and baseline | `arm-none-eabi-gcc` installed; unmodified loader builds for zero1 and zero2 | Build; boot the unmodified loader on the PiTrex (F15) |
+| 0 | Toolchain and baseline | Pinned `arm-none-eabi-gcc` in a distrobox (F15); local build overrides instead of editing `Rules.mk` (F17); unmodified loader builds for zero1 and zero2 | Build; boot the unmodified loader on the PiTrex. Optional: UART cable for `printf` and serial upload (F17) |
 | 1 | Prove the pipeline | One new compiled entry: Vectorburner under COMPUTER (F13) | Launch from the menu; check exit behaviour |
 | 2 | Data-driven menu | Replace the linked structs with a table. Same entries, same behaviour | Every entry launches as before, spot-checked on hardware |
 | 3 | Discovery | Scan `vectrex/` and `piZeroN/`, merge with the catalog, apply sidecars | Host unit tests for parsing and classification, then hardware |
