@@ -62,17 +62,24 @@ returns to the list when you leave it with the stick.
   `menu/rom.original_mr_boston_bin.ini`. It can set `emulator = speedy` or `emulator = exact`
   (the default), `title`, `hide` and notes.
 * Notes and "ROM NOT FOUND!" show under the list for the highlighted entry.
+* **Caveat tags.** The list shows the most serious caveat from an entry's notes beside its
+  name: `[BROKEN]` ("not working", "crash"), `[WIP]` ("work in progress") or `[NO SOUND]`.
+  The tags come from the compiled-in notes, or, when a sidecar supplies notes, from the
+  sidecar's lines. 27 of the 69 compiled-in entries have one today. Fix a game, edit its
+  sidecar, and the tag goes away.
 * The loader reads the list of files in `menu/` once and only opens files that exist.
 
 ## Not done yet
 
 * Which games run well under Speedy is not known: the default is Exact for everything, and the
   8 Speedy presets stay in their own group. Both emulators accept any `.bin` (file 02, F8).
-* Caveat tags in the list (`[NO SOUND]`), icons.
+* Icons.
 * `.vec` files and folders deeper than two levels are not listed; a ROM whose path is 64
   characters or longer is skipped. At most 400 ROMs.
 * Categories for programs (all go under PROGRAMS).
-* The list does not remember where you were after a program returns.
+* Remembering your place after a program returns is not implemented. It may happen anyway,
+  because the loader stays in memory while a program runs and its variables are kept; that is
+  unverified.
 * Whether the old menu's draw routine and this one disagree on anything the author relies
   on, such as the flashing title in the corner, is unverified.
 
@@ -82,7 +89,8 @@ returns to the list when you leave it with the stick.
 (`docs/tools/gen_menu_tree.py` writes it as test data from `loaderMain.c`): 79 nodes, 75
 launchable entries, titles, drilling down and back with selection restore, the scrolling
 window, Major Havoc keeps its compiled entry and game byte, hiding, and the discovery of the 8
-programs from the card's real file list. For ROMs it uses a list of 158 real and made-up paths
+programs from the card's real file list, and the caveat tags of the compiled-in entries (27 of 69, the
+same count an independent python scan of the source gives). For ROMs it uses a list of 158 real and made-up paths
 (the card's `vectrex/` tree, the 44 homebrew files in Downloads, and junk such as `bios/x.bin`,
 `.hidden.bin`, `readme.txt`): 135 are listed, grouped and ordered as an independent python
 computation says, the reserved folders are left out, and the emulator switch works. It fails when the

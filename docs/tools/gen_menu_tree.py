@@ -27,6 +27,9 @@ for m in re.finditer(r'MenuItemNew\s+(\w+)\s*=\s*\{(.*?)\n\};', src, re.S):
     items[m.group(1)] = f
 
 STR = r'"((?:[^"\\]|\\.)*)"'
+def cdecode(s):
+    return s  # keep the C escapes as written: they are pasted back into C source
+
 def cstr(x):
     m = re.fullmatch(STR, x.strip())
     return '"%s"' % m.group(1) if m else '0'
@@ -57,6 +60,9 @@ for n in order:
     # param strings keep their C escapes (\\x2d etc.)
     print('  mock[%d].id = %s; mock[%d].DISPLAYNAME = %s; mock[%d].img = %s; mock[%d].param1 = %s; mock[%d].param2 = %s; /* %s */'
           % (i, f[0], i, cstr(f[1]), i, img(f[3]), i, cstr(f[4]), i, cstr(f[5]), n))
+    texts = [cdecode(x) for x in re.findall(STR, ' '.join(f[13:]))]
+    for k, t in enumerate(texts[:11]):
+        print('  mock[%d].text[%d] = "%s";' % (i, k, t))
     c = ref(f[9]); r = ref(f[11])
     if c in idx: print('  mock[%d].child = &mock[%d];' % (i, idx[c]))
     if r in idx and n not in ('vectrexMenu', 'arcadeMenu', 'computerMenu', 'videoMenu', 'audioMenu'):

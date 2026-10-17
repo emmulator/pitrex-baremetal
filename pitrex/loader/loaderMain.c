@@ -3195,6 +3195,11 @@ static void nmApplySidecars(void)
     if (!nmHasSidecar(key)) continue;
     if (!sidecarReadKey(key, &t)) continue;
     if (t.hide) n->hidden = 1;
+    if (t.found)                               // a sidecar's notes replace the compiled ones, so do their caveats
+    {
+      n->tags = 0;
+      for (int r = 0; r < t.rows; r++) n->tags |= nmTagsOfLine(t.row[r]);
+    }
     if (n->discovered && t.title[0] != 0) nmCopy(n->title, t.title, (int) sizeof n->title);
     if (t.emulator != 0) nmChooseEmulator(n, t.emulator);
   }
@@ -3414,7 +3419,7 @@ void newMenuFrame(void)
     return;
   }
 
-  char line[48];
+  char line[56];
   char path[64];
   nmPath(&nmNav, path, (int) sizeof path);
   v_printString(-120, 86, path[0] ? path : "MAIN MENU", 5, 0x5f);
@@ -3423,10 +3428,20 @@ void newMenuFrame(void)
   {
     NmNode *n = nmNav.list[nmNav.top + r];
     int c = 0;
+    const char *tag = nmTagText(n->tags);
+    int maxChars = 40;                         // leave room for " [WIP]" after the title
+    if (tag[0] != 0) maxChars = 44 - (int) strlen(tag) - 4;
     line[c++] = (nmNav.top + r == nmNav.sel) ? '>' : ' ';
     line[c++] = ' ';
-    for (int k = 0; n->title[k] != 0 && c < 40; k++) line[c++] = n->title[k];
-    if (nmHasVisibleChild(n) && c < 42) { line[c++] = ' '; line[c++] = '+'; }
+    for (int k = 0; n->title[k] != 0 && c < maxChars; k++) line[c++] = n->title[k];
+    if (tag[0] != 0)
+    {
+      line[c++] = ' ';
+      line[c++] = '[';
+      for (int k = 0; tag[k] != 0; k++) line[c++] = tag[k];
+      line[c++] = ']';
+    }
+    if (nmHasVisibleChild(n) && c < 44) { line[c++] = ' '; line[c++] = '+'; }
     line[c] = 0;
     v_printString(-120, 68 - r * 14, line, 5, (nmNav.top + r == nmNav.sel) ? 0x5f : 0x40);
   }

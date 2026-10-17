@@ -34,6 +34,7 @@ typedef struct NmNode
   struct NmNode *right;         // next sibling
   struct NmNode *parent;
   MenuItemNew *src;             // the compiled entry this came from, 0 for discovered programs
+  int tags;                     // NM_TAG_* found in the notes
   int hidden;                   // set from a sidecar (hide = 1)
   int discovered;               // found on the card, not compiled in
   char key[NM_NAME_LEN];        // for discovered programs: image base name, used for the sidecar
@@ -60,6 +61,10 @@ typedef struct
   int top;
 } NmNav;
 
+#define NM_TAG_NOSOUND 1
+#define NM_TAG_WIP 2
+#define NM_TAG_BROKEN 4
+
 // ---- small text helpers -------------------------------------------------------------
 
 static char nmUpper(char c) { return (c >= 'a' && c <= 'z') ? (char) (c - 32) : c; }
@@ -79,6 +84,37 @@ static void nmCopyTrimmed(char *dst, const char *src, int max)
   nmCopy(dst, src, max);
   int n = (int) strlen(dst);
   while (n > 0 && dst[n - 1] == ' ') dst[--n] = 0;
+}
+
+static int nmContainsNoCase(const char *s, const char *needle)
+{
+  int nl = (int) strlen(needle);
+  for (; *s != 0; s++)
+  {
+    int i = 0;
+    while (i < nl && s[i] != 0 && nmLower(s[i]) == nmLower(needle[i])) i++;
+    if (i == nl) return 1;
+  }
+  return nl == 0;
+}
+
+// Caveats in one line of an entry's notes: "NO SOUND", "WORK IN PROGRESS", "NOT WORKING"/"CRASH".
+static int nmTagsOfLine(const char *line)
+{
+  int tags = 0;
+  if (nmContainsNoCase(line, "no sound")) tags |= NM_TAG_NOSOUND;
+  if (nmContainsNoCase(line, "work in progress")) tags |= NM_TAG_WIP;
+  if (nmContainsNoCase(line, "not working") || nmContainsNoCase(line, "crash")) tags |= NM_TAG_BROKEN;
+  return tags;
+}
+
+// The most serious tag as a short word, "" for none.
+static const char *nmTagText(int tags)
+{
+  if (tags & NM_TAG_BROKEN) return "BROKEN";
+  if (tags & NM_TAG_WIP) return "WIP";
+  if (tags & NM_TAG_NOSOUND) return "NO SOUND";
+  return "";
 }
 
 static int nmEqNoCase(const char *a, const char *b)
@@ -162,6 +198,8 @@ static NmNode *nmCloneNode(NmTree *t, MenuItemNew *m, NmNode *parent, int depth)
     n->img = m->img;
     n->param1 = m->param1;
     n->param2 = m->param2;
+    for (int i = 0; i < 12 && m->text[i] != 0; i++)       // the notes of an entry
+      n->tags |= nmTagsOfLine(m->text[i]);
   }
   if (depth < 4)
   {

@@ -25,6 +25,7 @@ typedef struct MenuItemNew
   void *left;
   void *right;
   char *scrolltext;
+  char *text[12];
 } MenuItemNew;
 
 #include "newMenuLogic.h"
@@ -179,6 +180,36 @@ int main(int argc, char **argv)
   for (int i = 0; i < tree.ntops; i++) leaves += tree.tops[i]->child ? countLeaves(tree.tops[i]->child) : 0;
   printf("launchable entries in the tree: %d\n", leaves);
   CHECK(leaves >= 66, "launchable entries: %d", leaves);
+
+  /* ---- caveat tags from the author's notes ---- */
+  CHECK(nmTagsOfLine("NO SOUND!") == NM_TAG_NOSOUND, "no sound");
+  CHECK(nmTagsOfLine("AAE EMU / No SOUND") == NM_TAG_NOSOUND, "no sound in other case");
+  CHECK(nmTagsOfLine("WORK IN PROGRESS!!") == NM_TAG_WIP, "wip");
+  CHECK(nmTagsOfLine("INPUT NOT WORKING") == NM_TAG_BROKEN, "not working");
+  CHECK(nmTagsOfLine("CRASHING") == NM_TAG_BROKEN, "crashing");
+  CHECK(nmTagsOfLine("WORKING GOOD!") == 0, "working good has no tag");
+  CHECK(nmTagsOfLine("") == 0 && nmTagsOfLine("SORT OF...") == 0, "plain notes have no tag");
+  CHECK(strcmp(nmTagText(NM_TAG_NOSOUND | NM_TAG_WIP), "WIP") == 0, "wip outranks no sound");
+  CHECK(strcmp(nmTagText(NM_TAG_BROKEN | NM_TAG_WIP), "BROKEN") == 0, "broken outranks wip");
+  CHECK(nmTagText(0)[0] == 0, "no tag, no text");
+  {
+    struct { const char *title; int tags; } expect[] = {
+      { "LUNAR LANDER", 0 }, { "BLACK WIDOW", NM_TAG_WIP | NM_TAG_NOSOUND }, { "SPEEDFREAK", NM_TAG_NOSOUND },
+      { "SPACE WARS", NM_TAG_BROKEN }, { "OMEGA RACE", NM_TAG_WIP | NM_TAG_NOSOUND }, { "TEMPEST", NM_TAG_WIP | NM_TAG_NOSOUND },
+      { "GRAVITAR", NM_TAG_WIP | NM_TAG_NOSOUND }, { "BARRIER", 0 }, { "DEMON", 0 }, { "ZBLAST", 0 }, { "REBEL DEFENDER", NM_TAG_NOSOUND },
+      { "BZ2 (BETA)", NM_TAG_NOSOUND }, { "ASTEROIDS", 0 } };
+    int tagged = 0, total = 0;
+    for (int i = 0; i < tree.used; i++)
+    {
+      NmNode *n = &tree.pool[i];
+      if (n->img != 0 && !n->discovered) { total++; if (n->tags) tagged++; }
+      for (unsigned k = 0; k < sizeof expect / sizeof expect[0]; k++)
+        if (n->img != 0 && strcmp(n->title, expect[k].title) == 0)
+          CHECK(n->tags == expect[k].tags, "tags of %s: %d, expected %d", n->title, n->tags, expect[k].tags);
+    }
+    printf("compiled entries with a caveat tag: %d of %d\n", tagged, total);
+    CHECK(tagged == 27 && total == 69, "27 of 69 compiled entries carry a caveat, got %d of %d", tagged, total);
+  }
 
   /* ---- Vectrex ROMs (optional arguments 3 and 4) ---- */
   if (argc > 4)
