@@ -6,6 +6,8 @@
 #include <baremetal/pitrexio-gpio.h>
 #include <vectrex/osWrapper.h>
 #include <vectrex/mathSupport.h>
+#include <vectrex/ini.h>
+#include "menuSidecar.h"
 
 #if RASPPI != 1 
 #define IMG_FILE_PREFIX "piZero2/"
@@ -2556,8 +2558,58 @@ int scroll_x;
 int scroll_x_offset;
 int scrollDelay;
 
+// ---------------------------------------------------------------------------
+// Menu sidecar files: "menu/<key>.ini" replaces the note lines of a menu entry.
+// See menuSidecar.h and docs/menu/05-sidecar-format.md.
+// The stock ini_parse() is NOT used: it keeps a 10 KB buffer on the stack and records
+// the file name in lastAccessedIni, which the settings screen uses to decide where to
+// save. A sidecar must never become that file.
+// ---------------------------------------------------------------------------
+static SidecarText sidecar;
+static MenuItemNew *sidecarOwner = 0;       // entry the cached text belongs to
+static char sidecarFile[2048];
+
+static int sidecarIniHandler(void *user, const char *section, const char *name, const char *value)
+{
+  sidecarLine((SidecarText *) user, name, value);
+  return 1;
+}
+
+static void loadSidecarText(MenuItemNew *m)
+{
+  sidecar.found = 0;
+  sidecar.skip = 0;
+  sidecar.rows = 0;
+  if (m == 0 || m->id == 9999) return;         // 9999 = PICK A GAME (browses the card)
+
+  char key[96];
+  if (!sidecarKey(m->img, m->param1, m->param2, key, sizeof(key))) return;
+
+  char path[128];
+  strcpy(path, "menu/");
+  strcat(path, key);
+  strcat(path, ".ini");
+
+  ensureMainPath();
+  FILE *f = fopen(path, "rb");
+  if (f == 0) return;                          // no sidecar: keep the compiled notes
+  int len = (int) fread(sidecarFile, 1, sizeof(sidecarFile) - 1, f);
+  fclose(f);
+  if (len <= 0) return;
+  for (int i = 0; i < len; i++)
+    if (sidecarFile[i] == '\r') sidecarFile[i] = '\n';
+  sidecarFile[len] = 0;
+  sidecar.found = 0;
+  ini_parse_string(sidecarFile, sidecarIniHandler, &sidecar);
+}
+
 void displayMenuItem(MenuItemNew *m)
 {
+  if (scrollReset && m != sidecarOwner)       // scrollReset also fires on every scroll-text wrap
+  {
+    loadSidecarText(m);
+    sidecarOwner = m;
+  }
   if (m->icon != 0)
   {
     displayLargeList(m->icon);
@@ -2646,7 +2698,16 @@ void displayMenuItem(MenuItemNew *m)
       v_printString(-60, -125, "ROM NOT FOUND!", 10, 0x57);
     }
   }
-  if (m->text != 0)
+  if (sidecar.found)
+  {
+    int yPos = -18 * sidecar.skip;
+    for (int count = 0; count < sidecar.rows; count++)
+    {
+      v_printString(-40, yPos, sidecar.row[count], 5, 0x48);
+      yPos -= 18;
+    }
+  }
+  else if (m->text != 0)
   {
     int yPos = 0;
     int count = 0;

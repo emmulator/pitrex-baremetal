@@ -1,0 +1,67 @@
+piZero1/vectorblade.img			vectorblade
+piZero1/vectrexspeedy.img			vectrexspeedy
+piZero1/vectrexspeedy.img	6f726967696e616c2f574542574152532e42494e		vectrexspeedy.original_webwars_bin
+piZero1/vectrexspeedy.img	6f726967696e616c2f4245525a45524b2e42494e		vectrexspeedy.original_berzerk_bin
+piZero1/vectrexspeedy.img	6f726967696e616c2f4d53544f524d322e42494e		vectrexspeedy.original_mstorm2_bin
+piZero1/vectrexspeedy.img	6f726967696e616c2f444b544f5745522e42494e		vectrexspeedy.original_dktower_bin
+piZero1/vectrexspeedy.img	6f726967696e616c2f434153544c452e42494e		vectrexspeedy.original_castle_bin
+piZero1/vectrexspeedy.img	6f726967696e616c2f4e41525a4f442e42494e		vectrexspeedy.original_narzod_bin
+piZero1/vectrexspeedy.img	6f726967696e616c2f534352414d424c452e42494e		vectrexspeedy.original_scramble_bin
+piZero1/vectrexspeedy.img	6f726967696e616c2f534f4c41522e42494e		vectrexspeedy.original_solar_bin
+piZero1/vectrexexact.img			vectrexexact
+piZero1/vectrexexact.img	4b41524c5f5155415050452e42494e		vectrexexact.karl_quappe_bin
+piZero1/vectrexexact.img	52454c454153452e42494e		vectrexexact.release_bin
+piZero1/vectrexexact.img	6f726967696e616c2f4d525f424f53544f4e2e42494e		vectrexexact.original_mr_boston_bin
+piZero1/vectrexexact.img	64656d6f732f52616964696e6750617274792e62696e		vectrexexact.demos_raidingparty_bin
+piZero1/vectrexexact.img	64656d6f732f62726573656e68616d2e62696e		vectrexexact.demos_bresenham_bin
+piZero1/vectrexexact.img	64656d6f732f657069632e62696e		vectrexexact.demos_epic_bin
+piZero1/vectrexexact.img	64656d6f732f7768617470672e62696e		vectrexexact.demos_whatpg_bin
+piZero1/vectrexlineart.img	64656d6f732f6c696e656172743862616e6b732e62696e		vectrexlineart.demos_lineart8banks_bin
+piZero1/swsbt.img			swsbt
+piZero1/asteroids_sbt.img			asteroids_sbt
+piZero1/battlezone.img			battlezone
+piZero1/blackwidow.img			blackwidow
+piZero1/redbaron.img			redbaron
+piZero1/lunar.img			lunar
+piZero1/gravitar.img			gravitar
+piZero1/spaceduel.img			spaceduel
+piZero1/tempest.img			tempest
+piZero1/aae.img	2d		aae.x2d
+piZero1/aae.img	09		aae.x09
+piZero1/aae.img	36		aae.x36
+piZero1/tailgunner.img			tailgunner
+piZero1/aae.img	42		aae.x42
+piZero1/aae.img	3a		aae.x3a
+piZero1/aae.img	44		aae.x44
+piZero1/cine.img	64656d6f6e		cine.demon
+piZero1/aae.img	3e		aae.x3e
+piZero1/cine.img	737061636577617273		cine.spacewars
+piZero1/aae.img	39		aae.x39
+piZero1/aae.img	3c		aae.x3c
+piZero1/aae.img	45		aae.x45
+piZero1/cine.img	62617272696572		cine.barrier
+piZero1/aae.img	38		aae.x38
+piZero1/aae.img	40		aae.x40
+piZero1/aae.img	3d		aae.x3d
+piZero1/aae.img	22		aae.x22
+piZero1/aae.img	23		aae.x23
+piZero1/aae.img	24		aae.x24
+piZero1/aae.img	25		aae.x25
+piZero1/aae.img	28		aae.x28
+piZero1/aae.img	0a		aae.x0a
+piZero1/zblast.img			zblast
+piZero1/vhyperoid.img			vhyperoid
+piZero1/gsbasic.img			gsbasic
+piZero1/newkind.img			newkind
+piZero1/ww_vi.img			ww_vi
+piZero1/bz2.img			bz2
+piZero1/voom.img			voom
+piZero1/rebel.img			rebel
+piZero1/vterm.img			vterm
+piZero1/vectorburner.img			vectorburner
+piZero1/vectrexvideo.img	766563747265782f6d6f76696573	4261644170706c652e62696e	vectrexvideo.vectrex_movies.badapple_bin
+piZero1/vectrexvideo.img	766563747265782f6d6f76696573	426c61426c612e62696e	vectrexvideo.vectrex_movies.blabla_bin
+piZero1/vectrexvideo.img	766563747265782f6d6f76696573	4c614c696e65612e62696e	vectrexvideo.vectrex_movies.lalinea_bin
+piZero1/vectrexvideo.img	766563747265782f6d6f76696573	4261644170706c6544452e62696e	vectrexvideo.vectrex_movies.badapplede_bin
+piZero1/vectrexaudio.img	766563747265782f7761766573	426f68656d69616e2e62696e	vectrexaudio.vectrex_waves.bohemian_bin
+piZero1/vectrexaudio.img	766563747265782f7761766573	507572706c655261696e2e62696e	vectrexaudio.vectrex_waves.purplerain_bin
