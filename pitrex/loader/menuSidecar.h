@@ -20,6 +20,7 @@ typedef struct
   char row[SC_MAX_ROWS][SC_ROW_LEN];
   int hide;                        // 1: leave the entry out of the new menu
   char title[32];                  // display name of a program found on the card (new menu)
+  char emulator;                   // 's' or 'e': which Vectrex emulator starts a ROM (new menu)
 } SidecarText;
 
 // A parameter that is exactly one byte (the AAE game number) is written as xNN.
@@ -111,6 +112,12 @@ static void sidecarLine(SidecarText *t, const char *name, const char *value)
   else if (strcmp(name, "hide") == 0)
   {
     t->hide = atoi(value) != 0;
+  }
+  else if (strcmp(name, "emulator") == 0)
+  {
+    char c = value[0];
+    if (c >= 'A' && c <= 'Z') c = (char) (c + 32);
+    t->emulator = (c == 's' || c == 'e') ? c : 0;
   }
   else if (strcmp(name, "title") == 0)
   {

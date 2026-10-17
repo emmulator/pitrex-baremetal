@@ -2,7 +2,8 @@
  *
  *   python3 -I docs/tools/gen_menu_tree.py pitrex/loader/loaderMain.c > /tmp/menu_tree.inc
  *   gcc -Wall -Wextra -I pitrex/loader -I /tmp -o /tmp/t docs/tools/test_new_menu.c
- *   /tmp/t <image folder listing, one name per line> <expected discovered bases, one per line>
+ *   /tmp/t <image folder listing, one name per line> <expected discovered bases, one per line> \
+ *          <ROM paths under vectrex/, one per line> <expected ROM tree, as written by the python snippet in docs/menu/07-new-menu.md>
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -69,8 +70,8 @@ int main(int argc, char **argv)
   CHECK(settings != 0, "settings node");
 
   /* programs found on the card */
-  static char known[NM_MAX_NODES][NM_NAME_LEN];
-  int nknown = nmCollectImages(tree.tops, tree.ntops, known, NM_MAX_NODES);
+  static char known[NM_MAX_IMAGES][NM_NAME_LEN];
+  int nknown = nmCollectImages(tree.tops, tree.ntops, known, NM_MAX_IMAGES);
   printf("distinct images launched by the compiled menu: %d\n", nknown);
 
   static char listing[256][64];
@@ -178,6 +179,86 @@ int main(int argc, char **argv)
   for (int i = 0; i < tree.ntops; i++) leaves += tree.tops[i]->child ? countLeaves(tree.tops[i]->child) : 0;
   printf("launchable entries in the tree: %d\n", leaves);
   CHECK(leaves >= 66, "launchable entries: %d", leaves);
+
+  /* ---- Vectrex ROMs (optional arguments 3 and 4) ---- */
+  if (argc > 4)
+  {
+    static char rpaths[NM_MAX_ROMS][NM_ROM_PATH];
+    int nr = 0;
+    FILE *f = fopen(argv[3], "r");
+    if (!f) { perror(argv[3]); return 2; }
+    char l[256];
+    while (nr < NM_MAX_ROMS && fgets(l, sizeof l, f))
+    {
+      l[strcspn(l, "\r\n")] = 0;
+      if (strlen(l) < NM_ROM_PATH) strcpy(rpaths[nr++], l);
+    }
+    fclose(f);
+
+    NmNode *vectrex = tree.tops[0];
+    NmNode *roms = nmNewNode(&tree);
+    nmCopy(roms->title, "ALL ROMS", (int) sizeof roms->title);
+    nmAppendChild(vectrex, roms);
+    int nadded = nmAddRoms(&tree, roms, rpaths, nr, "piZero1/vectrexexact.img", "piZero1/vectrexspeedy.img");
+
+    /* expected: one line per node, G: group, E: entry in a group, R: entry in vectrex/ */
+    static char want[NM_MAX_NODES][64];
+    int nw = 0;
+    f = fopen(argv[4], "r");
+    if (!f) { perror(argv[4]); return 2; }
+    while (nw < NM_MAX_NODES && fgets(want[nw], 64, f)) { want[nw][strcspn(want[nw], "\r\n")] = 0; nw++; }
+    fclose(f);
+
+    int got = 0, bad = 0;
+    for (NmNode *c = roms->child; c != 0; c = c->right)
+    {
+      char line[80];
+      if (c->child != 0)
+      {
+        snprintf(line, sizeof line, "G:%s", c->title);
+        if (got < nw && strcmp(line, want[got]) != 0) { printf("   tree[%d] got '%s' want '%s'\n", got, line, want[got]); bad++; }
+        got++;
+        for (NmNode *e = c->child; e != 0; e = e->right)
+        {
+          snprintf(line, sizeof line, "E:%s", e->title);
+          if (got < nw && strcmp(line, want[got]) != 0) { printf("   tree[%d] got '%s' want '%s'\n", got, line, want[got]); bad++; }
+          got++;
+        }
+      }
+      else
+      {
+        snprintf(line, sizeof line, "R:%s", c->title);
+        if (got < nw && strcmp(line, want[got]) != 0) { printf("   tree[%d] got '%s' want '%s'\n", got, line, want[got]); bad++; }
+        got++;
+      }
+    }
+    printf("ROM paths read: %d, ROMs listed: %d, tree rows: %d (expected %d)\n", nr, nadded, got, nw);
+    CHECK(got == nw, "tree rows %d != %d", got, nw);
+    CHECK(bad == 0, "%d rows differ", bad);
+
+    /* parameters, images, keys */
+    NmNode *first = 0;
+    for (NmNode *c = roms->child; c != 0 && first == 0; c = c->right) first = c->child ? c->child : c;
+    CHECK(first != 0 && first->discovered && first->param1 != 0, "first ROM entry");
+    if (first != 0)
+    {
+      CHECK(strstr(first->img, "vectrexexact.img") != 0, "ROMs start Exact by default");
+      CHECK(strcmp(nmOtherEmulator(first), "piZero1/vectrexspeedy.img") == 0, "Button 2 gives Speedy");
+      nmChooseEmulator(first, 's');
+      CHECK(strstr(first->img, "vectrexspeedy.img") != 0 && strstr(first->altImg, "vectrexexact.img") != 0, "sidecar can switch to Speedy");
+      nmChooseEmulator(first, 's');
+      CHECK(strstr(first->img, "vectrexspeedy.img") != 0, "choosing the same emulator twice changes nothing");
+      nmChooseEmulator(first, 'e');
+      CHECK(strstr(first->img, "vectrexexact.img") != 0, "and back to Exact");
+      CHECK(strncmp(first->key, "rom.", 4) == 0, "ROM sidecar key starts with rom.");
+    }
+    char k[40];
+    nmRomKey("original/MR_BOSTON.BIN", k, sizeof k);
+    CHECK(strcmp(k, "rom.original_mr_boston_bin") == 0, "key for original/MR_BOSTON.BIN is '%s'", k);
+    CHECK(nmRomPathOk("A.BIN") && nmRomPathOk("sub/dir/deep.bin") && nmRomPathOk("x.Bin"), "paths that are listed");
+    CHECK(!nmRomPathOk(".hidden.bin") && !nmRomPathOk("sub/.hidden.bin") && !nmRomPathOk("readme.txt") &&
+          !nmRomPathOk("bios/x.bin") && !nmRomPathOk("movies/m.bin") && !nmRomPathOk("a/waves/w.bin") && !nmRomPathOk(".bin") && !nmRomPathOk("x.bi"), "paths that are not listed");
+  }
 
   printf(fails ? "FAIL (%d)\n" : "PASS\n", fails);
   return fails != 0;

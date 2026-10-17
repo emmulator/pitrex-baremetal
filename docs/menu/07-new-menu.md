@@ -28,6 +28,13 @@ start-up and again when it comes back from a program.
   entry under a new **PROGRAMS** category, sorted by name. Drop a new program in the folder
   and it appears. On the current card that finds 8: asteroids, deluxe, gyrocks, hello, maze,
   pacman, perspective, window.
+* **Vectrex ROMs.** Every `.bin` under `vectrex/` (two folder levels deep; `bios`, `movies`,
+  `waves` and names starting with `.` are skipped) is listed under **VECTREX > ALL ROMS**:
+  one group per folder (`ORIGINAL`, `DEMOS`, ...), then the files that sit directly in
+  `vectrex/`, each sorted by name (`MR_BOSTON.BIN` shows as `MR BOSTON`). They start the
+  **Exact** emulator with the ROM's path as the parameter, the same call the compiled-in entries
+  make. **Button 2** starts the highlighted ROM with the **Speedy** emulator instead; the screen
+  says what Button 2 will do. A sidecar can make Speedy the default (see below).
 * **SETTINGS**, last in the list, opens the calibration screen as before.
 * **ALL AAE GAMES** (ARCADE) starts the AAE picker (file 06).
 
@@ -39,6 +46,7 @@ start-up and again when it comes back from a program.
 | stick right, or Button 4 | go into a category; on an entry, start it |
 | stick left | back |
 | Button 1 | start the entry and load its saved state (Vectrex games), as in the old menu |
+| Button 2 | on a ROM under ALL ROMS: start it with the other emulator (Speedy if Exact is the default) |
 
 PICK A GAME is handed to the old file browser: it opens the same screen as before and
 returns to the list when you leave it with the stick.
@@ -49,12 +57,20 @@ returns to the list when you leave it with the stick.
 * For a program found on the card, `menu/<image name>.ini` can set `title = ...` (default:
   the file name in capitals with `_` and `-` as spaces), `hide = 1`, and note lines
   (`text = ...`), exactly as for other entries. Example for `maze.img`: `menu/maze.ini`.
+* For a ROM under ALL ROMS the file is `menu/rom.<path>.ini`, where the path is lower-cased
+  and each run of other characters becomes one `_`: `original/MR_BOSTON.BIN` ->
+  `menu/rom.original_mr_boston_bin.ini`. It can set `emulator = speedy` or `emulator = exact`
+  (the default), `title`, `hide` and notes.
 * Notes and "ROM NOT FOUND!" show under the list for the highlighted entry.
+* The loader reads the list of files in `menu/` once and only opens files that exist.
 
 ## Not done yet
 
-* Vectrex `.bin` files are not listed in the new menu; use PICK A GAME or the original menu.
-* Speedy-vs-Exact choice for new ROMs, caveat tags in the list (`[NO SOUND]`), icons.
+* Which games run well under Speedy is not known: the default is Exact for everything, and the
+  8 Speedy presets stay in their own group. Both emulators accept any `.bin` (file 02, F8).
+* Caveat tags in the list (`[NO SOUND]`), icons.
+* `.vec` files and folders deeper than two levels are not listed; a ROM whose path is 64
+  characters or longer is skipped. At most 400 ROMs.
 * Categories for programs (all go under PROGRAMS).
 * The list does not remember where you were after a program returns.
 * Whether the old menu's draw routine and this one disagree on anything the author relies
@@ -66,5 +82,12 @@ returns to the list when you leave it with the stick.
 (`docs/tools/gen_menu_tree.py` writes it as test data from `loaderMain.c`): 79 nodes, 75
 launchable entries, titles, drilling down and back with selection restore, the scrolling
 window, Major Havoc keeps its compiled entry and game byte, hiding, and the discovery of the 8
-programs from the card's real file list. It fails when the hide logic is broken (checked).
-Not tested: drawing, the SD card calls, stick feel, and the hand-off to PICK A GAME.
+programs from the card's real file list. For ROMs it uses a list of 158 real and made-up paths
+(the card's `vectrex/` tree, the 44 homebrew files in Downloads, and junk such as `bios/x.bin`,
+`.hidden.bin`, `readme.txt`): 135 are listed, grouped and ordered as an independent python
+computation says, the reserved folders are left out, and the emulator switch works. It fails when the
+hide logic or the reserved-folder rule is broken (both checked; the second one caught a real bug
+while writing it). Not tested: drawing, the SD card calls, stick feel, and the hand-off to PICK A GAME.
+
+The test files `rom_paths.txt` and `rom_expected.txt` are produced by the snippet in
+`docs/tools/make_rom_test_data.py`.

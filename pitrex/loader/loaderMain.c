@@ -3141,16 +3141,46 @@ static NmNav nmNav;
 static NmNode *nmSettingsNode = 0;
 static int nmReady = 0;
 static int nmBrowse = 0;                       // 1 while the old PICK A GAME screen is in charge
-static char nmKnown[NM_MAX_NODES][NM_NAME_LEN];
+static char nmKnown[NM_MAX_IMAGES][NM_NAME_LEN];
+static char nmRomPaths[NM_MAX_ROMS][NM_ROM_PATH];
 static char nmFound[NM_MAX_PROGS][NM_NAME_LEN];
 static char nmPaths[NM_MAX_PROGS][56];
 static char nmFileNames[NM_MAX_FILES][32];
 static const char *nmFilePtr[NM_MAX_FILES];
+static char nmSideNames[320][36];               // names of the files in menu/ (without .ini), lower case
+static int nmSideCount = 0;
 static MenuItemNew nmLaunchItem;               // stand-in for a program found on the card
 static NmNode *nmNotesOwner = 0;
 static int nmHeld = 0;                         // frames the stick has been held up/down
 static int nmSideLatch = 0;                    // stick left/right already acted on
 static uint8_t nmLastButtons = 0;
+
+// Remember which sidecar files exist, so a missing one is never opened: every failed open
+// writes a line to the serial console and costs time.
+static void nmListSidecars(void)
+{
+  nmSideCount = 0;
+  DIR *dp = opendir("0:/menu");
+  if (dp == 0) return;
+  dirent *fi;
+  while ((fi = readdir(dp)) != 0 && nmSideCount < 320)
+  {
+    int len = (int) strlen(fi->d_name);
+    if (fi->d_type == DT_DIR || len <= 4 || len > 40) continue;
+    if (!nmEqNoCase(fi->d_name + len - 4, ".ini")) continue;
+    for (int i = 0; i < len - 4 && i < 35; i++) nmSideNames[nmSideCount][i] = nmLower(fi->d_name[i]);
+    nmSideNames[nmSideCount][len - 4 > 35 ? 35 : len - 4] = 0;
+    nmSideCount++;
+  }
+  closedir(dp);
+}
+
+static int nmHasSidecar(const char *key)
+{
+  for (int i = 0; i < nmSideCount; i++)
+    if (strcmp(nmSideNames[i], key) == 0) return 1;
+  return 0;
+}
 
 static void nmApplySidecars(void)
 {
@@ -3160,11 +3190,68 @@ static void nmApplySidecars(void)
     NmNode *n = &nmTree.pool[i];
     if (n->img == 0 || n->id == 9999) continue;
     char key[96];
-    if (!sidecarKey(n->img, n->param1, n->param2, key, sizeof key)) continue;
+    if (n->discovered) nmCopy(key, n->key, (int) sizeof key);
+    else if (!sidecarKey(n->img, n->param1, n->param2, key, sizeof key)) continue;
+    if (!nmHasSidecar(key)) continue;
     if (!sidecarReadKey(key, &t)) continue;
     if (t.hide) n->hidden = 1;
     if (n->discovered && t.title[0] != 0) nmCopy(n->title, t.title, (int) sizeof n->title);
+    if (t.emulator != 0) nmChooseEmulator(n, t.emulator);
   }
+}
+
+// All .bin files under vectrex/ (two folder levels), as paths relative to vectrex/.
+// Only one directory is open at a time: the file layer has a single directory handle.
+static int nmScanRoms(void)
+{
+  static char dirs[24][NM_ROM_PATH];
+  int ndirs = 1;
+  int di = 0;
+  int nroms = 0;
+  dirs[0][0] = 0;
+  while (di < ndirs)
+  {
+    char abs[112];
+    nmCopy(abs, "0:/vectrex", (int) sizeof abs);
+    if (dirs[di][0] != 0)
+    {
+      strcat(abs, "/");
+      strcat(abs, dirs[di]);
+    }
+    int depth = 0;
+    for (const char *q = dirs[di]; *q != 0; q++) if (*q == '/') depth++;
+    if (dirs[di][0] != 0) depth++;
+
+    DIR *dp = opendir(abs);
+    if (dp != 0)
+    {
+      dirent *fi;
+      while ((fi = readdir(dp)) != 0)
+      {
+        if (fi->d_name[0] == '.') continue;
+        char path[NM_ROM_PATH + 32];
+        path[0] = 0;
+        if (dirs[di][0] != 0)
+        {
+          nmCopy(path, dirs[di], (int) sizeof path);
+          strcat(path, "/");
+        }
+        strncat(path, fi->d_name, sizeof(path) - strlen(path) - 1);
+        if (strlen(path) >= NM_ROM_PATH) continue;
+        if (fi->d_type == DT_DIR)
+        {
+          if (ndirs < 24 && depth < 2) nmCopy(dirs[ndirs++], path, NM_ROM_PATH);
+        }
+        else if (nroms < NM_MAX_ROMS && nmRomPathOk(path))
+        {
+          nmCopy(nmRomPaths[nroms++], path, NM_ROM_PATH);
+        }
+      }
+      closedir(dp);
+    }
+    di++;
+  }
+  return nroms;
 }
 
 static void newMenuInit(void)
@@ -3196,13 +3283,27 @@ static void newMenuInit(void)
   }
   nmSettingsNode = nmAddTop(&nmTree, "SETTINGS", 0);
 
+  // Vectrex ROMs on the card: VECTREX / ALL ROMS, started with Exact (Button 2: Speedy)
+  int nroms = nmScanRoms();
+  if (nroms > 0)
+  {
+    NmNode *romsNode = nmNewNode(&nmTree);
+    if (romsNode != 0)
+    {
+      nmCopy(romsNode->title, "ALL ROMS", (int) sizeof romsNode->title);
+      nmAppendChild(nmTree.tops[0], romsNode);
+      nmAddRoms(&nmTree, romsNode, nmRomPaths, nroms, IMG_FILE_PREFIX "vectrexexact.img", IMG_FILE_PREFIX "vectrexspeedy.img");
+    }
+  }
+
+  nmListSidecars();
   nmApplySidecars();
   nmInit(&nmNav, &nmTree);
   nmNotesOwner = 0;
-  printf("New menu: %i nodes, %i programs found\n\r", nmTree.used, nfound);
+  printf("New menu: %i nodes, %i programs, %i ROMs found\n\r", nmTree.used, nfound, nroms);
 }
 
-static void nmLaunch(NmNode *n, int button)
+static void nmLaunch(NmNode *n, int button, int useOtherEmulator)
 {
   if (n->src != 0)
   {
@@ -3211,16 +3312,22 @@ static void nmLaunch(NmNode *n, int button)
   else
   {
     nmLaunchItem.id = 0;
-    nmLaunchItem.img = (char *) n->img;
-    nmLaunchItem.param1 = 0;
-    nmLaunchItem.param2 = 0;
+    nmLaunchItem.img = (char *) (useOtherEmulator ? nmOtherEmulator(n) : n->img);
+    nmLaunchItem.param1 = (char *) n->param1;
+    nmLaunchItem.param2 = (char *) n->param2;
     loadAndStart(&nmLaunchItem, button);
   }
 }
 
-// button: 4 or 1 (the button that was pressed), 0 for the stick
+// button: 4 or 1 (the button that was pressed), 2 = start a ROM with the other emulator, 0 = stick
 static void nmActivate(int button)
 {
+  if (button == 2)
+  {
+    NmNode *c = nmCurrent(&nmNav);
+    if (c != 0 && !nmHasVisibleChild(c) && c->altImg != 0) nmLaunch(c, 4, 1);
+    return;
+  }
   NmNode *n = nmEnter(&nmNav);                 // goes into a category, else returns the entry
   if (n == 0) return;
   if (n == nmSettingsNode)
@@ -3238,7 +3345,7 @@ static void nmActivate(int button)
     return;
   }
   if (n->img == 0) return;                     // an empty category
-  nmLaunch(n, button == 1 ? 1 : 4);
+  nmLaunch(n, button == 1 ? 1 : 4, 0);
 }
 
 static void nmDrawNotes(NmNode *n)
@@ -3249,8 +3356,14 @@ static void nmDrawNotes(NmNode *n)
     nmNotesOwner = n;
     sidecar.found = 0; sidecar.skip = 0; sidecar.rows = 0;
     char key[96];
-    if (n->id != 9999 && sidecarKey(n->img, n->param1, n->param2, key, sizeof key))
-      sidecarReadKey(key, &sidecar);
+    if (n->discovered)
+    {
+      if (nmHasSidecar(n->key)) sidecarReadKey(n->key, &sidecar);
+    }
+    else if (n->id != 9999 && sidecarKey(n->img, n->param1, n->param2, key, sizeof key))
+    {
+      if (nmHasSidecar(key)) sidecarReadKey(key, &sidecar);
+    }
   }
   int y = -52;
   if (n->src != 0 && !testRom(n->src))
@@ -3275,6 +3388,14 @@ static void nmDrawNotes(NmNode *n)
       v_printString(-120, y, n->src->text[r], 5, 0x48);
       y -= 14;
     }
+  }
+  if (n->altImg != 0)                          // a ROM: say what Button 2 does
+  {
+    char *emu = strstr(nmOtherEmulator(n), "speedy") != 0 ? "SPEEDY" : "EXACT";
+    char hint[40];
+    strcpy(hint, "BUTTON 2: START WITH ");
+    strcat(hint, emu);
+    v_printString(-120, -118, hint, 5, 0x40);
   }
 }
 
@@ -3342,6 +3463,7 @@ void newMenuFrame(void)
   {
     if (buttons == 0x08) nmActivate(4);
     else if (buttons == 0x01) nmActivate(1);
+    else if (buttons == 0x02) nmActivate(2);
   }
   nmLastButtons = buttons;
 }

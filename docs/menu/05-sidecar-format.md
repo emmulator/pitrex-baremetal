@@ -60,6 +60,9 @@ text = FLICKER, NO SOUND!
 * `text` lines are printed top to bottom in order, 18 units apart, starting at the vertical
   centre, **below** `skip` blank rows. An empty `text =` is a blank row.
 * A value wrapped in double quotes keeps its inner spaces: `text = "  SPEEDY VECTREX"`.
+* New menu only (file 07): `hide = 1` leaves the entry out, `title = ...` renames a program
+  found on the card, `emulator = speedy|exact` picks the emulator for a ROM. They do not
+  replace the notes: a file with only these keys leaves the compiled notes alone.
 * Unknown names are ignored. At most 12 rows, 47 characters per row, 2047 bytes per file.
 * Keep `;` out of the note text when it follows a space.
 * If a file has any `skip` or `text` line it **replaces** the compiled notes entirely. To

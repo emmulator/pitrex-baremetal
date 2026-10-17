@@ -11,7 +11,10 @@
 
 #include <string.h>
 
-#define NM_MAX_NODES 240
+#define NM_MAX_NODES 700
+#define NM_MAX_IMAGES 64
+#define NM_MAX_ROMS 400
+#define NM_ROM_PATH 64
 #define NM_MAX_LIST 128
 #define NM_MAX_DEPTH 4
 #define NM_MAX_TOPS 8
@@ -26,6 +29,7 @@ typedef struct NmNode
   const char *img;              // image to launch (0 for categories)
   const char *param1;
   const char *param2;
+  const char *altImg;           // for a ROM: the other emulator's image (Button 2 starts with it)
   struct NmNode *child;         // first child
   struct NmNode *right;         // next sibling
   struct NmNode *parent;
@@ -294,6 +298,196 @@ static int nmAddPrograms(NmTree *t, NmNode *into, const char *imageDir,
     added++;
   }
   return added;
+}
+
+// ---- Vectrex ROMs found under vectrex/ ------------------------------------------------
+
+static void nmAppendChild(NmNode *parent, NmNode *child)
+{
+  child->parent = parent;
+  child->right = 0;
+  if (parent->child == 0) { parent->child = child; return; }
+  NmNode *last = parent->child;
+  while (last->right != 0) last = last->right;
+  last->right = child;
+}
+
+// true if the first "len" characters of seg equal word, ignoring case
+static int nmSegIs(const char *seg, int len, const char *word)
+{
+  if ((int) strlen(word) != len) return 0;
+  for (int i = 0; i < len; i++) if (nmLower(seg[i]) != nmLower(word[i])) return 0;
+  return 1;
+}
+
+// A relative path such as "original/BERZERK.BIN" is listed when it is a .bin file and no
+// folder on the way is one the loader keeps out of the list (bios, movies, waves) or hidden.
+static int nmRomPathOk(const char *path)
+{
+  int len = (int) strlen(path);
+  if (len <= 4 || len >= NM_ROM_PATH) return 0;
+  if (!nmEqNoCase(path + len - 4, ".bin")) return 0;
+  const char *seg = path;
+  for (const char *p = path;; p++)
+  {
+    if (*p == '/' || *p == 0)
+    {
+      int sl = (int) (p - seg);
+      if (sl == 0 || seg[0] == '.') return 0;
+      if (*p == '/')
+      {
+        if (nmSegIs(seg, sl, "bios") || nmSegIs(seg, sl, "movies") || nmSegIs(seg, sl, "waves")) return 0;
+      }
+      if (*p == 0) break;
+      seg = p + 1;
+    }
+  }
+  return 1;
+}
+
+// Folder part of a path ("" for a file directly in vectrex/).
+static void nmRomDir(const char *path, char *out, int max)
+{
+  int last = -1;
+  for (int i = 0; path[i] != 0; i++) if (path[i] == '/') last = i;
+  int n = last < 0 ? 0 : last;
+  if (n > max - 1) n = max - 1;
+  memcpy(out, path, (size_t) n);
+  out[n] = 0;
+}
+
+// "original/MR_BOSTON.BIN" -> "MR BOSTON": file name without ".bin", upper case, '_' and '-' as spaces.
+static void nmRomTitle(const char *path, char *out, int max)
+{
+  const char *name = path;
+  for (const char *p = path; *p != 0; p++) if (*p == '/') name = p + 1;
+  int len = (int) strlen(name);
+  if (len > 4 && nmEqNoCase(name + len - 4, ".bin")) len -= 4;
+  int n = 0;
+  for (int i = 0; i < len && n < max - 1; i++)
+  {
+    char c = name[i];
+    out[n++] = (c == '_' || c == '-') ? ' ' : nmUpper(c);
+  }
+  out[n] = 0;
+}
+
+// Slug of a ROM path for the sidecar key: "rom." + the same slug rules as menuSidecar.h
+// (lower case, runs of other characters become one '_').
+static void nmRomKey(const char *path, char *out, int max)
+{
+  int n = 0;
+  const char *pre = "rom.";
+  for (int i = 0; pre[i] != 0 && n < max - 1; i++) out[n++] = pre[i];
+  int startSlug = n;
+  for (const char *p = path; *p != 0 && n < max - 1; p++)
+  {
+    char c = nmLower(*p);
+    if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')) out[n++] = c;
+    else if (n > startSlug && out[n - 1] != '_') out[n++] = '_';
+  }
+  if (n > startSlug && out[n - 1] == '_') n--;
+  out[n] = 0;
+}
+
+static int nmTitleCmp(const char *a, const char *b)
+{
+  while (*a != 0 && *b != 0 && nmLower(*a) == nmLower(*b)) { a++; b++; }
+  return (unsigned char) nmLower(*a) - (unsigned char) nmLower(*b);
+}
+
+// Builds the tree under "into": one category node per folder (alphabetical, listed first),
+// then the files that sit directly in vectrex/. Entries are sorted by title. Every entry
+// starts imgDefault and passes its path as the parameter. Returns how many ROMs were added.
+// paths must stay valid: the nodes point into it.
+static int nmAddRoms(NmTree *t, NmNode *into, char (*paths)[NM_ROM_PATH], int npaths,
+                     const char *imgDefault, const char *imgAlt)
+{
+  int order[NM_MAX_ROMS];
+  int n = 0;
+  for (int i = 0; i < npaths && n < NM_MAX_ROMS; i++)
+    if (nmRomPathOk(paths[i])) order[n++] = i;
+
+  // sort by folder, then by title
+  for (int a = 1; a < n; a++)
+  {
+    int v = order[a];
+    int b = a - 1;
+    while (b >= 0)
+    {
+      char da[NM_ROM_PATH], dv[NM_ROM_PATH], ta[40], tv[40];
+      nmRomDir(paths[order[b]], da, sizeof da);
+      nmRomDir(paths[v], dv, sizeof dv);
+      nmRomTitle(paths[order[b]], ta, sizeof ta);
+      nmRomTitle(paths[v], tv, sizeof tv);
+      int c = nmTitleCmp(da, dv);
+      if (c == 0) c = nmTitleCmp(ta, tv);
+      if (c <= 0) break;
+      order[b + 1] = order[b];
+      b--;
+    }
+    order[b + 1] = v;
+  }
+
+  int added = 0;
+  // folders first: all entries with a folder, in order; then the root files
+  for (int pass = 0; pass < 2; pass++)
+  {
+    NmNode *group = 0;
+    char groupDir[NM_ROM_PATH];
+    groupDir[0] = 0;
+    for (int k = 0; k < n; k++)
+    {
+      char dir[NM_ROM_PATH];
+      nmRomDir(paths[order[k]], dir, sizeof dir);
+      int isRoot = dir[0] == 0;
+      if ((pass == 0) == isRoot) continue;
+      NmNode *parent = into;
+      if (!isRoot)
+      {
+        if (group == 0 || strcmp(groupDir, dir) != 0)
+        {
+          group = nmNewNode(t);
+          if (group == 0) return added;
+          nmPrettyTitle(dir, group->title, (int) sizeof group->title);
+          for (int i = 0; group->title[i] != 0; i++) if (group->title[i] == '/') group->title[i] = '>';
+          nmAppendChild(into, group);
+          nmCopy(groupDir, dir, sizeof groupDir);
+        }
+        parent = group;
+      }
+      NmNode *e = nmNewNode(t);
+      if (e == 0) return added;
+      nmRomTitle(paths[order[k]], e->title, (int) sizeof e->title);
+      nmRomKey(paths[order[k]], e->key, (int) sizeof e->key);
+      e->img = imgDefault;
+      e->altImg = imgAlt;
+      e->param1 = paths[order[k]];
+      e->discovered = 1;
+      nmAppendChild(parent, e);
+      added++;
+    }
+  }
+  return added;
+}
+
+// Button 2 on a ROM: start it with the other emulator. Returns the image to use.
+static const char *nmOtherEmulator(const NmNode *n)
+{
+  return n->altImg != 0 ? n->altImg : n->img;
+}
+
+// sidecar "emulator = speedy|exact": make the entry start with the one named
+static void nmChooseEmulator(NmNode *n, char which)
+{
+  if (n->altImg == 0 || (which != 's' && which != 'e')) return;
+  int isSpeedy = strstr(n->img, "speedy") != 0;
+  if ((which == 's') != isSpeedy)
+  {
+    const char *t = n->img;
+    n->img = n->altImg;
+    n->altImg = t;
+  }
 }
 
 // ---- navigation ---------------------------------------------------------------------
