@@ -87,3 +87,19 @@ were listed but nothing was run.
   from Linux would mean building the patch ourselves. **Unverified.**
 * **AAE** is the PiTrex's own arcade emulator (not MAME). Its ROM sets are MAME-format
   zips, which is why `roms/` holds MAME names.
+
+## ROM sets added to the card (2026-10-17)
+
+Source: the owner's own collection (`~/Development/emulators/roms/mame_wrong_version/`).
+Copied byte-for-byte into `roms/aae/` on the card and verified.
+
+| Set | Result |
+|---|---|
+| `mhavoc2`, `mhavocrv`, `mhavocp`, `alphaone` | File names match what AAE loads; all CRCs match MAME 0.289 |
+| `gravitr2`, `gravp`, `alphaona` | File names match AAE; MAME 0.289 no longer has these sets, so no CRC cross-check was possible |
+| `quantum1`, `quantump` | In the zip; `quantump` CRCs match MAME 0.289. `quantum1` could not be cross-checked |
+| `bradley` | Rebuilt: the original set lacked the one file AAE wants (`036408.01.bin`). It is the Battlezone PROM (`036408-01.k7`, CRC 5903af03) taken from the card's own `roms/bzone.zip` and stored under the old name. All other files match MAME 0.289 |
+| `galaga` | **Not added.** The collection's zip is a different Galaga set (different files and CRCs) from the one AAE expects (`gg1-*` names). The right set is not in the collection. It is also a raster game, so it is low priority |
+
+AAE does not check CRCs (`aae/loaders.c` only looks files up by name), so a name match does not
+prove the contents are right. All of these are **Unverified on hardware**.
