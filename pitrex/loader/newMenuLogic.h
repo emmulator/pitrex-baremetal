@@ -942,15 +942,12 @@ typedef struct
   char paths[NM_MAX_PROGS][56];
 } NmScratch;
 
-// Builds the whole tree. Inputs: the names of the files in menu/ (sideNames) and a reader for them, the
-// image folder ("piZero1/" prefix, file names in files[]), the ROM paths found under vectrex/ and the two
-// emulator images. Returns the SETTINGS node. Nothing here is compiled-in data.
-static NmNode *nmAssemble(NmTree *t, NmScratch *sc, char (*sideNames)[NM_KEY_LEN], int nside, NmReadFn rd,
-                          const char *prefix, const char *const *files, int nfiles,
-                          char (*romPaths)[NM_ROM_PATH], int nroms,
-                          const char *exactImg, const char *speedyImg, int *nentries, int *nfound)
+// The second half of building the tree, after the entry files have been added with nmAddEntries():
+// hides entries with no image, finds programs and ROMs, sorts. Returns the SETTINGS node.
+static NmNode *nmAssembleRest(NmTree *t, NmScratch *sc, NmReadFn rd, const char *prefix,
+                              const char *const *files, int nfiles, char (*romPaths)[NM_ROM_PATH], int nroms,
+                              const char *exactImg, const char *speedyImg, int *nfound)
 {
-  *nentries = nmAddEntries(t, sideNames, nside, rd, prefix);
   nmHideMissingImages(t, files, nfiles);
 
   int nknown = nmCollectImages(t, sc->known, NM_MAX_IMAGES);
@@ -983,6 +980,18 @@ static NmNode *nmAssemble(NmTree *t, NmScratch *sc, char (*sideNames)[NM_KEY_LEN
   for (int i = 0; i < t->ntops; i++) nmHideEmpty(t->tops[i]);
   nmSortTops(t);
   return settings;
+}
+
+// Builds the whole tree in one go (the loader does it in steps, one screen refresh each, see newMenuUi.h).
+// Inputs: the names of the files in menu/ (sideNames) and a reader for them, the image folder ("piZero1/" prefix,
+// file names in files[]), the ROM paths found under vectrex/ and the two emulator images.
+static NmNode *nmAssemble(NmTree *t, NmScratch *sc, char (*sideNames)[NM_KEY_LEN], int nside, NmReadFn rd,
+                          const char *prefix, const char *const *files, int nfiles,
+                          char (*romPaths)[NM_ROM_PATH], int nroms,
+                          const char *exactImg, const char *speedyImg, int *nentries, int *nfound)
+{
+  *nentries = nmAddEntries(t, sideNames, nside, rd, prefix);
+  return nmAssembleRest(t, sc, rd, prefix, files, nfiles, romPaths, nroms, exactImg, speedyImg, nfound);
 }
 
 

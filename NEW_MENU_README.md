@@ -172,8 +172,8 @@ Now it is listed under COMPUTER, sorted with the others. `category = ARCADE / AT
 a category that does not exist yet is created. See the next section for all the fields. To remove an entry,
 delete its file (a program image is then listed under PROGRAMS again) or put `hide = 1` in it.
 
-The list is read from the card every time the menu starts, so a very long list makes the menu take a moment
-longer to appear.
+The list is read from the card every time the menu starts (the screen says READING SD CARD for a moment, about
+three quarters of a second with the shipped 66 entry files; a long list takes longer).
 
 ## Arcade games on this PiTrex
 
@@ -318,6 +318,11 @@ problem.
 
 ## Known problems
 
+* Audio entries (Queen, Prince): the player showed a standard Vectrex screen, then WAVPLAYER, then went black and
+  needed a power cycle (even with players rebuilt from source). The card has logging builds of the audio and video
+  players that write `EMUDBG.TXT`; cause not yet known.
+* The menu music runs at the speed the screen is redrawn, so it slows down as more lines are drawn (long lists,
+  notes, the controls page). Not fixed yet.
 * The BIOS text in Vectrex games is readable with the 2025 emulators but can shimmer: it flickers
   between bright and dim and shifts sideways between frames. Not yet understood; try the settings above
   and the calibration pages in SETTINGS.

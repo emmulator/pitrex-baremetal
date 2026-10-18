@@ -11,15 +11,15 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 pass=0; fail=0
 
-# the menu ignores the controls until they have rested for 15 frames, so every script starts 20 frames late
-late() { perl -pe 's/@(\d+)/"@".($1+20)/ge' <<<"$1"; }
+# the menu ignores the controls until they have rested for 15 frames, so every script starts 45 frames late (the menu reads the card for ~15 frames first)
+late() { perl -pe 's/@(\d+)/"@".($1+45)/ge' <<<"$1"; }
 
 downs() { local n=$1 start=$2 s=""; for ((i=0;i<n;i++)); do s="$s,down@$((start+i*8))"; done; echo "${s#,}"; }
 
 run() {   # name frames script expect [card]
   local name=$1 frames=$2 script=$3 expect=$4 card=${5:-$base}
   local res
-  res=$(podman exec -e PITREX_SHOT="$work/s.bmp" -e PITREX_FRAMES="$((frames+80))" -e PITREX_SCRIPT="$(late "$script")" \
+  res=$(podman exec -e PITREX_SHOT="$work/s.bmp" -e PITREX_FRAMES="$((frames+110))" -e PITREX_SCRIPT="$(late "$script")" \
         -w "$out" pitrex-dev ./preview "$card" 2>&1 | grep -v '^sim:\|^New menu')
   if grep -qF -- "$expect" <<<"$res"; then pass=$((pass+1)); echo "ok    $name"
   else fail=$((fail+1)); echo "FAIL  $name"; echo "      wanted: $expect"; echo "      got:    ${res:-(nothing started)}"; fi
@@ -27,7 +27,7 @@ run() {   # name frames script expect [card]
 runnot() {  # name frames script text-that-must-not-appear [card]
   local name=$1 frames=$2 script=$3 bad=$4 card=${5:-$base}
   local res
-  res=$(podman exec -e PITREX_SHOT="$work/s.bmp" -e PITREX_FRAMES="$((frames+80))" -e PITREX_SCRIPT="$(late "$script")" \
+  res=$(podman exec -e PITREX_SHOT="$work/s.bmp" -e PITREX_FRAMES="$((frames+110))" -e PITREX_SCRIPT="$(late "$script")" \
         -w "$out" pitrex-dev ./preview "$card" 2>&1 | grep -v '^sim:\|^New menu')
   if grep -qF -- "$bad" <<<"$res"; then fail=$((fail+1)); echo "FAIL  $name (found: $bad)"; echo "      got: $res"
   else pass=$((pass+1)); echo "ok    $name"; fi

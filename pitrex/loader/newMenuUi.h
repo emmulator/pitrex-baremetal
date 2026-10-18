@@ -137,37 +137,59 @@ static int nmScanRoms(void)
 }
 
 static NmScratch nmScratch;
+static int nmInitStage = 0;                    // reading the card takes a while: done in steps, one screen refresh each
+static int nmInitFiles = 0, nmInitRoms = 0, nmInitDone = 0, nmInitEntries = 0, nmFound = 0;
 
-static void newMenuInit(void)
+// One step of building the menu. Returns 1 when the menu is ready. While it is not, the screen says
+// READING SD CARD (the PITREX logo and the music go on, because the loader's main loop keeps running).
+static int newMenuInitStep(void)
 {
-  memset(&nmTree, 0, sizeof nmTree);
-  nmListSidecars();
-
-  // the images in the image folder
-  int nfiles = 0;
-  DIR *dp = opendir(NM_IMG_DIR);
-  if (dp != 0)
+  switch (nmInitStage)
   {
-    dirent *fi;
-    while ((fi = readdir(dp)) != 0 && nfiles < NM_MAX_FILES)
+    case 0:
+      memset(&nmTree, 0, sizeof nmTree);
+      nmListSidecars();
+      break;
+    case 1:                                    // the images in the image folder
     {
-      if (fi->d_type == DT_DIR) continue;
-      nmCopy(nmFileNames[nfiles], fi->d_name, (int) sizeof nmFileNames[0]);
-      nmFilePtr[nfiles] = nmFileNames[nfiles];
-      nfiles++;
+      DIR *dp = opendir(NM_IMG_DIR);
+      if (dp != 0)
+      {
+        dirent *fi;
+        while ((fi = readdir(dp)) != 0 && nmInitFiles < NM_MAX_FILES)
+        {
+          if (fi->d_type == DT_DIR) continue;
+          nmCopy(nmFileNames[nmInitFiles], fi->d_name, (int) sizeof nmFileNames[0]);
+          nmFilePtr[nmInitFiles] = nmFileNames[nmInitFiles];
+          nmInitFiles++;
+        }
+        closedir(dp);
+      }
+      break;
     }
-    closedir(dp);
+    case 2:
+      nmInitRoms = nmScanRoms();
+      break;
+    case 3:                                    // the entry files, a few per refresh
+    {
+      int n = nmSideCount - nmInitDone;
+      if (n > 6) n = 6;
+      if (n > 0) nmInitEntries += nmAddEntries(&nmTree, &nmSideNames[nmInitDone], n, nmReadListed, IMG_FILE_PREFIX);
+      nmInitDone += n;
+      if (nmInitDone < nmSideCount) return 0;  // stay in this stage
+      break;
+    }
+    default:
+      nmSettingsNode = nmAssembleRest(&nmTree, &nmScratch, nmReadListed, IMG_FILE_PREFIX, nmFilePtr, nmInitFiles,
+                                      nmRomPaths, nmInitRoms, IMG_FILE_PREFIX "vectrexexact.img",
+                                      IMG_FILE_PREFIX "vectrexspeedy.img", &nmFound);
+      nmInit(&nmNav, &nmTree);
+      nmNotesOwner = 0;
+      printf("New menu: %i nodes, %i entry files, %i programs, %i ROMs found\n\r", nmTree.used, nmInitEntries, nmFound, nmInitRoms);
+      return 1;
   }
-  int nroms = nmScanRoms();
-
-  // everything else is decided in newMenuLogic.h: the entry files, the programs, the ROMs, the order
-  int nentries = 0, nfound = 0;
-  nmSettingsNode = nmAssemble(&nmTree, &nmScratch, nmSideNames, nmSideCount, nmReadListed, IMG_FILE_PREFIX,
-                              nmFilePtr, nfiles, nmRomPaths, nroms,
-                              IMG_FILE_PREFIX "vectrexexact.img", IMG_FILE_PREFIX "vectrexspeedy.img", &nentries, &nfound);
-  nmInit(&nmNav, &nmTree);
-  nmNotesOwner = 0;
-  printf("New menu: %i nodes, %i entry files, %i programs, %i ROMs found\n\r", nmTree.used, nentries, nfound, nroms);
+  nmInitStage++;
+  return 0;
 }
 
 // A breadcrumb file for problems that freeze the PiTrex: NMLOG.TXT on the card lists the last steps
@@ -400,8 +422,15 @@ void newMenuFrame(void)
 {
   if (!nmReady)
   {
-    newMenuInit();
-    nmReady = 1;
+    v_printString(-120, 20, "READING SD CARD", 7, 0x5f);
+    if (nmInitStage == 3 && nmSideCount > 0)
+    {
+      char b[24];
+      sprintf(b, "%i OF %i", nmInitDone, nmSideCount);
+      v_printString(-120, -10, b, 5, 0x48);
+    }
+    if (newMenuInitStep()) nmReady = 1;
+    return;
   }
 
   char line[56];
