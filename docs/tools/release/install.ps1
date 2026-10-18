@@ -150,7 +150,8 @@ if (Test-Path -LiteralPath $cur -PathType Leaf) { $size = (Get-Item -LiteralPath
 if ($Settings -eq 'tuned' -or $size -lt 100) {
   $sdir = Join-Path $here 'settings'
   if (-not (Test-Path -LiteralPath $sdir -PathType Container)) { Die "settings\ folder missing next to this script" }
-  if ($size -ge 100) { Write-Host "settings: replacing yours with the tuned file (saved in the backup)" }
+  if ($size -ge 100 -and $env:PITREX_FRESH_CARD) { Write-Host "settings: installing the tuned file" }
+  elseif ($size -ge 100) { Write-Host "settings: replacing yours with the tuned file (saved in the backup)" }
   elseif ($size -ge 0) { Write-Host "settings: your vectrexInterface.ini is empty; installing the tuned one" }
   else { Write-Host "settings: no vectrexInterface.ini; installing the tuned one" }
   PutFile (Join-Path $sdir 'vectrexInterface.ini') 'vectrexInterface.ini'

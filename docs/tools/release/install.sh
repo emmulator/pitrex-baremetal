@@ -162,7 +162,8 @@ size=-1
 [ -f "$cur" ] && size=$(wc -c < "$cur" | tr -d ' ')
 if [ "$settings" = tuned ] || [ "$size" -lt 100 ]; then
   [ -d "$here/settings" ] || die "settings/ folder missing next to this script"
-  if [ "$size" -ge 100 ]; then echo "settings: replacing yours with the tuned file (saved in the backup)"
+  if [ "$size" -ge 100 ] && [ -n "${PITREX_FRESH_CARD:-}" ]; then echo "settings: installing the tuned file"
+  elif [ "$size" -ge 100 ]; then echo "settings: replacing yours with the tuned file (saved in the backup)"
   elif [ "$size" -ge 0 ]; then echo "settings: your vectrexInterface.ini is empty; installing the tuned one"
   else echo "settings: no vectrexInterface.ini; installing the tuned one"; fi
   put_file "$here/settings/vectrexInterface.ini" vectrexInterface.ini
