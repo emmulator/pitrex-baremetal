@@ -111,7 +111,7 @@ capitals with only those characters. Lines longer than about 46 characters run o
 ## Changing how it looks
 
 Through files only you can change every title, category, note, controls line, what is hidden, where things are
-listed and which emulator a ROM prefers. You cannot change the colours, the text size, the number of rows or the
+listed and which emulator a ROM prefers. You cannot change the text size, the number of rows or the
 sort order without rebuilding the loader. Those live in `pitrex/loader/newMenuUi.h`:
 
 | What | Where |
