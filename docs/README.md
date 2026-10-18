@@ -234,8 +234,10 @@ The tuned `vectrex.ini` differs from Malban's in the BIOS line: `ROM_FILE = bios
 so the Vectrex intro plays) instead of `bios/FASTBOOT.IMG`. Both files have `INTERNAL_STRING_DISPLAY = 1` (the emulator
 draws the BIOS text itself) and leave `CYCLE_EQUIVALENT` commented out. On the test Vectrex, the text of the Vectrex
 boot screen and of games (scores, "GAME OVER") was steady with exactly that combination, and shimmered or was garbled
-with `FASTBOOT.IMG`, and also with `7ADB.bin` once `CYCLE_EQUIVALENT = 648` was switched on in `vectrex.ini`
-(that line overrides the one in `vectrexInterface.ini`). If your game text shimmers, check those two lines first.
+with `FASTBOOT.IMG` in an earlier test, and also with `7ADB.bin` once `CYCLE_EQUIVALENT = 648` was switched on in
+`vectrex.ini` (that line overrides the one in `vectrexInterface.ini`). `FASTBOOT.IMG` (which skips the Vectrex intro and
+boots faster) looked fine again in a later test, so it is worth trying if the intro bothers you. If your game text
+shimmers, check those two lines first.
 
 If vectors look slanted or skewed, use the six CALIBRATION values in SETTINGS (they correct vectors of length
 5, 10, 15, 20, 50 and 100); Vectrex monitors differ. Background:
