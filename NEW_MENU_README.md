@@ -11,7 +11,9 @@ What it adds:
 * Notes and warnings (NO SOUND, WORK IN PROGRESS...) live in small text files on the card, and you
   can edit them.
 * A picker for the arcade emulator (AAE) that lists the arcade games whose ROM files you have.
-* A VECTORBURNER entry, and any other program you drop into `piZero1/` shows up under PROGRAMS.
+* VECTORBURNER under COMPUTER. That one is a compiled-in entry (added to the loader, so the original menu has it
+  too). Any *other* program image you drop into `piZero1/` that has no compiled entry shows up by itself under
+  PROGRAMS. Everything is rebuilt and sorted at every boot, so new games and programs land in alphabetical order.
 * On-screen help: the line under the list always says what the buttons do.
 
 Status: tested on a real PiTrex (Pi Zero W, Vectrex with a Buzz-type BIOS) on 2026-10-17. The list,
@@ -160,6 +162,7 @@ What was seen working or not on the test PiTrex (Pi Zero W, 2026-10-17):
 | Red Baron | works, some sound |
 | Gravitar, Space Duel | work, with sound |
 | Lunar Lander | works; the code plays samples (`samples/lunar/*.raw`), whether they play was not confirmed |
+| Video and Audio entries | did not start with the shipped player images; rebuilt (not yet confirmed) |
 | Star Wars, Tempest | **went blank** with the shipped images. Rebuilt from source and the author's `starwars.ini` calibration moved aside; result not yet known. |
 
 SBT = *static binary translation*: the original game code was translated to C ahead of time instead of
@@ -239,6 +242,20 @@ images were built from slightly older source than the repository's last commit.
 The December 2021 and April 2023 emulators also run games but cannot draw the BIOS text (it shows as
 dots, scores are missing); only the 2025 source has `INTERNAL_STRING_DISPLAY`.
 
+**Where the shipped images came from.** The card used for testing was made from `PiTrex_sd_Jul29_25.zip`
+(a PiTrex bare-metal SD card image; its `changelog.txt` is dated 23 May 2025 and the files in it are dated
+16-23 May 2025, so it predates the repository's last upstream commit of 24 May 2025). Its FAQ points to
+[rpiteam.carrd.co](https://rpiteam.carrd.co) and the author's site <http://vide.malban.de/>; the download
+location was not recorded, so please add it here. The same card also got arcade ROM sets and the
+Vectorburner images.
+
+Images rebuilt from this source and installed on the test card so far: `vectrexexact`, `vectrexspeedy`,
+`vectrexvideo`, `vectrexaudio`, `vectrexlineart`, `vectorblade`, `swsbt` (Star Wars), `tempest` and
+`blackwidow`. The reasons: the shipped Exact and Speedy blanked; Star Wars and Tempest blanked; the
+Video and Audio entries did not start; Black Widow needed the one-stick fire. Games that worked from the
+shipped images (Asteroids, Gravitar, Space Duel, Red Baron, Lunar Lander...) were left alone. A rebuild of
+every other program in the tree is available for comparison (`pitrex-builds/all-fork-source-gcc10.3.1`).
+
 Build them yourself (needs the `pitrex-dev` container, see `docs/tools/build.sh`):
 
 ```
@@ -271,6 +288,8 @@ problem.
   reads as pressed at power-on if you hold it to skip the Vectrex intro; the wait keeps that from
   opening VECTREX.
 * After you leave a game the list may start at the top again (not checked).
+* The CONTROLS page (Button 2) used to stay blank while the button was held and left the menu music's last
+  tone sounding; it now shows at once and silences the tone.
 * Caveat marks are not shown in the AAE picker.
 * The menu reads `.bin` files two folder levels deep only.
 * `NMLOG.TXT` in the card root records the controls on the first frame, the launches and the SETTINGS

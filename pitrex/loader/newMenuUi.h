@@ -240,6 +240,7 @@ static void nmLog(const char *step)
 static void nmSplash(const char *what, const char *how)
 {
   char l1[56], l2[56];
+  v_noSound();
   nmCopy(l1, "STARTING", (int) sizeof l1);
   nmCopy(l2, how, (int) sizeof l2);
   for (int f = 0; f < 45; f++)
@@ -313,8 +314,8 @@ static void nmCheckSettingsFile(void)
 // Button 2 on a game that has "control = ..." lines in its sidecar: a page about the controls.
 static void nmShowControls(NmNode *n)
 {
-  while ((v_directReadButtons() & 0x0f) != 0) { }
-  int left = 0;
+  v_noSound();                                 // the menu music would hold its last tone while this page is up
+  int armed = 0;                               // the button that opened the page may still be down: it must be let go first
   for (int f = 0; f < 100000; f++)
   {
     v_WaitRecal();
@@ -332,13 +333,12 @@ static void nmShowControls(NmNode *n)
       y -= 13;
     }
     v_printString(-120, -124, "ANY BUTTON OR STICK LEFT GOES BACK.", 5, 0x40);
+    int down = (currentButtonState & 0x0f) != 0;
     int jx = currentJoy1X;
-    if (jx < -60) left = 1;
-    if ((currentButtonState & 0x0f) != 0 && f > 10) break;
-    if (left && f > 10) break;
+    if (!down && jx > -60) armed = 1;
+    if (armed && (down || jx < -60)) break;
   }
-  while ((v_directReadButtons() & 0x0f) != 0) { }
-  nmLastButtons = 0x0f;
+  nmLastButtons = currentButtonState & 0x0f;   // a button still held now is not a new press in the menu
   nmSideLatch = 1;
 }
 
