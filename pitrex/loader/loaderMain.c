@@ -8,6 +8,7 @@
 #include <vectrex/mathSupport.h>
 #include <vectrex/ini.h>
 #include "menuSidecar.h"
+extern char lastAccessedIni[255];   // the ini that v_saveIni() writes to (vectrexInterface.c)
 
 #if RASPPI != 1 
 #define IMG_FILE_PREFIX "piZero2/"
@@ -495,6 +496,7 @@ int main(int argc, char *argv[])
   {
     printf("Loader is reinitializing...\r\n");
     ini_parse("loader.ini", newMenuIniHandler, 0);   // only NEW_MENU: the other keys keep their values
+    strcpy(lastAccessedIni, "vectrexInterface.ini"); // ini_parse made it loader.ini; settings must save to their own file
     initMenu();
     currentMenuItem = (MenuItemNew *)loaderSettings.lastSelection;
     ymloaded = loadYM();

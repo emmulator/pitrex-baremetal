@@ -18,7 +18,7 @@
 #define NM_MAX_LIST 128
 #define NM_MAX_DEPTH 4
 #define NM_MAX_TOPS 8
-#define NM_ROWS 8
+#define NM_ROWS 7
 #define NM_MAX_PROGS 48
 #define NM_NAME_LEN 40
 
@@ -106,6 +106,78 @@ static int nmTagsOfLine(const char *line)
   if (nmContainsNoCase(line, "work in progress")) tags |= NM_TAG_WIP;
   if (nmContainsNoCase(line, "not working") || nmContainsNoCase(line, "crash")) tags |= NM_TAG_BROKEN;
   return tags;
+}
+
+// Ids of nodes that the menu adds itself (compiled ids are below 9000, 9999 is PICK A GAME).
+#define NM_ID_PROGRAMS 9001
+#define NM_ID_ALL_ROMS 9002
+#define NM_ID_ROM_FOLDER 9003
+
+// Plain-language help shown under a highlighted category. Only the characters the PiTrex
+// vector font draws are used: A-Z, 0-9, space, "." and "!". Returns the number of lines.
+static int nmHelp(const NmNode *n, const char **out, int max)
+{
+  static const char *vectrex[] = {
+    "GAMES FOR THE VECTREX EMULATORS.",
+    "SPEEDY AND EXACT EACH LIST A FEW GAMES.",
+    "ALL ROMS LISTS EVERY GAME ON THE CARD.",
+    "DEMOS ARE SMALL VECTREX SHOWS.", 0 };
+  static const char *speedy[] = {
+    "SPEEDY RUNS GAMES FASTER THAN A REAL VECTREX.",
+    "IT SKIPS SOME BIOS WORK TO GO FAST.",
+    "A FEW GAMES MISBEHAVE. THEN TRY EXACT.", 0 };
+  static const char *exact[] = {
+    "EXACT RUNS GAMES THE WAY A REAL VECTREX DOES.",
+    "IT IS THE SAFE CHOICE FOR ANY GAME.",
+    "PICK A GAME LETS YOU BROWSE THE CARD.", 0 };
+  static const char *demos[] = {
+    "SMALL SHOWS MADE FOR THE VECTREX.", 0 };
+  static const char *allRoms[] = {
+    "EVERY GAME FILE FOUND IN THE VECTREX FOLDER",
+    "OF THE CARD. THE GAMES UNDER SPEEDY AND",
+    "EXACT ARE LISTED HERE TOO.",
+    "IN A GAME LIST 4 STARTS WITH EXACT AND",
+    "2 STARTS THE SAME GAME WITH SPEEDY.", 0 };
+  static const char *folder[] = {
+    "A FOLDER OF GAME FILES ON THE CARD.",
+    "4 STARTS A GAME WITH EXACT.",
+    "2 STARTS IT WITH SPEEDY.", 0 };
+  static const char *arcade[] = {
+    "ARCADE GAMES RUN BY THE PITREX EMULATORS.",
+    "MOST NEED THEIR ROM FILES ON THE CARD.",
+    "ALL AAE GAMES LISTS THE ONES YOU HAVE.", 0 };
+  static const char *computer[] = {
+    "PROGRAMS AND GAMES WRITTEN FOR THE PITREX.", 0 };
+  static const char *video[] = {
+    "VIDEO PLAYBACK ON THE VECTREX SCREEN.", 0 };
+  static const char *audio[] = {
+    "MUSIC PLAYBACK. THE PICTURE DANCES TO IT.", 0 };
+  static const char *programs[] = {
+    "PROGRAMS FOUND ON THE CARD THAT THE MENU",
+    "DOES NOT KNOW BY NAME.", 0 };
+  static const char *settings[] = {
+    "SCREEN SETTINGS AND CALIBRATION.",
+    "4 OR RIGHT OPENS THEM. THEY ARE SAVED IN",
+    "VECTREXINTERFACE.INI ON THE CARD.", 0 };
+  const char **t = 0;
+  switch (n->id)
+  {
+    case 1: t = vectrex; break;
+    case 2: t = arcade; break;
+    case 3: t = computer; break;
+    case 4: t = video; break;
+    case 5: t = audio; break;
+    case 102: t = speedy; break;
+    case 107: t = exact; break;
+    case 108: t = demos; break;
+    case NM_ID_PROGRAMS: t = programs; break;
+    case NM_ID_ALL_ROMS: t = allRoms; break;
+    case NM_ID_ROM_FOLDER: t = folder; break;
+    default: if (n->id == 0 && n->img == 0 && n->child == 0) t = settings; break;
+  }
+  int c = 0;
+  for (; t != 0 && t[c] != 0 && c < max; c++) out[c] = t[c];
+  return c;
 }
 
 // The most serious tag as a short word, "" for none.
@@ -487,6 +559,7 @@ static int nmAddRoms(NmTree *t, NmNode *into, char (*paths)[NM_ROM_PATH], int np
         {
           group = nmNewNode(t);
           if (group == 0) return added;
+          group->id = NM_ID_ROM_FOLDER;
           nmPrettyTitle(dir, group->title, (int) sizeof group->title);
           for (int i = 0; group->title[i] != 0; i++) if (group->title[i] == '/') group->title[i] = '>';
           nmAppendChild(into, group);

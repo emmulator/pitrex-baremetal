@@ -63,7 +63,8 @@ returns to the list when you leave it with the stick.
   (the default), `title`, `hide` and notes.
 * Notes and "ROM NOT FOUND!" show under the list for the highlighted entry.
 * **Caveat tags.** The list shows the most serious caveat from an entry's notes beside its
-  name: `[BROKEN]` ("not working", "crash"), `[WIP]` ("work in progress") or `[NO SOUND]`.
+  name: BROKEN ("not working", "crash"), WIP ("work in progress") or NO SOUND. The list shows a
+  `!` at the right edge of such an entry; the notes under the list carry the wording.
   The tags come from the compiled-in notes, or, when a sidecar supplies notes, from the
   sidecar's lines. 27 of the 69 compiled-in entries have one today. Fix a game, edit its
   sidecar, and the tag goes away.
@@ -99,3 +100,21 @@ while writing it). Not tested: drawing, the SD card calls, stick feel, and the h
 
 The test files `rom_paths.txt` and `rom_expected.txt` are produced by the snippet in
 `docs/tools/make_rom_test_data.py`.
+
+## Screen layout and help (2026-10-17, after the first hardware test)
+
+The first test showed the text was too small and that the PiTrex vector font draws almost no
+punctuation. The list now uses size 7 text, 7 rows, and only `>` (selected), `$` (category) and
+`!` (caveat). The breadcrumb joins levels with ` > `. Under the list: the notes of the highlighted
+game, or for a category a few lines of plain-language help (`nmHelp`, in `newMenuLogic.h`, tested
+for length and for using only drawable characters). The bottom lines say what the buttons do for
+the highlighted entry (for a Vectrex game file: which emulator Button 4 and Button 2 use). Starting
+anything first shows "STARTING <name> WITH <emulator>" for 45 frames, so a blank screen afterwards
+can be told apart from a menu failure.
+
+SETTINGS now points the ini writer at `vectrexInterface.ini` explicitly (the loader's re-init
+path parses `loader.ini`, and `v_saveIni()` writes to whichever ini was parsed last), and reports
+SETTINGS SAVED or SETTINGS NOT SAVED! after checking the file is not empty. Cause of the empty
+`vectrexInterface.ini` seen on the first test: unknown. `v_saveIni()` does nothing when no ini was
+parsed at start (a card without `vectrexInterface.ini`), which this also covers.
+See `NEW_MENU_README.md` in the repository root for the user-facing guide.

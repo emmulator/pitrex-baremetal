@@ -52,7 +52,7 @@ typedef struct MenuItemNew
 
 /* ini.c's file-based ini_parse() names these; the menu only uses ini_parse_string(), so stubs do */
 char lastAccessedIni[255];
-int __filelength(FILE *fd) { (void) fd; return 0; }
+int __filelength(FILE *fd) { (void) fd; return 500; }   /* pretend the settings file was written */
 const char *getErrorText(int e) { (void) e; return ""; }
 int f_getcwd(char *b, int n) { (void) b; (void) n; return 0; }
 
@@ -67,7 +67,8 @@ void ensureMainPath(void) { if (chdir(cardRoot) != 0) perror("chdir card"); }
 /* the loader waits here for a button to be released; the preview has no live hardware to poll */
 uint8_t v_directReadButtons(void) { return 0; }
 void v_SettingsGUI(int own) { (void) own; printf("SETTINGS GUI opened\n"); fflush(stdout); }
-int v_saveIni(char *name) { printf("save ini %s\n", name); fflush(stdout); return 0; }
+void v_saveIni() { printf("save ini %s\n", lastAccessedIni); fflush(stdout); }
+void v_message(char *m) { printf("MESSAGE %s\n", m); fflush(stdout); }
 int testRom(MenuItemNew *m) { (void) m; return 1; }
 
 static void showParam(const char *p)

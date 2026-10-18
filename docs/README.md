@@ -1,5 +1,7 @@
 # Fork documentation
 
+User guide for the new menu: [../NEW_MENU_README.md](../NEW_MENU_README.md).
+
 Notes for this fork of [malbanGit/pitrex-baremetal](https://github.com/malbanGit/pitrex-baremetal).
 Nothing here is part of upstream.
 
@@ -14,6 +16,7 @@ Nothing here is part of upstream.
 | [05-sidecar-format.md](menu/05-sidecar-format.md) | Menu notes as editable `menu/<key>.ini` files on the SD card |
 | [06-aae-picker.md](menu/06-aae-picker.md) | AAE accepts game names and lists the ROM zips on the card |
 | [07-new-menu.md](menu/07-new-menu.md) | The new list menu (`NEW_MENU = 1`), program and ROM discovery |
+| [08-menu-preview.md](menu/08-menu-preview.md) | Running the real menu code on a PC with the PiTrex simulator, scripted checks |
 
 Tools in `docs/tools/`: `menu_tables.py` (tables in file 01), `export_sidecars.py` (sidecar files), `test_sidecar_key.c` and `test_aae_select.c` and `test_new_menu.c` (host tests), `gen_aae_table.py`, `gen_menu_tree.py`, `make_rom_test_data.py`, `build.sh` (ARM build in the container).
 

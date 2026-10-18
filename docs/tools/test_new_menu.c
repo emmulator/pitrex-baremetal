@@ -291,6 +291,34 @@ int main(int argc, char **argv)
           !nmRomPathOk("bios/x.bin") && !nmRomPathOk("movies/m.bin") && !nmRomPathOk("a/waves/w.bin") && !nmRomPathOk(".bin") && !nmRomPathOk("x.bi"), "paths that are not listed");
   }
 
+
+  /* help texts: every category says what it is, using only characters the PiTrex font draws */
+  {
+    const int ids[] = { 1, 2, 3, 4, 5, 102, 107, 108, NM_ID_PROGRAMS, NM_ID_ALL_ROMS, NM_ID_ROM_FOLDER, 0 };
+    for (unsigned i = 0; i < sizeof ids / sizeof ids[0]; i++)
+    {
+      NmNode n;
+      memset(&n, 0, sizeof n);
+      n.id = ids[i];
+      const char *lines[6];
+      int nl = nmHelp(&n, lines, 6);
+      CHECK(nl > 0, "help for id %d", ids[i]);
+      for (int l = 0; l < nl; l++)
+      {
+        CHECK(strlen(lines[l]) <= 46, "help line fits (id %d): %s", ids[i], lines[l]);
+        for (const char *c = lines[l]; *c; c++)
+          CHECK((*c >= 'A' && *c <= 'Z') || (*c >= '0' && *c <= '9') || *c == ' ' || *c == '.' || *c == '!',
+                "help uses a drawable character, got '%c' in: %s", *c, lines[l]);
+      }
+    }
+    NmNode entry;
+    memset(&entry, 0, sizeof entry);
+    entry.id = 1070;
+    entry.img = "x.img";
+    const char *lines[6];
+    CHECK(nmHelp(&entry, lines, 6) == 0, "a game entry has no category help");
+  }
+
   printf(fails ? "FAIL (%d)\n" : "PASS\n", fails);
   return fails != 0;
 }

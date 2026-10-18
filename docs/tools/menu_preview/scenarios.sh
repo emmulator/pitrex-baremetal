@@ -16,7 +16,7 @@ downs() { local n=$1 start=$2 s=""; for ((i=0;i<n;i++)); do s="$s,down@$((start+
 run() {   # name frames script expect [card]
   local name=$1 frames=$2 script=$3 expect=$4 card=${5:-$base}
   local res
-  res=$(podman exec -e PITREX_SHOT="$work/s.bmp" -e PITREX_FRAMES="$frames" -e PITREX_SCRIPT="$script" \
+  res=$(podman exec -e PITREX_SHOT="$work/s.bmp" -e PITREX_FRAMES="$((frames+60))" -e PITREX_SCRIPT="$script" \
         -w "$out" pitrex-dev ./preview "$card" 2>&1 | grep -v '^sim:\|^New menu')
   if grep -qF -- "$expect" <<<"$res"; then pass=$((pass+1)); echo "ok    $name"
   else fail=$((fail+1)); echo "FAIL  $name"; echo "      wanted: $expect"; echo "      got:    ${res:-(nothing started)}"; fi
@@ -24,7 +24,7 @@ run() {   # name frames script expect [card]
 runnot() {  # name frames script text-that-must-not-appear [card]
   local name=$1 frames=$2 script=$3 bad=$4 card=${5:-$base}
   local res
-  res=$(podman exec -e PITREX_SHOT="$work/s.bmp" -e PITREX_FRAMES="$frames" -e PITREX_SCRIPT="$script" \
+  res=$(podman exec -e PITREX_SHOT="$work/s.bmp" -e PITREX_FRAMES="$((frames+60))" -e PITREX_SCRIPT="$script" \
         -w "$out" pitrex-dev ./preview "$card" 2>&1 | grep -v '^sim:\|^New menu')
   if grep -qF -- "$bad" <<<"$res"; then fail=$((fail+1)); echo "FAIL  $name (found: $bad)"; echo "      got: $res"
   else pass=$((pass+1)); echo "ok    $name"; fi
@@ -45,6 +45,7 @@ run "Button 2 starts the same ROM with Speedy" 150 "$roms,b2@110" 'image=piZero1
 # PROGRAMS (5 down) > first program
 run "Discovered program starts its own image, no parameters" 100 "$(downs 5 10),right@60,b4@80" 'image=piZero1/asteroids.img param1=- param2='
 run "SETTINGS opens the calibration screen" 100 "$(downs 6 10),b4@70" 'SETTINGS GUI opened'
+run "SETTINGS saves to vectrexInterface.ini, not the last ini read" 100 "$(downs 6 10),b4@70" 'save ini vectrexInterface.ini'
 
 # sidecars: hide a program, switch a ROM to Speedy
 mkdir -p "$work/card"; cp -r "$base"/. "$work/card"/

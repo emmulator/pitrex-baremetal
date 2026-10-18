@@ -177,7 +177,7 @@ static void newMenuInit(void)
   int nfound = nmDiscover(nmFilePtr, nfiles, nmKnown, nknown, nmFound, NM_MAX_PROGS);
   if (nfound > 0)
   {
-    NmNode *programs = nmAddTop(&nmTree, "PROGRAMS", 9001);
+    NmNode *programs = nmAddTop(&nmTree, "PROGRAMS", NM_ID_PROGRAMS);
     if (programs != 0) nmAddPrograms(&nmTree, programs, IMG_FILE_PREFIX, nmFound, nfound, nmPaths);
   }
   nmSettingsNode = nmAddTop(&nmTree, "SETTINGS", 0);
@@ -190,6 +190,7 @@ static void newMenuInit(void)
     if (romsNode != 0)
     {
       nmCopy(romsNode->title, "ALL ROMS", (int) sizeof romsNode->title);
+      romsNode->id = NM_ID_ALL_ROMS;
       nmAppendChild(nmTree.tops[0], romsNode);
       nmAddRoms(&nmTree, romsNode, nmRomPaths, nroms, IMG_FILE_PREFIX "vectrexexact.img", IMG_FILE_PREFIX "vectrexspeedy.img");
     }
@@ -202,8 +203,38 @@ static void newMenuInit(void)
   printf("New menu: %i nodes, %i programs, %i ROMs found\n\r", nmTree.used, nfound, nroms);
 }
 
+// Says what is about to start, for a moment. If the screen then goes blank, the program
+// itself is what failed and not the menu.
+static void nmSplash(const char *what, const char *how)
+{
+  char l1[56], l2[56];
+  nmCopy(l1, "STARTING", (int) sizeof l1);
+  nmCopy(l2, how, (int) sizeof l2);
+  for (int f = 0; f < 45; f++)
+  {
+    v_WaitRecal();
+    v_printString(-120, 40, l1, 7, 0x5f);
+    v_printString(-120, 16, (char *) what, 7, 0x5f);
+    if (l2[0] != 0) v_printString(-120, -12, l2, 5, 0x48);
+  }
+}
+
 static void nmLaunch(NmNode *n, int button, int useOtherEmulator)
 {
+  char how[40];
+  how[0] = 0;
+  const char *img = useOtherEmulator ? nmOtherEmulator(n) : n->img;
+  if (n->altImg != 0)                          // a ROM: name the emulator
+  {
+    strcpy(how, strstr(img, "speedy") != 0 ? "WITH SPEEDY" : "WITH EXACT");
+    if (button == 1) strcat(how, " AND SAVED STATE");
+  }
+  char shown[36];
+  nmCopy(shown, n->title, (int) sizeof shown);
+  if (shown[0] == 0) nmCopy(shown, "PROGRAM", (int) sizeof shown);
+  shown[17] = 0;                               // size 7 text: 17 characters fit the screen
+  nmSplash(shown, how);
+
   if (n->src != 0)
   {
     loadAndStart(n->src, button);              // compiled entry: exactly as the old menu does it
@@ -211,10 +242,34 @@ static void nmLaunch(NmNode *n, int button, int useOtherEmulator)
   else
   {
     nmLaunchItem.id = 0;
-    nmLaunchItem.img = (char *) (useOtherEmulator ? nmOtherEmulator(n) : n->img);
+    nmLaunchItem.img = (char *) img;
     nmLaunchItem.param1 = (char *) n->param1;
     nmLaunchItem.param2 = (char *) n->param2;
     loadAndStart(&nmLaunchItem, button);
+  }
+}
+
+// After the settings screen: look at vectrexInterface.ini and tell the user whether it was written.
+static void nmCheckSettingsFile(void)
+{
+  int len = -1;
+  FILE *f = fopen("vectrexInterface.ini", "rb");
+  if (f != 0)
+  {
+    len = (int) __filelength(f);
+    fclose(f);
+  }
+  if (len > 100)
+  {
+    for (int f = 0; f < 60; f++)
+    {
+      v_WaitRecal();
+      v_printString(-120, 20, "SETTINGS SAVED", 7, 0x5f);
+    }
+  }
+  else
+  {
+    v_message("SETTINGS NOT SAVED!");        // waits for Button 1 and 4 together
   }
 }
 
@@ -232,8 +287,12 @@ static void nmActivate(int button)
   if (n == nmSettingsNode)
   {
     while ((v_directReadButtons() & 0x0f) != 0) { }
+    // v_saveIni() writes to the ini that was parsed last. After a program returned to the
+    // loader that is loader.ini, so name the target explicitly.
+    strcpy(lastAccessedIni, "vectrexInterface.ini");
     v_SettingsGUI(1);
-    v_saveIni("vectrexInterface.ini");
+    v_saveIni();
+    nmCheckSettingsFile();
     return;
   }
   if (n->id == 9999)                           // PICK A GAME: the old file browser takes over
@@ -247,9 +306,32 @@ static void nmActivate(int button)
   nmLaunch(n, button == 1 ? 1 : 4, 0);
 }
 
+// Layout (screen is about -127..127 both ways; the loader's own PITREX logo sits at the top):
+//   y  84        where you are (breadcrumb)
+//   y  66..-30   the list, 7 rows of size 7 text
+//   y -50..-86   notes of the highlighted entry, or help for a category
+//   y -100..-124 what the buttons do right now
+#define NM_LIST_Y 66
+#define NM_LIST_STEP 16
+#define NM_NOTE_Y (-50)
+#define NM_NOTE_STEP 12
+
 static void nmDrawNotes(NmNode *n)
 {
-  if (n == 0 || n->img == 0) return;
+  if (n == 0) return;
+  int y = NM_NOTE_Y;
+  const char *help[6];
+  int nh = nmHelp(n, help, 6);
+  if (nh > 0)                                  // a category (or SETTINGS): say what it is
+  {
+    for (int r = 0; r < nh; r++)
+    {
+      v_printString(-120, y, (char *) help[r], 5, 0x48);
+      y -= NM_NOTE_STEP;
+    }
+    return;
+  }
+  if (n->img == 0) return;
   if (nmNotesOwner != n)
   {
     nmNotesOwner = n;
@@ -264,37 +346,55 @@ static void nmDrawNotes(NmNode *n)
       if (nmHasSidecar(key)) sidecarReadKey(key, &sidecar);
     }
   }
-  int y = -52;
   if (n->src != 0 && !testRom(n->src))
   {
     v_printString(-120, y, "ROM NOT FOUND!", 5, 0x5f);
-    y -= 14;
+    y -= NM_NOTE_STEP;
   }
   if (sidecar.found)
   {
-    for (int r = 0; r < sidecar.rows && y > -118; r++)
+    for (int r = 0; r < sidecar.rows && y > -90; r++)
     {
       if (sidecar.row[r][0] == 0) continue;
       v_printString(-120, y, sidecar.row[r], 5, 0x48);
-      y -= 14;
+      y -= NM_NOTE_STEP;
     }
   }
   else if (n->src != 0 && n->src->text != 0)
   {
-    for (int r = 0; n->src->text[r] != 0 && y > -118; r++)
+    for (int r = 0; n->src->text[r] != 0 && y > -90; r++)
     {
       if (n->src->text[r][0] == 0) continue;
       v_printString(-120, y, n->src->text[r], 5, 0x48);
-      y -= 14;
+      y -= NM_NOTE_STEP;
     }
   }
-  if (n->altImg != 0)                          // a ROM: say what Button 2 does
+}
+
+// The line(s) at the bottom: what the buttons do for the highlighted entry.
+static void nmDrawHint(NmNode *cur)
+{
+  if (cur == 0) return;
+  if (nmHasVisibleChild(cur))
   {
-    char *emu = strstr(nmOtherEmulator(n), "speedy") != 0 ? "SPEEDY" : "EXACT";
-    char hint[40];
-    strcpy(hint, "BUTTON 2 STARTS WITH ");
-    strcat(hint, emu);
-    v_printString(-120, -118, hint, 5, 0x40);
+    v_printString(-120, -124, "4 OR RIGHT OPENS.  LEFT GOES BACK.", 5, 0x40);
+  }
+  else if (cur->altImg != 0)                   // a Vectrex game file
+  {
+    int otherSpeedy = strstr(nmOtherEmulator(cur), "speedy") != 0;
+    int mainSpeedy = strstr(cur->img, "speedy") != 0;
+    char l1[48], l2[48];
+    strcpy(l1, "4 STARTS WITH ");
+    strcat(l1, mainSpeedy ? "SPEEDY" : "EXACT");
+    strcpy(l2, "2 STARTS WITH ");
+    strcat(l2, otherSpeedy ? "SPEEDY" : "EXACT");
+    v_printString(-120, -100, l1, 5, 0x5f);
+    v_printString(-120, -112, l2, 5, 0x5f);
+    v_printString(-120, -124, "LEFT GOES BACK.", 5, 0x40);
+  }
+  else if (cur->img != 0 || cur->id == 0)
+  {
+    v_printString(-120, -124, "4 OR RIGHT STARTS.  LEFT GOES BACK.", 5, 0x40);
   }
 }
 
@@ -316,11 +416,11 @@ void newMenuFrame(void)
   char line[56];
   char path[64];
   nmPath(&nmNav, path, (int) sizeof path);
-  v_printString(-120, 86, path[0] ? path : "MAIN MENU", 5, 0x5f);
+  v_printString(-120, 84, path[0] ? path : "MAIN MENU", 5, 0x5f);
 
   // The PiTrex vector font has A-Z, 0-9, ".", "!", "<" and ">" (drawn as arrows) and "$" (a folder).
-  // Most other punctuation prints as a blank, so: ">" marks the selection, "$" a category, and the
-  // caveat tag goes in its own column instead of in brackets.
+  // Most other punctuation prints as a blank, so: ">" marks the selection, "$" a category, and "!"
+  // at the right edge an entry with a caveat (NO SOUND, WIP, BROKEN: see its notes below).
   for (int r = 0; r < NM_ROWS && nmNav.top + r < nmNav.count; r++)
   {
     NmNode *n = nmNav.list[nmNav.top + r];
@@ -329,18 +429,18 @@ void newMenuFrame(void)
     line[c++] = selected ? '>' : ' ';
     line[c++] = nmHasVisibleChild(n) ? '$' : ' ';
     line[c++] = ' ';
-    for (int k = 0; n->title[k] != 0 && c < 33; k++) line[c++] = n->title[k];
+    for (int k = 0; n->title[k] != 0 && c < 31; k++) line[c++] = n->title[k];
     line[c] = 0;
-    int y = 68 - r * 14;
-    v_printString(-120, y, line, 5, selected ? 0x5f : 0x40);
-    const char *tag = nmTagText(n->tags);
-    if (tag[0] != 0) v_printString(48, y, (char *) tag, 5, selected ? 0x50 : 0x30);
+    int y = NM_LIST_Y - r * NM_LIST_STEP;
+    v_printString(-120, y, line, 7, selected ? 0x5f : 0x40);
+    if (n->tags != 0) v_printString(108, y, "!", 7, selected ? 0x5f : 0x40);
   }
-  if (nmNav.top > 0) v_printString(84, 86, "MORE", 5, 0x30);
-  if (nmNav.top + NM_ROWS < nmNav.count) v_printString(84, 68 - NM_ROWS * 14, "MORE", 5, 0x30);
+  if (nmNav.top > 0) v_printString(84, 84, "MORE", 5, 0x30);
+  if (nmNav.top + NM_ROWS < nmNav.count) v_printString(84, NM_LIST_Y - NM_ROWS * NM_LIST_STEP + 6, "MORE", 5, 0x30);
 
   NmNode *cur = nmCurrent(&nmNav);
-  if (!nmHasVisibleChild(cur != 0 ? cur : &nmTree.pool[0])) nmDrawNotes(cur);
+  nmDrawNotes(cur);
+  nmDrawHint(cur);
 
   // input: stick up/down moves (hold to repeat), right/button 4 enters or starts, left goes back
   uint8_t buttons = currentButtonState & 0x0f;
