@@ -10,8 +10,40 @@ Not legal advice. Findings from reading the repository on 2026-10-17 (upstream `
   `vectrexBase/`) carry no license header. Without a license, copyright is reserved by default.
 * What GitHub's Terms of Service do allow for a public repository: others may view and fork it
   on GitHub. That is not a licence to modify and redistribute elsewhere.
-* The README points to the author's pages (`vide.malban.de/pitrex`) for more information;
-  those pages were not checked for licence terms.
+* The README points to the author's pages (`vide.malban.de/pitrex`); those were read on 2026-10-18,
+  see the next section.
+
+## What the author's pages say (read 2026-10-18)
+
+Read in full: the PiTrex baremetal download page (including its changelog and the reader comments
+on it), the baremetal FAQ (`PiTrexBM_FAQ.txt`, 34 questions), the PiTrex project page
+`vide.malban.de/pitrex`, the blog front page, the "Git - mainly" post, Kevin Koster's PiTrex page
+(`ombertech.com/pitrex.php`) and the PiTrex wiki's Software_Ports page; and `gtoal/pitrex` on GitHub.
+
+* **No license text, no terms of use, no redistribution rule** appears on any of them. The blog footer
+  has only a WordPress copyright line. `gtoal/pitrex` has no LICENSE file either (the URL returns 404).
+* **Statements of intent, not licenses:**
+  * Malban's PiTrex page: "The PCB design is to be open source ... The Software that runs on the pi
+    will also be open source."
+  * `gtoal/pitrex` README: "PiTrex is a open source/open hardware project."
+  * Kevin Koster's page: "PiTrex is an open-source project documented at the PiTrex Wiki and with code
+    hosted at GitHub."
+* **The FAQ invites changing the menu** but gives no terms. Question 13, "Can I change the selection of
+  games, or add favorites?": "No, not yet, you need to recompile the loader. If you are into that (not
+  too complicated), instructions can be found at: http://vide.malban.de/ (pitrex menu)."
+* **The author collaborates through GitHub:** the "Git - mainly" post (2020) says he made the
+  repository and will add people as collaborators so they can push.
+* **Third-party pieces are credited with their own terms:** GS BASIC (MIT, Robert E. Alexander, stated on
+  the download page), VxTRON (Jaymz Julian, "slightly modified"), the ZBLAST music (Roald Strauss,
+  given to the author). The arcade ROMs are never included; the FAQ tells users to get them from MAME.
+* A third-party menu fork (`mrchrisster/pitrex`) has been public since 2021 saying it is based on
+  Malban's code; no objection was visible in what was read.
+
+**Conclusion:** the project is described as open source by everyone involved, and changing the menu is
+encouraged, but no licence is stated anywhere. That is not the same as permission to redistribute
+modified builds. Asking him (done 2026-10-18 on the download page) is still the right step.
+Not read: the pitrex-dev group archive, the Vectrex blog's older posts, the wiki pages other than
+Software_Ports, and the separate arcade-emulator authors' terms.
 
 ## Bundled components that do have licences
 
