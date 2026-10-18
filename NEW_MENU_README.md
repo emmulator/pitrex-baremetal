@@ -14,9 +14,9 @@ What it adds:
 * A VECTORBURNER entry, and any other program you drop into `piZero1/` shows up under PROGRAMS.
 * On-screen help: the line under the list always says what the buttons do.
 
-Status: written and tested on a PC (logic tests plus a desktop preview using the PiTrex simulator).
-The list screen was seen working on a real PiTrex. Starting games from it is **not yet
-confirmed on hardware**, see [Known problems](#known-problems).
+Status: tested on a real PiTrex (Pi Zero W, Vectrex with a Buzz-type BIOS) on 2026-10-17. The list,
+settings saving, ROM discovery, and starting games from Exact and Speedy work, **provided the emulator
+images are built from this source** (see [Emulator images](#emulator-images-important)).
 
 Design notes, findings and the build tooling are in [`docs/`](docs/README.md).
 
@@ -36,8 +36,8 @@ this for you and keeps a backup of everything it replaced (`card.sh restore` und
 
 ## Controls
 
-The menu always opens at the top (the category list) when the PiTrex boots, and ignores the stick
-until it has been centred once. After a game returns to the loader it remembers where you were.
+The menu opens at the top (the category list) when the PiTrex boots. It ignores the controls until they
+have rested for 15 frames. After a game returns to the loader it may remember where you were.
 
 | You press | What happens |
 |---|---|
@@ -180,22 +180,55 @@ PiTrex starts, so they only need setting once per Vectrex.
 
 ---
 
+## Emulator images (important)
+
+The Vectrex emulators (`vectrexexact.img`, `vectrexspeedy.img`) that came on the July 2025 SD card
+image **went to a blank, frozen screen as soon as a game started** on a Pi Zero W. The same emulators
+built from the source in this repository run Berzerk, Armor Attack, Mr Boston and E-SRG. The shipped
+images were built from slightly older source than the repository's last commit.
+The December 2021 and April 2023 emulators also run games but cannot draw the BIOS text (it shows as
+dots, scores are missing); only the 2025 source has `INTERNAL_STRING_DISPLAY`.
+
+Build them yourself (needs the `pitrex-dev` container, see `docs/tools/build.sh`):
+
+```
+docs/tools/build.sh zero1 pitrex/loader vecx.exact vecx.speedy      # Pi Zero / Zero W
+docs/tools/build.sh zero2 pitrex/loader vecx.exact vecx.speedy      # Pi Zero 2
+```
+
+and copy `vecx.exact/vectrexexact.img`, `vecx.speedy/vectrexspeedy.img` from the scratch folder the
+script prints into `piZero1/` (or `piZero2/`) on the card. Zero 2 builds are untested. Other emulators
+(`vectrexlineart`, `vectrexvideo`, `vectrexaudio`, `vectorblade`) were not rebuilt; they may have the same
+problem.
+
+`vectrex.ini` settings that matter (file in the card root, section `[VECTREX_EXACT]`):
+
+| Setting | Effect |
+|---|---|
+| `ROM_FILE = bios/7ADB.bin` | which BIOS Exact loads from `vectrex/bios/` (the card also has `FASTBOOT.IMG`) |
+| `HANDLE_STATES = 0` | do not save the game state when you leave with Button 4 (saving can freeze on slow cards) |
+| `INTERNAL_STRING_DISPLAY = 1 or 0` | draw the BIOS text with the PiTrex routines (1) or from the emulated Vectrex (0). Compare both: the text can wobble. |
+| `CYCLE_EQUIVALENT = 648` | emulation timing; also settable in SETTINGS |
+
 ## Known problems
 
-* **Starting a Vectrex game from the list went to a blank screen** on the first hardware test
-  (which game and which emulator is not known). The menu now names the program and emulator
-  before starting. If it happens: note the name on the "STARTING" screen, then try Button 2 (the
-  other emulator), and tell the maintainer.
-* Settings did not persist on the first hardware test and leaving SETTINGS froze the PiTrex.
-  Likely cause, found in upstream code: the ini writer printed a `uint8_t` with `%f`, so printf read
-  a garbage number (`pitrex/vectrex/vectrexInterface_settings.c`, now `%i`). That left an empty
-  `vectrexInterface.ini`, and an unreadable ini makes later saves silently do nothing. Also fixed: the
-  save went to the wrong ini after returning from a program. The menu now reports SAVED / NOT SAVED,
-  and writes `NMLOG.TXT` on the card with the last step reached, so a freeze can be located.
-  Not yet confirmed on hardware.
-* After you leave a game the list may start at the top again (not yet checked on hardware).
+* The BIOS text in Vectrex games is readable with the 2025 emulators but can shimmer: it flickers
+  between bright and dim and shifts sideways between frames. Not yet understood; try the settings above
+  and the calibration pages in SETTINGS.
+* The 2021 and 2023 emulators cannot draw BIOS text at all, so do not use them.
+* Speedy was only seen working from the debug-logging build; the clean build is untested.
+* The menu ignores the controls for the first moments (until they have rested for 15 frames). Button 4
+  reads as pressed at power-on if you hold it to skip the Vectrex intro; the wait keeps that from
+  opening VECTREX.
+* After you leave a game the list may start at the top again (not checked).
 * Caveat marks are not shown in the AAE picker.
 * The menu reads `.bin` files two folder levels deep only.
+* `NMLOG.TXT` in the card root records the controls on the first frame, the launches and the SETTINGS
+  steps. It is rewritten on every boot; look at it first when something freezes.
+
+Fixed during the hardware test: the settings were never saved and leaving SETTINGS froze the PiTrex.
+Cause: the upstream ini writer printed a `uint8_t` with `%f` (`vectrexInterface_settings.c`, now `%i`).
+It left an empty `vectrexInterface.ini`, and an unreadable ini makes later saves do nothing.
 
 ## If something goes wrong
 

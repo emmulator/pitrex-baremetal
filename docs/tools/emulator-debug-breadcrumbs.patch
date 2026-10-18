@@ -1,0 +1,84 @@
+--- a/vectrexBase/main.c
++++ b/vectrexBase/main.c
+@@ -300,6 +300,18 @@
+ 
+ #define GET_SYSTEM_TIMER bcm2835_st_read()
+  
++
++// debug breadcrumbs: EMUDBG.TXT on the card (rewritten on every call)
++static char dbgText[900];
++static void dbg(const char *m)
++{
++  if (strlen(dbgText) + strlen(m) + 2 < sizeof dbgText) { strcat(dbgText, m); strcat(dbgText, "\n"); }
++  FILE *f = fopen("EMUDBG.TXT", "wb");
++  if (f == 0) return;
++  fwrite(dbgText, 1, strlen(dbgText), f);
++  fclose(f);
++}
++
+ int orgbetterRasterPositioning; // saving vectrexInterface value for the time "after" vectrex emulation (PiTrex)
+ extern uint32_t cycleCount;
+ uint32_t cycleCount_mark;
+@@ -309,7 +321,9 @@
+ 
+ static void emuloop(void)
+ {
++    dbg("emuloop start");
+     vecx_reset();
++    dbg("vecx_reset done");
+     cycleCount_mark = 0;
+     uint32_t mark = (uint32_t)(GET_SYSTEM_TIMER&0xffffffff);
+ 
+@@ -348,7 +362,9 @@
+ 		handleUARTInterface();
+       }
+ #ifdef DIRECT_EMULATION
++      { static int n = 0; if (n < 3) { n++; dbg(n == 1 ? "direct 1" : n == 2 ? "direct 2" : "direct 3"); } }
+       vecx_direct(10000);
++      { static int m = 0; if (m < 3) { m++; dbg(m == 1 ? "direct 1 returned" : m == 2 ? "direct 2 returned" : "direct 3 returned"); } }
+ 	  
+ 	  if (singleStep)
+ 	  {
+@@ -382,6 +398,7 @@
+                 if (vectrexResetCount == 10) // 1/20 second 
+                 {
+                   printf("Vectrex 4 button press detected %02x!\r\n", vectrexButtonState);
++                  { char b[60]; sprintf(b, "4-BUTTON EXIT state=%x", (unsigned) vectrexButtonState); dbg(b); }
+                   if (doStates==1)
+                   {
+                     printf("Starting to save to: %s\r\n", stateName);
+@@ -573,7 +590,9 @@
+ 
+ void main()
+ {
++    dbg("main start");
+     init();
++    dbg("init done");
+ printf("logOutput: %i\r\n", logOutput);    
+ 
+ #ifdef CUTOM_INIT
+@@ -590,8 +609,10 @@
+ #ifdef FILE_PLAYER    
+     loadFile();
+ #endif
++    dbg("cart loaded, before resize");
+     resize();
+     e8910_init();
++    dbg("e8910 init done");
+     vecx_render = render;
+     emuloop();
+ }
+@@ -737,11 +758,13 @@
+   
+ 
+   printf("Loading: %s \r\n", loadName);
++  dbg(loadName);
+   
+   FILE *f;
+   f = fopen(loadName, "r");
+   if (f == 0)
+   {
++            dbg("ROM OPEN FAILED");
+             printf("vectrexBase.main.c:loadVectrexBin(): Could not open file %s (%i) \r\n", loadName, errno);
+ 	    return;
+   }

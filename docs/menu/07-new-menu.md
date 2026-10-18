@@ -118,3 +118,10 @@ SETTINGS SAVED or SETTINGS NOT SAVED! after checking the file is not empty. Caus
 `vectrexInterface.ini` seen on the first test: unknown. `v_saveIni()` does nothing when no ini was
 parsed at start (a card without `vectrexInterface.ini`), which this also covers.
 See `NEW_MENU_README.md` in the repository root for the user-facing guide.
+
+## Input at start (2026-10-17)
+
+`newMenuFrame()` ignores the controls until the stick has been centred and no button down for 15 frames
+(or 600 frames have passed). NMLOG.TXT records the first frame's values and the moment it armed. This
+fixed the menu opening in VECTREX by itself: Button 4 is down at power-on when the user holds it to skip
+the Vectrex intro (F23). Every launch is also logged there.

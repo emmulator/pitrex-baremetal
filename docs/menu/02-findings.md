@@ -151,6 +151,29 @@ serial path, copy targets under `/media/sf_*`). `HowToCompile.txt` says to comme
 `MAKE_IMAGE` or fix the paths or the build breaks. A fork should move these to local
 overrides.
 
+**F19. The shipped July 2025 Vectrex emulators blank on a Pi Zero W. Verified on hardware (2026-10-17).**
+Berzerk (Speedy preset), Mr Boston (Exact), E-SRG (ALL ROMS) all gave a blank frozen screen with
+`vectrexspeedy.img` / `vectrexexact.img` from the zip. The December 2021 and April 2023 builds, and
+builds of this repository's source (emulator code = upstream c44e5e4) with gcc 10.3.1, run the same
+games. The shipped files predate c44e5e4 (zip dates 16-23 May 2025). Why the shipped ones fail was not
+investigated further. Upstream commit 100c26e (2025-04-23) does not compile.
+
+**F20. BIOS text needs the 2025 source. Verified on hardware.** The 2021/2023 emulators draw lines but
+the BIOS text comes out as dots and scores are missing. `INTERNAL_STRING_DISPLAY` (in `vectrex.ini`)
+exists only in the 2025 source. With it the text is readable but wobbles (brightness and sideways
+shimmer). `INTERNAL_STRING_DISPLAY = 0` was being compared at the time of writing.
+
+**F21. `v_saveIni()` writes to the ini that was parsed last, and `ini_parse()` clears that name on any
+failed read. Verified.** A missing or empty `vectrexInterface.ini` therefore makes every later save a
+silent no-op; parsing `loader.ini` (the new menu's re-init path) retargeted saves to the wrong file.
+
+**F22. The ini writer printed a `uint8_t` with `%f`. Verified on hardware.** `OVERLAPPING_OPTIMIZATION`
+in `v_saveIniTo()` made printf read a garbage double; leaving SETTINGS froze the PiTrex and left an empty
+`vectrexInterface.ini`. Changed to `%i`; saving works.
+
+**F23. Button 4 is down on the loader's first frame if the user holds it to skip the Vectrex intro.
+Verified (NMLOG.TXT).** The new menu waits for the controls to rest before accepting input.
+
 ## Open questions
 
 1. Which `.bin` games, if any, should default to Speedy? Per-game testing needed.
