@@ -172,8 +172,8 @@ Now it is listed under COMPUTER, sorted with the others. `category = ARCADE / AT
 a category that does not exist yet is created. See the next section for all the fields. To remove an entry,
 delete its file (a program image is then listed under PROGRAMS again) or put `hide = 1` in it.
 
-The list is read from the card every time the menu starts (the screen says READING SD CARD for a moment, about
-three quarters of a second with the shipped 66 entry files; a long list takes longer).
+The list is read from the card every time the menu starts (the screen says READING SD CARD while it does; how long
+that takes on a real card has not been measured, and a longer list takes longer).
 
 ## Arcade games on this PiTrex
 
