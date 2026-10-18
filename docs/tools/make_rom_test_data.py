@@ -20,12 +20,14 @@ def ok(p):
     return not any(s.lower() in ('bios', 'movies', 'waves') for s in segs[:-1])
 def title(p): return p.split('/')[-1][:-4].upper().replace('_', ' ').replace('-', ' ')
 def d(p): return '/'.join(p.split('/')[:-1])
-good = sorted((p for p in paths if ok(p)), key=lambda p: (d(p).lower(), title(p).lower()))
+okp = [p for p in paths if ok(p)]
+folderfiles = {p.split('/')[-1].lower() for p in okp if '/' in p}
+good = sorted((p for p in okp if '/' in p or p.lower() not in folderfiles), key=lambda p: (d(p).lower(), title(p).lower()))
 rows = []; cur = None
 for p in good:
     if d(p):
         if d(p) != cur:
-            cur = d(p); rows.append('G:' + d(p).upper().replace('_', ' ').replace('-', ' ').replace('/', '>'))
+            cur = d(p); rows.append('G:' + d(p).upper().replace('_', ' ').replace('-', ' ').replace('/', '>') + ' FOLDER')
         rows.append('E:' + title(p))
 rows += ['R:' + title(p) for p in good if not d(p)]
 os.makedirs(out, exist_ok=True)

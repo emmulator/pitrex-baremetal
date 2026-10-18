@@ -292,6 +292,27 @@ int main(int argc, char **argv)
   }
 
 
+
+  /* compiled game groups: demos found in vectrex/demos are added, then SPEEDY, EXACT and DEMOS are sorted */
+  {
+    NmNode *demos = nmFindById(tree.tops[0], 108);
+    CHECK(demos != 0, "DEMOS group found");
+    int before = 0, after = 0;
+    for (NmNode *c = demos->child; c != 0; c = c->right) before++;
+    static char dpaths[4][NM_ROM_PATH] = { "demos/epic.bin", "DEMOS/Zed.bin", "demos/sub/deep.bin", "other/x.bin" };
+    int added = nmAddMissingRoms(&tree, demos, dpaths, 4, "demos/", "piZero1/vectrexexact.img", "piZero1/vectrexspeedy.img");
+    for (NmNode *c = demos->child; c != 0; c = c->right) after++;
+    CHECK(added == 1 && after == before + 1, "only the missing demo (Zed) is added: added=%d", added);
+    nmSortChildren(demos);
+    int sorted = 1;
+    for (NmNode *c = demos->child; c != 0 && c->right != 0; c = c->right)
+      if (nmTitleCmp(c->title, c->right->title) > 0) sorted = 0;
+    CHECK(sorted, "DEMOS is alphabetical");
+    NmNode *speedy = nmFindById(tree.tops[0], 102);
+    nmSortChildren(speedy);
+    CHECK(strcmp(speedy->child->title, "BERZERK") == 0, "SPEEDY starts with BERZERK, got %s", speedy->child->title);
+  }
+
   /* help texts: every category says what it is, using only characters the PiTrex font draws */
   {
     const int ids[] = { 1, 2, 3, 4, 5, 102, 107, 108, NM_ID_PROGRAMS, NM_ID_ALL_ROMS, NM_ID_ROM_FOLDER, 0 };

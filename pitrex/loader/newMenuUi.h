@@ -85,6 +85,8 @@ static void nmApplySidecars(void)
   for (int i = 0; i < nmTree.used; i++)
   {
     NmNode *n = &nmTree.pool[i];
+    if (n->id == NM_ID_ROM_FOLDER && n->key[0] != 0 && nmHasSidecar(n->key) && sidecarReadKey(n->key, &t) && t.title[0] != 0)
+      nmCopy(n->title, t.title, (int) sizeof n->title);
     if (n->img == 0 || n->id == 9999) continue;
     char key[96];
     if (n->discovered) nmCopy(key, n->key, (int) sizeof key);
@@ -198,6 +200,21 @@ static void newMenuInit(void)
       nmAddRoms(&nmTree, romsNode, nmRomPaths, nroms, IMG_FILE_PREFIX "vectrexexact.img", IMG_FILE_PREFIX "vectrexspeedy.img");
     }
   }
+
+  // the compiled DEMOS group lists 5 demos; add the others found in vectrex/demos, then sort the
+  // compiled game groups (SPEEDY 102, EXACT 107, DEMOS 108) alphabetically
+  NmNode *demos = nmFindById(nmTree.tops[0], 108);
+  if (demos != 0 && nroms > 0)
+    nmAddMissingRoms(&nmTree, demos, nmRomPaths, nroms, "demos/", IMG_FILE_PREFIX "vectrexexact.img", IMG_FILE_PREFIX "vectrexspeedy.img");
+  static const int sortedGroups[3] = { 102, 107, 108 };
+  for (int g = 0; g < 3; g++)
+  {
+    NmNode *grp = nmFindById(nmTree.tops[0], sortedGroups[g]);
+    if (grp != 0) nmSortChildren(grp);
+  }
+  // PICK A GAME (the old file browser) is replaced by ALL ROMS; it also ran a game at once
+  // because the button that chose it was still down
+  for (int i = 0; i < nmTree.used; i++) if (nmTree.pool[i].id == 9999) nmTree.pool[i].hidden = 1;
 
   nmListSidecars();
   nmApplySidecars();

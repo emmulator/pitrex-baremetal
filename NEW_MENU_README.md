@@ -79,8 +79,8 @@ SETTINGS            screen settings and calibration
 VECTREX
   VECTORBLADE
   SPEEDY VECTREX    8 games the original author set up for Speedy
-  EXACT VECTREX     3 games set up for Exact, plus PICK A GAME (the old file browser)
-  DEMOS             5 demos
+  EXACT VECTREX     3 games set up for Exact
+  DEMOS             the demos: the 5 the author set up plus any others in vectrex/demos
   ALL ROMS          every .bin found in vectrex/ (see below)
 ARCADE
   ATARI, CINEMATRONICS, ... compiled-in arcade games
@@ -95,6 +95,8 @@ Highlight a category and the lines under the list explain it.
 
 ### The Vectrex games: preset groups and ALL ROMS
 
+* **SPEEDY VECTREX**, **EXACT VECTREX** and **DEMOS** are listed alphabetically. The old PICK A GAME
+  browser is gone: ALL ROMS does its job (and PICK A GAME started a game by itself).
 * **SPEEDY VECTREX** and **EXACT VECTREX** are the original author's presets: games he tested with
   that emulator. They are always listed in the group of the emulator he chose.
 * **ALL ROMS** lists **every** `.bin` file on the card under `vectrex/`, including the preset
@@ -103,7 +105,12 @@ Highlight a category and the lines under the list explain it.
 * Games in ALL ROMS start with **Exact** on Button 4 and **Speedy** on Button 2. You can change the
   default per game, see the sidecar section.
 * Sub-folders of `vectrex/` (up to two levels) become groups inside ALL ROMS, so you can sort
-  your own games into folders. `bios`, `movies` and `waves` are ignored.
+  your own games into folders. A group is named after the folder with FOLDER added (`ORIGINAL FOLDER`,
+  `HOMEBREW FOLDER`): the name says where the file is on the card and **nothing about the kind of game**.
+  `original/` is just the author's folder for the games his menu presets use; it also holds a few
+  newer homebrew releases. To rename a group, put `title = ...` in `menu/dir.<folder>.ini`
+  (`menu/dir.original.ini`). Files not in any folder are listed after the groups. A loose file whose
+  name also exists in a folder is treated as a copy and left out. `bios`, `movies` and `waves` are ignored.
 * A game's name in the list is its file name: upper-cased, `_` and `-` turned into spaces, `.bin`
   dropped. `E-SRG.bin` shows as `E SRG`.
 * Only files ending in `.bin` are listed. Rename `.vec` files to `.bin`.

@@ -135,11 +135,12 @@ static int nmHelp(const NmNode *n, const char **out, int max)
   static const char *allRoms[] = {
     "EVERY GAME FILE FOUND IN THE VECTREX FOLDER",
     "OF THE CARD. THE GAMES UNDER SPEEDY AND",
-    "EXACT ARE LISTED HERE TOO.",
-    "IN A GAME LIST 4 STARTS WITH EXACT AND",
-    "2 STARTS THE SAME GAME WITH SPEEDY.", 0 };
+    "EXACT ARE LISTED HERE TOO. FOLDERS COME FIRST.",
+    "FILES NOT IN A FOLDER ARE LISTED AFTER THEM.",
+    "4 STARTS WITH EXACT. 2 WITH SPEEDY.", 0 };
   static const char *folder[] = {
-    "A FOLDER OF GAME FILES ON THE CARD.",
+    "A FOLDER ON THE CARD UNDER VECTREX.",
+    "THE NAME IS THE FOLDER NAME. NOT A GAME TYPE.",
     "4 STARTS A GAME WITH EXACT.",
     "2 STARTS IT WITH SPEEDY.", 0 };
   static const char *arcade[] = {
@@ -516,7 +517,20 @@ static int nmAddRoms(NmTree *t, NmNode *into, char (*paths)[NM_ROM_PATH], int np
   int order[NM_MAX_ROMS];
   int n = 0;
   for (int i = 0; i < npaths && n < NM_MAX_ROMS; i++)
-    if (nmRomPathOk(paths[i])) order[n++] = i;
+  {
+    if (!nmRomPathOk(paths[i])) continue;
+    if (strchr(paths[i], '/') == 0)             // a loose file that also sits in a folder is a copy: list it once
+    {
+      int copy = 0;
+      for (int k = 0; k < npaths && !copy; k++)
+      {
+        const char *slash = strrchr(paths[k], '/');
+        if (slash != 0 && nmRomPathOk(paths[k]) && nmEqNoCase(slash + 1, paths[i])) copy = 1;
+      }
+      if (copy) continue;
+    }
+    order[n++] = i;
+  }
 
   // sort by folder, then by title
   for (int a = 1; a < n; a++)
@@ -560,8 +574,11 @@ static int nmAddRoms(NmTree *t, NmNode *into, char (*paths)[NM_ROM_PATH], int np
           group = nmNewNode(t);
           if (group == 0) return added;
           group->id = NM_ID_ROM_FOLDER;
-          nmPrettyTitle(dir, group->title, (int) sizeof group->title);
+          nmPrettyTitle(dir, group->title, (int) sizeof group->title - 8);
           for (int i = 0; group->title[i] != 0; i++) if (group->title[i] == '/') group->title[i] = '>';
+          strcat(group->title, " FOLDER");               // a folder of the card, not a kind of game
+          nmRomKey(dir, group->key, (int) sizeof group->key);
+          memcpy(group->key, "dir.", 4);                 // sidecar menu/dir.<folder>.ini can rename it
           nmAppendChild(into, group);
           nmCopy(groupDir, dir, sizeof groupDir);
         }
@@ -580,6 +597,76 @@ static int nmAddRoms(NmTree *t, NmNode *into, char (*paths)[NM_ROM_PATH], int np
     }
   }
   return added;
+}
+
+// Sorts the children of p by title (case-insensitive, stable).
+static void nmSortChildren(NmNode *p)
+{
+  NmNode *sorted = 0;
+  NmNode *c = p->child;
+  while (c != 0)
+  {
+    NmNode *next = c->right;
+    c->right = 0;
+    if (sorted == 0 || nmTitleCmp(c->title, sorted->title) < 0)
+    {
+      c->right = sorted;
+      sorted = c;
+    }
+    else
+    {
+      NmNode *q = sorted;
+      while (q->right != 0 && nmTitleCmp(c->title, q->right->title) >= 0) q = q->right;
+      c->right = q->right;
+      q->right = c;
+    }
+    c = next;
+  }
+  p->child = sorted;
+}
+
+// Adds the ROMs of one folder (prefix "demos/", files directly inside it) to a compiled group
+// when the group does not already list them (same parameter, ignoring case).
+static int nmAddMissingRoms(NmTree *t, NmNode *into, char (*paths)[NM_ROM_PATH], int npaths,
+                            const char *prefix, const char *imgDefault, const char *imgAlt)
+{
+  int added = 0;
+  int plen = (int) strlen(prefix);
+  for (int i = 0; i < npaths; i++)
+  {
+    const char *p = paths[i];
+    if ((int) strlen(p) <= plen) continue;
+    int same = 1;
+    for (int k = 0; k < plen; k++) if (nmLower(p[k]) != nmLower(prefix[k])) same = 0;
+    if (!same || strchr(p + plen, '/') != 0 || !nmRomPathOk(p)) continue;
+    int have = 0;
+    for (NmNode *c = into->child; c != 0; c = c->right)
+      if (c->param1 != 0 && nmEqNoCase(c->param1, p)) have = 1;
+    if (have) continue;
+    NmNode *e = nmNewNode(t);
+    if (e == 0) return added;
+    nmRomTitle(p, e->title, (int) sizeof e->title);
+    nmRomKey(p, e->key, (int) sizeof e->key);
+    e->img = imgDefault;
+    e->altImg = imgAlt;
+    e->param1 = paths[i];
+    e->discovered = 1;
+    nmAppendChild(into, e);
+    added++;
+  }
+  return added;
+}
+
+// The first node with this id, searching the whole tree (0 if none).
+static NmNode *nmFindById(NmNode *n, int id)
+{
+  for (; n != 0; n = n->right)
+  {
+    if (n->id == id) return n;
+    NmNode *f = nmFindById(n->child, id);
+    if (f != 0) return f;
+  }
+  return 0;
 }
 
 // Button 2 on a ROM: start it with the other emulator. Returns the image to use.

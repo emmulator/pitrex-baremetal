@@ -125,3 +125,15 @@ See `NEW_MENU_README.md` in the repository root for the user-facing guide.
 (or 600 frames have passed). NMLOG.TXT records the first frame's values and the moment it armed. This
 fixed the menu opening in VECTREX by itself: Button 4 is down at power-on when the user holds it to skip
 the Vectrex intro (F23). Every launch is also logged there.
+
+## Lists, folders and PICK A GAME (2026-10-17, second hardware test)
+
+* SPEEDY VECTREX (102), EXACT VECTREX (107) and DEMOS (108) are sorted by title (`nmSortChildren`).
+* DEMOS also gets the ROMs found in `vectrex/demos/` that the compiled list lacks (`nmAddMissingRoms`):
+  the compiled list had 5 demos, the folder 7.
+* ALL ROMS groups are named `<FOLDER> FOLDER`; `menu/dir.<folder>.ini` with `title =` renames one.
+  A loose file in `vectrex/` whose name also exists in a folder is a copy and is not listed (the card had
+  all 33 files of `original/` twice).
+* PICK A GAME (id 9999) is hidden. The old browser started the first game at once (the button that chose
+  it was still down), and after the game exited the loader showed the old browser instead of the new menu.
+  ALL ROMS replaces it. The hand-off code is still in `newMenuUi.h` but nothing reaches it.

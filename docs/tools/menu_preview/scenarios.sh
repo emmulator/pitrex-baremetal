@@ -38,9 +38,9 @@ run "Major Havoc starts aae.img with game byte 0x2d" 170 "down@10,right@20,right
 run "Button 1 starts it with button=1" 170 "down@10,right@20,right@30,$(downs 9 40),b1@130" 'button=1 id=2009'
 
 # VECTREX > SPEEDY VECTREX (down 1) > WEB WARS
-run "Speedy preset Web Wars" 90 "right@10,down@20,right@30,b4@50" 'image=piZero1/vectrexspeedy.img param1="original/WEBWARS.BIN"'
+run "SPEEDY group is alphabetical: first game is Berzerk" 90 "right@10,down@20,right@30,b4@50" 'image=piZero1/vectrexspeedy.img param1="original/BERZERK.BIN"'
 
-# VECTREX > ALL ROMS (4 down) > DEMOS (first group) > EPIC (2 down)
+# VECTREX > ALL ROMS (4 down) > DEMOS FOLDER (first group) > EPIC (2 down)
 roms="right@10,$(downs 4 20),right@64,right@76,down@88,down@96"
 run "ROM starts the Exact emulator with its path" 150 "$roms,b4@110" 'image=piZero1/vectrexexact.img param1="demos/epic.bin"'
 run "Button 2 starts the same ROM with Speedy" 150 "$roms,b2@110" 'image=piZero1/vectrexspeedy.img param1="demos/epic.bin"'
