@@ -9,7 +9,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 name="pitrex-new-menu-$ver"
 root="$out/$name"
 rm -rf "$root"
-mkdir -p "$root/payload" "$root/arcade-tweaks"
+mkdir -p "$root/payload" "$root/arcade-tweaks" "$root/settings"
 
 for pi in piZero1 piZero2; do
   mkdir -p "$root/payload/$pi"
@@ -26,6 +26,7 @@ cp "$fork/NEW_MENU_README.md" "$root/NEW_MENU_README.md"
 # arcade tweaks: files exactly as tested on the card
 cp "$here/arcade-tweaks/blackwidow.ini" "$here/arcade-tweaks/battlezone.ini" "$root/arcade-tweaks/"
 
+cp "$here/settings/vectrexInterface.ini" "$root/settings/"
 cp "$here/install.sh" "$here/install.ps1" "$here/install.bat" "$root/"
 chmod +x "$root/install.sh"
 sed "s/@VERSION@/$ver/g" "$here/RELEASE.md" > "$root/RELEASE.md"

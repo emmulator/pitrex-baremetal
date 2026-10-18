@@ -2,7 +2,7 @@
 # Installs the new PiTrex menu release over an unpacked Malban "PiTrex_sd_Jul29_25" archive
 # (or over the SD card made from it). Linux, macOS, WSL.
 #
-#   ./install.sh [--arcade-tweaks] [--dry-run] <folder>
+#   ./install.sh [--settings tuned] [--arcade-tweaks] [--dry-run] <folder>
 #   ./install.sh --restore <folder>
 #
 # Replaced files are saved in <folder>/backup-menu-<date>/ with a MANIFEST.tsv that --restore reads.
@@ -15,6 +15,7 @@ tweaks="$here/arcade-tweaks"
 mode=install
 dry=0
 arcade=0
+settings=keep
 target=
 
 usage() {
@@ -27,6 +28,7 @@ while [ $# -gt 0 ]; do
     --restore) mode=restore ;;
     --dry-run) dry=1 ;;
     --arcade-tweaks) arcade=1 ;;
+    --settings) shift; [ $# -gt 0 ] || usage; settings=$1; case $settings in keep|tuned) ;; *) echo "--settings takes keep or tuned" >&2; usage ;; esac ;;
     -h|--help) usage 0 ;;
     -*) echo "unknown option: $1" >&2; usage ;;
     *) [ -z "$target" ] || usage; target=$1 ;;
@@ -152,6 +154,21 @@ else
   fi
 fi
 rm -f "$tmp"
+
+# vectrexInterface.ini (the screen settings): an existing file is the user's and stays, unless it is missing or
+# empty (the original settings screen can leave it empty), or --settings tuned asks for ours.
+cur="$target/vectrexInterface.ini"
+size=-1
+[ -f "$cur" ] && size=$(wc -c < "$cur" | tr -d ' ')
+if [ "$settings" = tuned ] || [ "$size" -lt 100 ]; then
+  [ -d "$here/settings" ] || die "settings/ folder missing next to this script"
+  if [ "$size" -ge 100 ]; then echo "settings: replacing yours with the tuned file (saved in the backup)"
+  elif [ "$size" -ge 0 ]; then echo "settings: your vectrexInterface.ini is empty; installing the tuned one"
+  else echo "settings: no vectrexInterface.ini; installing the tuned one"; fi
+  put_file "$here/settings/vectrexInterface.ini" vectrexInterface.ini
+else
+  echo "  keep     vectrexInterface.ini (your settings; use --settings tuned to replace them)"
+fi
 
 # optional arcade tweaks
 if [ "$arcade" = 1 ]; then

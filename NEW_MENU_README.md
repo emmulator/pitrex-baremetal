@@ -1,373 +1,276 @@
 # The new PiTrex menu
 
-This fork adds an optional **list menu** to the PiTrex baremetal loader. It does not replace the
-original menu: it is switched on with one line in `loader.ini`, and removing that line brings the
-original back. Everything the original menu starts is still started the same way.
+A replacement for the PiTrex bare-metal menu (Malban's July 2025 SD card). It is a plain list: pick a
+category, go in, pick a game, start it. **Nothing is compiled in**: the menu is built every time the PiTrex
+starts from what is on the SD card, so a game appears when its files are there and disappears when they are
+not. Notes, warnings and a controls page for each game are small text files you can edit.
 
-What it adds:
+This package does not contain any ROMs. You supply the ROM files you own; the lists in
+[Putting the ROMs on the card](#putting-the-roms-on-the-card) say exactly which files the menu looks for and
+where they go, so you can see what is still missing for a complete set.
 
-* A simple list: pick a category, go in, pick a game, start it. No icons to decode.
-* **Nothing is compiled in.** The whole menu is built when the PiTrex starts from files on the card:
-  one small *entry file* per game in `menu/`, the program images in `piZero1/`, and the ROMs in `vectrex/`.
-  To add, move, rename or remove a game you edit text files; the loader is never recompiled.
-  (The original menu is still compiled into the loader and is what you get with `NEW_MENU` off.)
-* **Games are found on the card.** Copy a `.bin` into `vectrex/` and it shows up. A program image dropped into
-  `piZero1/` shows up under PROGRAMS. Everything is rebuilt and sorted at every boot, so new things land in
-  alphabetical order.
-* Notes and warnings (NO SOUND, WORK IN PROGRESS...) and the controls help live in the entry files, and you
-  can edit them.
-* A picker for the arcade emulator (AAE) that lists the arcade games whose ROM files you have.
-* On-screen help: the line under the list always says what the buttons do.
+## Installing
 
-Status: tested on a real PiTrex (Pi Zero W, Vectrex with a Buzz-type BIOS) on 2026-10-17. The list,
-settings saving, ROM discovery, and starting games from Exact and Speedy work, **provided the emulator
-images are built from this source** (see [Emulator images](#emulator-images-important)).
+1. Download Malban's card from <http://vide.malban.de/pitrex/pitrex-baremetal-download>
+   (`PiTrex_sd_Jul29_25.zip`) and unzip it. This package is a set of files that go **over** that card.
+2. Unzip this package and run the installer, giving it the folder from step 1:
 
-Design notes, findings and the build tooling are in [`docs/`](docs/README.md).
+   | System | Command |
+   |---|---|
+   | Linux, macOS | `./install.sh /path/to/PiTrex_sd_Jul29_25` |
+   | Windows | `install.bat C:\path\to\PiTrex_sd_Jul29_25` |
 
----
+3. Copy the folder to a FAT32 SD card (or run the installer on the card itself) and add your ROMs.
 
-## Turning it on and off
+Options: `--dry-run` shows what would change and writes nothing. `--settings tuned` replaces your screen
+settings (see [Settings](#settings)). `--arcade-tweaks` also adds the single-controller files for Black Widow
+and Battle Zone and sets the original author's Star Wars and Lunar Lander calibration files aside (they are
+for his Vectrex). `--restore` undoes the newest install.
 
-On the SD card, `loader.ini` (in the root of the card):
+The installer saves every file it replaces in `backup-menu-<date>/` on the card first, never touches ROMs, BIOS
+files, `pitrex.img` or your own settings, and can be run twice safely. It replaces these files: the loader
+(`piZero1/loader.pit`, `piZero2/loader.pit`), the Vectrex emulators and players, three rebuilt arcade programs
+(Star Wars, Tempest, Black Widow), the entry files in `menu/`, and `loader.ini` (it gains `NEW_MENU = 1`).
+The July 2025 emulators show a blank screen on a Pi Zero W, which is why they are replaced.
 
-```
-NEW_MENU = 1
-```
+To go back to the original menu: delete the `NEW_MENU = 1` line from `loader.ini`.
 
-Remove the line (or set `0`) and the original menu is back. Nothing else needs to change.
-Installing from the `pitrex-builds` folder with `card.sh install <set> <card> --new-menu` does
-this for you and keeps a backup of everything it replaced (`card.sh restore` undoes it).
+## Using the menu
 
-## Controls
-
-The menu opens at the top (the category list) when the PiTrex boots. It ignores the controls until they
-have rested for 15 frames. After a game returns to the loader it may remember where you were.
+The menu opens at the top when the PiTrex starts (it ignores the controls until they have rested for a moment).
 
 | You press | What happens |
 |---|---|
 | Stick **up / down** | Move the `>` marker. Hold to repeat. |
-| Stick **right**, or **Button 4** | Open a category, or start the highlighted entry. |
+| Stick **right**, or **Button 4** | Open a category or start the highlighted game. |
 | Stick **left** | Go back up one level. |
-| **Button 4** on a Vectrex game file | Start it with the default emulator (Exact). |
-| **Button 2** on a Vectrex game file | Start the same game with the **other** emulator (Speedy). |
-| **Button 2** on an arcade game or program that has a controls page | Show how the controls work (the hint under the list says "2 SHOWS THE CONTROLS"). Any button or stick left comes back. |
-| **Button 1** | Same as Button 4, but tells the emulator to load the last saved state (the original menu's behaviour, see FAQ 34). Only Vectrex emulators use it. |
+| **Button 2** on a Vectrex game | Start it with the *other* emulator (Button 4 uses Exact, Button 2 uses Speedy). |
+| **Button 2** on an arcade game | Show how its controls work. Any button or the stick comes back. |
+| **Button 1** | Like Button 4, but a Vectrex emulator loads the last saved state. |
 
-Buttons 1 and 2 are **not** "emulator one and emulator two". Button 4 is the normal start,
-Button 2 swaps the emulator, Button 1 asks for a saved state.
+`$` in front of a row is a category (folder), `!` means there is a caveat (read the notes under the list).
+The PiTrex font only draws letters, digits, `.`, `!` and arrows, so the menu and any text you write for it
+use only those.
 
-### What the screen means
+Games are listed alphabetically. **A game whose ROM is not on the card is not listed**; it appears by itself once
+the file is there. (To list every game anyway with a "ROM NOT FOUND!" note, add `NEW_MENU_SHOW_MISSING = 1` to
+`loader.ini`.)
 
-```
-VECTREX > ALL ROMS > DEMOS        <- where you are
-   BRESENHAM
- > EPIC                           <- ">" is the highlighted entry
- $ SOMETHING                      <- "$" is a category (a folder): go in with 4 or right
-   BERZERK                     !  <- "!" means a caveat, read the notes under the list
- ...
- (notes or help for the highlighted entry)
- 4 STARTS WITH EXACT              <- what the buttons do right now
- 2 STARTS WITH SPEEDY
-```
+Speedy and Exact are one Vectrex emulator built two ways and either runs any game. Exact is as close to a real
+Vectrex as the author could make it; Speedy runs games 30-50% faster and skips some BIOS work, so a few games
+misbehave. Start with Exact and press Button 2 if a game is too slow or looks wrong.
 
-The PiTrex's built-in font only draws letters, digits, `.`, `!` and a few arrows. Brackets,
-slashes, dashes and colons print as blanks, so the menu uses `>`, `$` and `!` instead, and so
-should any text you write for it.
+## Putting the ROMs on the card
 
-When you start something, a "STARTING ..." screen shows for a moment and names the program and
-the emulator. If the screen then goes blank, the program itself is what failed, not the menu.
+ROM files are not provided here. Sets from MAME with the file names below work; the arcade emulators read
+the zip files themselves and only check that the files inside exist, so a wrong version starts but misbehaves.
 
-## What is in the menu
+### Vectrex games
 
-The categories and games below come from the entry files that ship with this build (they were written from
-the original menu's list). They are data: change them freely.
-
-```
-ARCADE
-  ALL AAE GAMES     the picker: only the games whose ROM zip is in roms/aae/
-  ATARI, CINEMATRONICS, OTHER ARCADE, SEGA   the arcade games
-AUDIO               music players (need files in vectrex/waves)
-COMPUTER            ZBlast, Hyperoids, GS BASIC, Elite, VTerm, Vectorburner ...
-VECTREX
-  ALL ROMS          every .bin found in vectrex/ (see below)
-  DEMOS             the demos: the ones with entry files plus any others in vectrex/demos
-  EXACT VECTREX     games set up for Exact
-  SPEEDY VECTREX    games set up for Speedy
-  VECTORBLADE
-VIDEO               video players (need files in vectrex/movies)
-PROGRAMS            programs in piZero1/ that no entry file mentions
-SETTINGS            screen settings and calibration
-```
-
-Categories are alphabetical, then PROGRAMS, then SETTINGS. An entry whose image is not in `piZero1/` is left
-out, and a category with nothing in it disappears, so the menu only shows what can start.
-
-Highlight a category and the lines under the list explain it. All lists below the top level are in
-alphabetical order (inside ALL ROMS the folders come first, then the loose files).
-
-### The Vectrex games: preset groups and ALL ROMS
-
-* **SPEEDY VECTREX**, **EXACT VECTREX** and **DEMOS** are listed alphabetically. The old PICK A GAME
-  browser is gone: ALL ROMS does its job (and PICK A GAME started a game by itself).
-* **SPEEDY VECTREX** and **EXACT VECTREX** are the original author's presets: games he tested with
-  that emulator. They are always listed in the group of the emulator he chose.
-* **ALL ROMS** lists **every** `.bin` file on the card under `vectrex/`, including the preset
-  games. So yes: a preset game appears twice, once in its emulator's group and once in ALL ROMS.
-  Both start the same file.
-* Games in ALL ROMS start with **Exact** on Button 4 and **Speedy** on Button 2. You can change the
-  default per game, see the sidecar section.
-* Sub-folders of `vectrex/` (up to two levels) become groups inside ALL ROMS, so you can sort
-  your own games into folders. A group is named after the folder with FOLDER added (`ORIGINAL FOLDER`,
-  `HOMEBREW FOLDER`): the name says where the file is on the card and **nothing about the kind of game**.
-  `original/` is just the author's folder for the games his menu presets use; it also holds a few
-  newer homebrew releases. To rename a group, put `title = ...` in `menu/dir.<folder>.ini`
-  (`menu/dir.original.ini`). Files not in any folder are listed after the groups. A loose file whose
-  name also exists in a folder is treated as a copy and left out. `bios`, `movies` and `waves` are ignored.
-* A game's name in the list is its file name: upper-cased, `_` and `-` turned into spaces, `.bin`
-  dropped. `E-SRG.bin` shows as `E SRG`.
-* Only files ending in `.bin` are listed. Rename `.vec` files to `.bin`.
-
-### Speedy or Exact?
-
-They are the same emulator built two ways, and **either one can run any `.bin`**.
-
-| | Speedy | Exact |
+| What | Where | Notes |
 |---|---|---|
-| Speed | Games run about 30-50% faster than a real Vectrex, output at 50 Hz | As close to a real Vectrex as the author could make it |
-| Risk | Skips some BIOS work, so a few games misbehave | Known weak spot: 3D Imager games |
-| BIOS | built-in | loads the file named by `ROM_FILE` in `vectrex.ini` (in `vectrex/bios/`), else uses a built-in one |
+| Vectrex games | `vectrex/*.bin`, or in sub-folders such as `vectrex/original/` (two levels) | Any `.bin`. They show under VECTREX > ALL ROMS, each folder as a group named `<FOLDER> FOLDER`. A game's title is its file name. Rename `.vec` files to `.bin`. |
+| Vectrex BIOS | `vectrex/bios/` | Malban's card already has four. `vectrex.ini` (`ROM_FILE`) picks the one Exact uses. |
+| Music and video | `vectrex/waves/*.bin`, `vectrex/movies/*.bin` | Come with Malban's card. Turn the Vectrex volume all the way up: the sound goes through the video DAC and is quiet. |
+| Players | `vectrex/WAVPLAYER.NIB`, `MOVIEPLAYER.NIB`, `VECTORBLADE.NIB` | Come with Malban's card. |
 
-Start with Exact. If a game is too slow or looks wrong, press Button 2 to try the other one.
+Games the menu has notes for (Berzerk, Dark Tower, Minestorm 2, Mr Boston, Scramble, Web Wars, the demos, ...)
+are listed in their emulator's group as well as in ALL ROMS. Games it has no notes for are still listed, just
+without notes.
 
 ### Arcade games
 
-ARCADE > ALL AAE GAMES is a picker built into the arcade emulator. It lists the games it knows
-that have a zip in `roms/aae/` (70 of its 71 known games have one on the prepared card). Button 4
-plays, Button 1 backs out. The emulator reads only `roms/aae/`, and the zip file name must be the
-MAME name (`mhavoc.zip`, `alphaone.zip`). It never checks file contents, so a wrong ROM set
-starts but misbehaves. The author's notes say most AAE games have **no sound**; the menu shows
-those notes and a `!`.
+Arcade games run on two kinds of program. Some games have their own emulator (faster, and where the
+input is set up); the rest run on AAE ("Another Arcade Emulator"). The two kinds read **different zip folders**.
 
----
+#### Games with their own emulator: ROM zips go in `roms/`
 
-## Putting your own game on the card
+| Zip | Game | Menu entry | Program |
+|---|---|---|---|
+| `astdelux.zip` | Asteroids Deluxe Sim (older emulator) | Atari | `deluxe.img` |
+| `asteroid.zip` | Asteroids Sim (older emulator, also the fallback set for Asteroids) | Atari | `asteroids.img` |
+| `asteroid2.zip` | Asteroids | Atari | `asteroids_sbt.img` |
+| `barrier.zip` | Barrier | Cinematronics | `cine.img` |
+| `bwidow.zip` | Black Widow | Atari | `blackwidow.img` |
+| `bzone.zip` | Battle Zone | Atari | `battlezone.img` |
+| `demon.zip` | Demon | Cinematronics | `cine.img` |
+| `gravitar.zip` | Gravitar | Atari | `gravitar.img` |
+| `llander.zip` | Lunar Lander | Atari | `lunar.img` |
+| `qb3.zip` | QB3 (Q*bert's Qubes prototype) | Other Arcade | `cine.img` |
+| `redbaron.zip` | Red Baron | Atari | `redbaron.img` |
+| `spacduel.zip` | Space Duel | Atari | `spaceduel.img` |
+| `spacewar.zip` | Space Wars | Cinematronics | `cine.img` |
+| `tailg.zip` | Tailgunner | Cinematronics | `tailgunner.img` |
+| `tempest.zip` | Tempest | Atari | `tempest.img` |
 
-**A Vectrex ROM:** copy the `.bin` into `vectrex/` (or a sub-folder such as `vectrex/homebrew/`). It appears under
-VECTREX > ALL ROMS. Nothing else is needed.
+#### Games that run on AAE: ROM zips go in `roms/aae/`
 
-**A program image** (`something.img` for the Pi): copy it into `piZero1/` (and `piZero2/` for a Pi Zero 2). It appears
-under PROGRAMS, named after the file. Vectorburner is listed this way if it has no entry file.
+| Zip | Game | Where in the menu |
+|---|---|---|
+| `llander1.zip` | Lunar Lander (Revision 1) | Atari > Lunar Lander Versions > Lunar Lander Rev 1 |
+| `llander.zip` | Lunar Lander (Revision 2) | picker only (the same game also has its own emulator above) |
+| `meteorts.zip` | Meteorites (Asteroids Bootleg) | Atari > Asteroids Versions > Meteorites Bootleg |
+| `asterock.zip` | Asterock (Asteroids Bootleg) | Atari > Asteroids Versions > Asterock Bootleg |
+| `asteroib.zip` | Asteroids (Bootleg on Lunar Lander Hardware) | Atari > Asteroids Versions > Asteroids Lunar Hw Bootleg |
+| `asteroi1.zip` | Asteroids (Revision 1) | Atari > Asteroids Versions > Asteroids Rev 1 |
+| `asteroid.zip` | Asteroids (Revision 2) | Atari > Asteroids Versions > Asteroids Rev 2 |
+| `astdelu1.zip` | Asteroids Deluxe (Revision 1) | Atari > Asteroids Versions > Asteroids Deluxe Rev 1 |
+| `astdelu2.zip` | Asteroids Deluxe (Revision 2) | Atari > Asteroids Versions > Asteroids Deluxe Rev 2 |
+| `astdelux.zip` | Asteroids Deluxe (Revision 3) | Atari > Asteroids Deluxe |
+| `omegrace.zip` | Omega Race | Other Arcade > Omega Race |
+| `deltrace.zip` | Delta Race (Omega Race Bootleg) | Other Arcade > Delta Race |
+| `bzone.zip` | Battlezone (Revision 1) | picker only (the same game also has its own emulator above) |
+| `bzone2.zip` | Battlezone (Revision 2) | Atari > Battle Zone Versions > Battle Zone Rev 2 |
+| `bzonec.zip` | Battlezone Cocktail Proto | Atari > Battle Zone Versions > Battle Zone Cocktail |
+| `bzonep.zip` | Battlezone Plus (Clay Cowgill) | Atari > Battle Zone Versions > Battle Zone Plus |
+| `redbaron.zip` | Red Baron | picker only (the same game also has its own emulator above) |
+| `bradley.zip` | Bradley Trainer | Atari > Bradley Trainer |
+| `spacduel.zip` | Space Duel | picker only (the same game also has its own emulator above) |
+| `bwidow.zip` | Black Widow | picker only (the same game also has its own emulator above) |
+| `gravitar.zip` | Gravitar (Revision 3) | picker only (the same game also has its own emulator above) |
+| `gravitr2.zip` | Gravitar (Revision 2) | Atari > Gravitar Versions > Gravitar Rev 2 |
+| `gravp.zip` | Gravitar (Prototype) | Atari > Gravitar Versions > Gravitar Prototype |
+| `lunarbat.zip` | Lunar Battle (Prototype, Late) | Atari > Lunar Lander Versions > Lunar Battle Late |
+| `lunarba1.zip` | Lunar Battle (Prototype, Early) | Atari > Lunar Lander Versions > Lunar Battle Early |
+| `tempestm.zip` | Tempest Multigame (1999 Clay Cowgill) | Atari > Tempest Versions > Tempest Multigame |
+| `tempest.zip` | Tempest (Revision 3) | picker only (the same game also has its own emulator above) |
+| `tempest3.zip` | Tempest (Revision 2B) | Atari > Tempest Versions > Tempest Rev 2B |
+| `tempest2.zip` | Tempest (Revision 2A) | Atari > Tempest Versions > Tempest Rev 2A |
+| `tempest1.zip` | Tempest (Revision 1) | Atari > Tempest Versions > Tempest Rev 1 |
+| `temptube.zip` | Tempest (Revision 1) | Atari > Tempest Versions > Tempest Rev 1 Tubes |
+| `alienst.zip` | Aliens (Tempest Alpha) | Atari > Tempest Versions > Aliens Tempest Alpha |
+| `vbreak.zip` | Vector Breakout (1999 Clay Cowgill) | Other Arcade > Vector Breakout |
+| `vortex.zip` | Vortex (Tempest Beta) | Atari > Tempest Versions > Vortex Tempest Beta |
+| `zektor.zip` | Zektor | Sega > Zektor |
+| `tacscan.zip` | Tac/Scan | Sega > Tac Scan |
+| `startrek.zip` | Star Trek | Sega > Star Trek |
+| `spacfury.zip` | Space Fury (Revision C) | Sega > Space Fury |
+| `spacfura.zip` | Space Fury (Revision A) | Sega > Space Fury Versions > Space Fury Rev A |
+| `spacfurb.zip` | Space Fury (Revision B) | Sega > Space Fury Versions > Space Fury Rev B |
+| `elim2.zip` | Eliminator (2 Player Set 1) | Sega > Eliminator |
+| `elim2a.zip` | Eliminator (2 Player Set 2A) | Sega > Eliminator Versions > Eliminator 2P Set 2A |
+| `elim2c.zip` | Eliminator (2 Player Set 2C) | Sega > Eliminator Versions > Eliminator 2P Set 2C |
+| `elim4.zip` | Eliminator (4 Player) | Sega > Eliminator Versions > Eliminator 4 Player |
+| `elim4p.zip` | Eliminator (4 Player Prototype) | Sega > Eliminator Versions > Eliminator 4P Prototype |
+| `mhavoc.zip` | Major Havoc (Revision 3) | Atari > Major Havoc |
+| `mhavoc2.zip` | Major Havoc (Revision 2) | Atari > Major Havoc Versions > Major Havoc Rev 2 |
+| `mhavocrv.zip` | Major Havoc (Return To VAX - Mod by Jeff Askey) | Atari > Major Havoc Versions > Major Havoc Return To Vax |
+| `mhavocp.zip` | Major Havoc (Prototype) | Atari > Major Havoc Versions > Major Havoc Prototype |
+| `alphaone.zip` | Alpha One (Major Havoc Prototype - 3 Lives) | Atari > Major Havoc Versions > Alpha One 3 Lives |
+| `alphaona.zip` | Alpha One (Major Havoc Prototype - 5 Lives) | Atari > Major Havoc Versions > Alpha One 5 Lives |
+| `starwar1.zip` | Star Wars (Revision 1) | Atari > Star Wars Rev 1 Aae |
+| `starwars.zip` | Star Wars (Revision 2) | Atari > Star Wars (its own program, `swsbt.img`, reads this zip) |
+| `quantum1.zip` | Quantum (Revision 1) | Atari > Quantum Versions > Quantum Rev 1 |
+| `quantum.zip` | Quantum (Revision 2) | Atari > Quantum |
+| `quantump.zip` | Quantum (Prototype) | Atari > Quantum Versions > Quantum Prototype |
+| `solarq.zip` | Solar Quest | Cinematronics > Solar Quest |
+| `starcas.zip` | Star Castle | Cinematronics > Star Castle |
+| `armora.zip` | Armor Attack | Cinematronics > Armor Attack |
+| `barrier.zip` | Barrier | picker only (the same game also has its own emulator above) |
+| `sundance.zip` | Sundance | Cinematronics > Sundance |
+| `warrior.zip` | Warrior | Cinematronics > Warrior |
+| `ripoff.zip` | RipOff | Cinematronics > Ripoff |
+| `tailg.zip` | TailGunner | picker only (the same game also has its own emulator above) |
+| `starhawk.zip` | StarHawk (Missing Some Samples) | Cinematronics > Star Hawk |
+| `spacewar.zip` | SpaceWar | picker only (the same game also has its own emulator above) |
+| `speedfrk.zip` | Speed Freak (No Sound, Input) | Cinematronics > Speedfreak |
+| `demon.zip` | Demon (No Sound) | picker only (the same game also has its own emulator above) |
+| `boxingb.zip` | Boxing Bugs (No Sound, Input) | Cinematronics > Boxing Bugs |
+| `wotw.zip` | War of the Worlds (No Sound) | Cinematronics > War Of The Worlds |
 
-**To put a game where you want it, give it an entry file.** Create `menu/<any name>.ini`:
+Not in the list, and not supported: Cosmic Chasm (the Cinematronics emulator names it, but that part of the
+code is an empty stub), Aztarac, The Empire Strikes Back, and Galaga (the AAE game table has a Galaga slot
+but it is not a vector game and has no driver ROMs). The other Cinematronics sets that Malban's `cine.img` knows
+(Armor Attack, Boxing Bugs, Ripoff, Solar Quest, Star Castle, Star Hawk, Speed Freak, Sundance, War of the
+Worlds, Warrior) are run through AAE in this menu, so for them the `roms/aae/` zip is the one that counts.
 
-```
-[entry]
-title = MY GAME
-category = COMPUTER
-image = mygame.img
-```
+ARCADE > ALL AAE GAMES is a picker that lists every zip in `roms/aae/` that AAE has a driver for, including
+the ones the menu has no entry for. Button 4 plays, Button 1 goes back.
 
-Now it is listed under COMPUTER, sorted with the others. `category = ARCADE / ATARI` puts it in a sub-folder, and
-a category that does not exist yet is created. See the next section for all the fields. To remove an entry,
-delete its file (a program image is then listed under PROGRAMS again) or put `hide = 1` in it.
-
-The list is read from the card every time the menu starts (the screen says READING SD CARD while it does; how long
-that takes on a real card has not been measured, and a longer list takes longer).
-
-## Arcade games on this PiTrex
-
-What was seen working or not on the test PiTrex (Pi Zero W, 2026-10-17):
+How well they run (tested on a Pi Zero W, Vectrex with a Buzz-type BIOS, 2026-10-17/18):
 
 | Game | Result |
 |---|---|
-| Asteroids (SBT) | works; explosion sounds missing (other sounds work, cause not found) |
-| Asteroids Deluxe, Major Havoc, Quantum (AAE) | work, no sound (as the notes say) |
-| Black Widow | works, some sound. Needs two sticks: see CONTROLS. One-stick mode added. |
-| Red Baron | works, some sound |
-| Gravitar, Space Duel | work, with sound |
-| Lunar Lander | works; the code plays samples (`samples/lunar/*.raw`), whether they play was not confirmed |
-| Video and Audio entries | did not start with the shipped player images; rebuilt (not yet confirmed) |
-| Star Wars, Tempest | **went blank** with the shipped images. Rebuilt from source and the author's `starwars.ini` calibration moved aside; result not yet known. |
+| Star Wars, Tempest | work (these are the rebuilt programs; the July 2025 ones show a blank screen) |
+| Asteroids | works; the explosion sound is missing |
+| Black Widow | works, some sound. One controller: hold Button 4 to fire the way the stick last pointed |
+| Red Baron, Gravitar, Space Duel | work, with sound |
+| Lunar Lander | works; sound not confirmed |
+| Asteroids Deluxe, Major Havoc, Quantum (AAE) | work, no sound |
+| Other AAE games, the Cinematronics emulator, QB3, the two older "SIM" Asteroids programs | **not tested**. The menu notes copy the original author's remarks (NO SOUND, WORK IN PROGRESS...) |
+| Zero 2 builds | built, **not tested on hardware** |
 
-SBT = *static binary translation*: the original game code was translated to C ahead of time instead of
-being emulated, which is why these run fast. Star Wars, Asteroids and Tailgunner are done this way (and
-some of the others use translated pieces), so the menu does not put "SBT" in the titles.
+Most of the older Atari emulations (Star Wars, Asteroids, Tailgunner...) are static binary translations
+(SBT): the game code was translated ahead of time instead of being emulated, which is why they are fast.
 
-**Black Widow** is a two-stick game (one moves, one fires in a direction). With one controller the
-original port 2 stick reads as pushed fully up, so it fired straight up all the time. `blackwidow.ini`
-in the card root now has `ONE_STICK = 1` (the default): move with the stick, hold Button 4 to fire the
-way the stick last pointed. Set `ONE_STICK = 0` if a second stick is plugged into port 2.
+## Settings
 
-**Per-game ini files and calibration.** Games read `<game>.ini` from the card root *after*
-`vectrexInterface.ini`, and it overrides the global values. The files that came on the July 2025 card
-(`lunar.ini`, `starwars.ini`) carry the *author's own* screen calibration (offsets, sizes, calibration
-numbers for his Vectrex) and can put the picture off-screen or slanted on another Vectrex. They were renamed
-`*.ini.author-calibration` on the test card. `battlezone.ini` was set for the author's special
-two-controller board; it now has `ONE_STICK`-style single stick settings (`ONLY_ONE_JOYSTICK = 1`,
-`STRAMASH_INPUT_2 = 0`), the original is `battlezone.ini.author`.
+SETTINGS (last in the list) opens the screen calibration pages. Press Button 4 to leave: the values are written
+to `vectrexInterface.ini` and the screen says **SETTINGS SAVED** (or **SETTINGS NOT SAVED!**). They are read at
+every start, so you only set them once per Vectrex.
 
-**Slanted pictures.** The SETTINGS pages have six CALIBRATION values (5, 10, 15, 20, 50, 100): the
-correction for vectors of that length, and the on-screen help says "if vectors are displayed skewed, try
-use calibration to improve the look; Button 3 displays different vector lists". The global values on the test
-card were left near zero. Vectrex monitors differ, so these are per-machine. Also `XCAL_VALUE` and
-`YCAL_VALUE` apply a small correction proportional to the distance from the centre, and X SIZE / Y SIZE
-scale. General background for real Vectrex alignment (aged integrator capacitors, DAC offset) is in the
-[AtariAge calibration guide thread](https://forums.atariage.com/topic/339338-vectrex-complete-screen-calibration-and-more-definitive-guide/);
-nothing PiTrex-specific was found online.
+The installer **keeps your existing `vectrexInterface.ini`**. If the file is missing or empty (the original
+menu can leave it empty), it installs the tuned file instead. If the picture or the menu text is unreadable
+on your Vectrex with the file from Malban's card, run `install.sh --settings tuned`: it replaces your file
+with the one this package was developed with (your original is saved in the backup, `--restore` brings it
+back). Those values were tuned on one Vectrex, so treat them as a better starting point, not as the answer.
 
-## The files in menu/
+If vectors look slanted or skewed, use the six CALIBRATION values in SETTINGS (they correct vectors of length
+5, 10, 15, 20, 50 and 100); Vectrex monitors differ. `XCAL_VALUE` and `YCAL_VALUE` in the file add a small
+correction proportional to the distance from the centre. Background:
+[AtariAge calibration guide](https://forums.atariage.com/topic/339338-vectrex-complete-screen-calibration-and-more-definitive-guide/).
+Some games also read `<game>.ini` from the card root after `vectrexInterface.ini`, and it overrides the global
+values; the ones on Malban's card carry his own calibration.
 
-Every file `menu/<name>.ini` is plain text, read when the menu starts. There are two kinds.
+`vectrex.ini` (section `[VECTREX_EXACT]`): `ROM_FILE` picks the BIOS, `HANDLE_STATES = 0` stops Exact saving a
+game state when you leave, `INTERNAL_STRING_DISPLAY = 1` draws the BIOS text with the PiTrex routines.
 
-**Entry files** have an `image` line and define a game in the menu:
+## Adding your own entries
+
+A new Vectrex `.bin` needs nothing. A new program image (`something.img`, copied into `piZero1/` and
+`piZero2/`) shows up under PROGRAMS. To put anything where you want it, or to give it notes, create
+`menu/<any name>.ini`:
 
 ```
 [entry]
-title = MAJOR HAVOC            ; shown in the list (capitals; brackets are dropped)
-category = ARCADE / ATARI      ; where it is listed. Empty or missing: under PROGRAMS
-image = aae.img                ; the program image in piZero1/ that starts it
-param1 = 0x2d                  ; first parameter. 0x2d means the single byte 0x2d (AAE game number)
-param2 = original/X.BIN        ; second parameter, if the program takes one
-needs = roms/aae/mhavoc.zip    ; a file the game needs; ROM NOT FOUND! is shown under it if missing
-text = WORK IN PROGRESS!!      ; note lines under the list (max 12). WIP, NO SOUND... add a ! to the list
+title = MY GAME                ; shown in the list (capitals)
+category = COMPUTER            ; where it is listed; "ARCADE / ATARI" makes a sub-folder
+image = mygame.img             ; the program image in piZero1/
+param1 = original/X.BIN        ; first parameter (0x2d = the single byte 0x2d); param2 for a second
+needs = roms/mygame.zip        ; hide the entry while this file is missing; a folder ending in / means any entry needing a file there
+text = WORKS GREAT.            ; note lines under the list (max 12). NO SOUND, WIP, BROKEN add a "!"
 control = FIRE  BUTTON 4       ; lines of the CONTROLS page (Button 2), max 12
 hide = 1                       ; leave it out
 ```
 
-The shipped files are named by the image and parameter (`aae.x2d.ini`, `vectrexspeedy.original_berzerk_bin.ini`)
-but the name does not matter.
-
-**Notes files** change something that was *found* on the card, and have no `image` line:
-
-| For | File name | Example |
-|---|---|---|
-| A Vectrex game file | `rom.` + path with every run of other characters as `_`, lower case | `vectrex/homebrew/E-SRG.bin` is `menu/rom.homebrew_e_srg_bin.ini` |
-| A program (`piZero1/foo.img`) | image name, lower case | `menu/foo.ini` |
-| A ROM folder group | `dir.` + folder name | `menu/dir.original.ini` |
-
-```
-[entry]
-title = MY GAME                ; rename it (a folder group, a ROM or a program)
-text = WORKS GREAT.            ; note lines
-hide = 1                       ; leave it out
-emulator = speedy              ; for a ROM: which emulator Button 4 uses, speedy or exact
-control = ...                  ; CONTROLS page lines
-```
-
-`;` starts a comment. Write notes in capitals using only letters, digits, `.` and `!`: other punctuation will not
-draw on the PiTrex. A note containing NO SOUND, WIP / WORK IN PROGRESS, or BROKEN / NOT WORKING / CRASHING makes the
-entry show a `!` in the list. Full format: [docs/menu/05-sidecar-format.md](docs/menu/05-sidecar-format.md). The
-entry files that came with this build are generated from the original menu by `docs/tools/export_sidecars.py`;
-the CONTROLS lines by `docs/tools/controls_sidecars.py`.
-
-## Settings
-
-SETTINGS (top of the list) opens the screen-calibration pages. Press Button 4 to leave; the values
-are written to `vectrexInterface.ini` on the card and the screen then says **SETTINGS SAVED** (or
-**SETTINGS NOT SAVED!** if the file did not get written). Those values are read every time the
-PiTrex starts, so they only need setting once per Vectrex.
-
----
-
-## Emulator images (important)
-
-The Vectrex emulators (`vectrexexact.img`, `vectrexspeedy.img`) that came on the July 2025 SD card
-image **went to a blank, frozen screen as soon as a game started** on a Pi Zero W. The same emulators
-built from the source in this repository run Berzerk, Armor Attack, Mr Boston and E-SRG. The shipped
-images were built from slightly older source than the repository's last commit.
-The December 2021 and April 2023 emulators also run games but cannot draw the BIOS text (it shows as
-dots, scores are missing); only the 2025 source has `INTERNAL_STRING_DISPLAY`.
-
-**Where the shipped images came from.** The card used for testing was made from `PiTrex_sd_Jul29_25.zip`
-(a PiTrex bare-metal SD card image; its `changelog.txt` is dated 23 May 2025 and the files in it are dated
-16-23 May 2025, so it predates the repository's last upstream commit of 24 May 2025). Its FAQ points to
-[rpiteam.carrd.co](https://rpiteam.carrd.co) and the author's site <http://vide.malban.de/>; the download
-location was not recorded, so please add it here. The same card also got arcade ROM sets and the
-Vectorburner images.
-
-Images rebuilt from this source and installed on the test card so far: `vectrexexact`, `vectrexspeedy`,
-`vectrexvideo`, `vectrexaudio`, `vectrexlineart`, `vectorblade`, `swsbt` (Star Wars), `tempest` and
-`blackwidow`. The reasons: the shipped Exact and Speedy blanked; Star Wars and Tempest blanked; the
-Video and Audio entries did not start; Black Widow needed the one-stick fire. Games that worked from the
-shipped images (Asteroids, Gravitar, Space Duel, Red Baron, Lunar Lander...) were left alone. A rebuild of
-the other programs can be rebuilt the same way if one of them misbehaves. **Asteroids (SBT) cannot be
-rebuilt from this repository**: its translation step needs the original ROM file `035127-02.np3`, which is not
-included, so keep the shipped `asteroids_sbt.img`.
-
-Build them yourself (needs the `pitrex-dev` container, see `docs/tools/build.sh`):
-
-```
-docs/tools/build.sh zero1 pitrex/loader vecx.exact vecx.speedy      # Pi Zero / Zero W
-docs/tools/build.sh zero2 pitrex/loader vecx.exact vecx.speedy      # Pi Zero 2
-```
-
-and copy `vecx.exact/vectrexexact.img`, `vecx.speedy/vectrexspeedy.img` from the scratch folder the
-script prints into `piZero1/` (or `piZero2/`) on the card. Zero 2 builds are untested. Other emulators
-(`vectrexlineart`, `vectrexvideo`, `vectrexaudio`, `vectorblade`) were not rebuilt; they may have the same
-problem.
-
-`vectrex.ini` settings that matter (file in the card root, section `[VECTREX_EXACT]`):
-
-| Setting | Effect |
-|---|---|
-| `ROM_FILE = bios/7ADB.bin` | which BIOS Exact loads from `vectrex/bios/` (the card also has `FASTBOOT.IMG`) |
-| `HANDLE_STATES = 0` | do not save the game state when you leave with Button 4 (saving can freeze on slow cards) |
-| `INTERNAL_STRING_DISPLAY = 1 or 0` | draw the BIOS text with the PiTrex routines (1) or from the emulated Vectrex (0). Compare both: the text can wobble. |
-| `CYCLE_EQUIVALENT = 648` | emulation timing; also settable in SETTINGS |
+Delete the file and the entry is gone. A file without an `image` line changes something found on the card
+instead: `menu/rom.<path with _ for other characters>.ini` for a Vectrex game (for example
+`menu/rom.homebrew_e_srg_bin.ini`), `menu/<image name>.ini` for a program, `menu/dir.<folder>.ini` to rename
+a ROM folder group. In those, `emulator = speedy` makes Button 4 use Speedy for that game. Write text in capitals
+using only letters, digits, `.` and `!`.
 
 ## Known problems
 
-* Audio (Queen, Prince) and video: the player loads the whole 3-10 MB data file into memory first, so the
-  screen shows the Vectrex start screen, then WAVPLAYER, and nothing for a while (several seconds) before the
-  music starts. It is not frozen. The sound is **very quiet** (the Vectrex volume has to go all the way up) and
-  Queen is scratchy. The FAQ says digitized sound is very soft on the Vectrex, a hardware limit; the scratchiness
-  is not understood. The video player is the "Extreme multicart" movie player. Yes, the videos are
-meant to have music: a video of the PiTrex player ([Video Player on VECTREX (with Pitrex)](https://www.youtube.com/watch?v=DqgDFml1LVY),
-Bla Bla, La Linea, Bad Apple) mentions improving the music in post production, and the original design by Sprite_TM
-([Hackaday](https://hackaday.com/2015/04/24/extreme-vectrex-multicart-plays-bad-apple),
-[his write-up](https://spritesmods.com?art=veccart&page=4)) plays the sound through the same 8-bit DAC that draws the
-picture. That only works between vectors, so the sound is quiet and noisy, and **the Vectrex volume must be turned all
-the way up**. No video sound was heard on the test PiTrex yet (try the volume at maximum).
-* The menu music is paced by the clock (one 50 Hz step per 20 ms, skipped rather than delayed when a refresh is
-  slow). Before, it ran slower the more lines were drawn. Not yet confirmed on hardware.
-* The BIOS text in Vectrex games is readable with the 2025 emulators but can shimmer: it flickers
-  between bright and dim and shifts sideways between frames. Not yet understood; try the settings above
-  and the calibration pages in SETTINGS.
-* The 2021 and 2023 emulators cannot draw BIOS text at all, so do not use them.
-* Speedy was only seen working from the debug-logging build; the clean build is untested.
-* The menu ignores the controls for the first moments (until they have rested for 15 frames). Button 4
-  reads as pressed at power-on if you hold it to skip the Vectrex intro; the wait keeps that from
-  opening VECTREX.
-* After you leave a game the list may start at the top again (not checked).
-* The CONTROLS page (Button 2) used to stay blank while the button was held and left the menu music's last
-  tone sounding; it now shows at once and silences the tone.
-* Caveat marks are not shown in the AAE picker.
-* The menu reads `.bin` files two folder levels deep only.
-* `NMLOG.TXT` in the card root records the controls on the first frame, the launches and the SETTINGS
-  steps. It is rewritten on every boot; look at it first when something freezes.
-
-Fixed during the hardware test: the settings were never saved and leaving SETTINGS froze the PiTrex.
-Cause: the upstream ini writer printed a `uint8_t` with `%f` (`vectrexInterface_settings.c`, now `%i`).
-It left an empty `vectrexInterface.ini`, and an unreadable ini makes later saves do nothing.
+* Audio (Queen, Prince) and video: the player loads the whole 3-10 MB file before it starts, so for several
+  seconds the screen shows the Vectrex start screen and then WAVPLAYER; it is not frozen. The sound is quiet:
+  turn the Vectrex volume all the way up. The video player plays sound too. Queen is a little scratchy.
+* The menu music slows a little on the busiest screens.
+* Vectrex BIOS text can shimmer slightly with the 2025 emulators; try the calibration pages.
+* The July 2021 and 2023 emulators cannot draw the BIOS text at all (dots), so do not use them.
+* The AAE picker does not show the caveat marks.
+* `NMLOG.TXT` on the card records the first controls, launches and settings steps; look at it first if something
+  freezes.
 
 ## If something goes wrong
 
-1. Menu odd or unusable: take the card to a computer, delete the `NEW_MENU = 1` line in
-   `loader.ini`. The original menu returns.
-2. PiTrex does not boot: `card.sh restore <card>` puts back the images that were replaced
-   (they were copied to `backup-<date>/` on the card at install time).
-3. A game misbehaves: Button 2 on it, or `emulator = ` in its sidecar.
+1. Menu odd or unusable: delete the `NEW_MENU = 1` line in `loader.ini`; the original menu returns.
+2. PiTrex does not boot or a game is worse: `install.sh --restore <card folder>` puts the replaced files back.
+3. A Vectrex game misbehaves: Button 2 on it (the other emulator).
 
-## Where the code is
+## Build it yourself
 
-| File | What it does |
-|---|---|
-| `pitrex/loader/newMenuLogic.h` | building the tree from the entry files, program and ROM discovery, sorting, navigation, help texts. No hardware calls, tested on a PC. |
-| `pitrex/loader/newMenuUi.h` | drawing, buttons, launching, scanning the card |
-| `pitrex/loader/menuSidecar.h`, `menuSidecarIo.h` | sidecar key rules and file reading |
-| `pitrex/loader/loaderMain.c` | calls the new menu each frame when `NEW_MENU = 1` (the original compiled menu is untouched) |
-| `aae/aaeSelect.h`, `aae/aaemain.c` | the arcade game picker |
-| `docs/` | findings, the format specs, tests, the build script and the desktop preview |
-
-Licensing of the upstream code is discussed in [docs/LICENSING.md](docs/LICENSING.md).
+The loader, emulators and arcade programs in this package were built from the source in this repository with
+`gcc-arm-none-eabi` 10.3.1 (`docs/tools/build.sh zero1 pitrex/loader vecx.exact vecx.speedy`; `zero2` for the Pi
+Zero 2). Asteroids cannot be rebuilt from the repository (its translation step needs the original ROM
+`035127-02.np3`), so its image stays the one from Malban's card. Design notes and the test tools are in
+[`docs/`](docs/README.md); licensing notes are in [docs/LICENSING.md](docs/LICENSING.md).

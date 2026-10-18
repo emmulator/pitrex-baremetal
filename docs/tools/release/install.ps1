@@ -2,7 +2,7 @@
 Installs the new PiTrex menu release over an unpacked Malban "PiTrex_sd_Jul29_25" archive
 (or over the SD card made from it). Windows PowerShell 5.1 or PowerShell 7.
 
-  .\install.ps1 [-ArcadeTweaks] [-DryRun] <folder>
+  .\install.ps1 [-Settings tuned] [-ArcadeTweaks] [-DryRun] <folder>
   .\install.ps1 -Restore <folder>
 
 Replaced files are saved in <folder>\backup-menu-<date>\ with a MANIFEST.tsv that -Restore reads.
@@ -11,6 +11,7 @@ Nothing outside the files listed in payload\ (and, with -ArcadeTweaks, arcade-tw
 param(
   [Parameter(Position = 0)][string]$Folder,
   [switch]$ArcadeTweaks,
+  [ValidateSet('keep', 'tuned')][string]$Settings = 'keep',
   [switch]$DryRun,
   [switch]$Restore
 )
@@ -139,6 +140,22 @@ if ($text -match '(?im)^[ \t]*NEW_MENU[ \t]*=[ \t]*1') {
     Note 'R' 'loader.ini' ''
     [System.IO.File]::WriteAllBytes($ini, $latin1.GetBytes($lf))
   }
+}
+
+# vectrexInterface.ini (the screen settings): an existing file is the user's and stays, unless it is missing or
+# empty (the original settings screen can leave it empty), or -Settings tuned asks for ours.
+$cur = P $target 'vectrexInterface.ini'
+$size = -1
+if (Test-Path -LiteralPath $cur -PathType Leaf) { $size = (Get-Item -LiteralPath $cur).Length }
+if ($Settings -eq 'tuned' -or $size -lt 100) {
+  $sdir = Join-Path $here 'settings'
+  if (-not (Test-Path -LiteralPath $sdir -PathType Container)) { Die "settings\ folder missing next to this script" }
+  if ($size -ge 100) { Write-Host "settings: replacing yours with the tuned file (saved in the backup)" }
+  elseif ($size -ge 0) { Write-Host "settings: your vectrexInterface.ini is empty; installing the tuned one" }
+  else { Write-Host "settings: no vectrexInterface.ini; installing the tuned one" }
+  PutFile (Join-Path $sdir 'vectrexInterface.ini') 'vectrexInterface.ini'
+} else {
+  Write-Host "  keep     vectrexInterface.ini (your settings; use -Settings tuned to replace them)"
 }
 
 # optional arcade tweaks
