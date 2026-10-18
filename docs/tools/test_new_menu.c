@@ -341,6 +341,21 @@ int main(int argc, char **argv)
       }
   }
 
+
+  /* titles: no brackets, and "SBT" is not part of a name */
+  {
+    int bad = 0, sw = 0;
+    for (int i = 0; i < tree.used; i++)
+    {
+      const char *t = tree.pool[i].title;
+      int len = (int) strlen(t);
+      if (strchr(t, '(') || strchr(t, ')') || (len > 4 && strcmp(t + len - 4, " SBT") == 0)) bad++;
+      if (strcmp(t, "STAR WARS") == 0) sw++;
+    }
+    CHECK(bad == 0, "%d titles with brackets or SBT", bad); if (bad) for (int i = 0; i < tree.used; i++) { const char *t = tree.pool[i].title; if (strchr(t, 0x28) || strchr(t, 0x29)) printf("   bracket title: %s\n", t); }
+    CHECK(sw == 1, "Star Wars is listed as STAR WARS");
+  }
+
   /* help texts: every category says what it is, using only characters the PiTrex font draws */
   {
     const int ids[] = { 1, 2, 3, 4, 5, 102, 107, 108, NM_ID_PROGRAMS, NM_ID_ALL_ROMS, NM_ID_ROM_FOLDER, 0 };

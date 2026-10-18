@@ -160,10 +160,11 @@ What was seen working or not on the test PiTrex (Pi Zero W, 2026-10-17):
 | Red Baron | works, some sound |
 | Gravitar, Space Duel | work, with sound |
 | Lunar Lander | works; the code plays samples (`samples/lunar/*.raw`), whether they play was not confirmed |
-| Star Wars (SBT), Tempest | **went blank** with the shipped images. Rebuilt from source and the author's `starwars.ini` calibration moved aside; result not yet known. |
+| Star Wars, Tempest | **went blank** with the shipped images. Rebuilt from source and the author's `starwars.ini` calibration moved aside; result not yet known. |
 
 SBT = *static binary translation*: the original game code was translated to C ahead of time instead of
-being emulated, which is why these run fast.
+being emulated, which is why these run fast. Star Wars, Asteroids and Tailgunner are done this way (and
+some of the others use translated pieces), so the menu does not put "SBT" in the titles.
 
 **Black Widow** is a two-stick game (one moves, one fires in a direction). With one controller the
 original port 2 stick reads as pushed fully up, so it fired straight up all the time. `blackwidow.ini`

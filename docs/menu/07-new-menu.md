@@ -142,7 +142,7 @@ the Vectrex intro (F23). Every launch is also logged there.
 
 * Every list below the top level is sorted (`nmSortAll`), except inside ALL ROMS.
 * Compiled titles are cleaned (`nmCleanTitle`): upper case, brackets dropped, other undrawable characters
-  become spaces: "Star Wars (SBT)" is "STAR WARS SBT".
+  become spaces: "Star Wars (SBT)" is "STAR WARS" (a trailing SBT is dropped: Star Wars, Asteroids and Tailgunner are all translated).
 * Button 2 on an entry with `control` lines opens the CONTROLS page (`nmShowControls`).
 * sim games read `<game>.ini` after the global ini (F21 context); the author's per-game calibration is
   wrong for other Vectrex machines. Black Widow gained `ONE_STICK` (`sim/vx_interface.c`).

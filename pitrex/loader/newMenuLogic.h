@@ -248,7 +248,7 @@ static const char *nmFallbackTitle(int id)
 }
 
 // Upper case, brackets dropped, any other character the PiTrex font cannot draw becomes a space,
-// double spaces collapse: "Star Wars (SBT)" -> "STAR WARS SBT".
+// double spaces collapse, a trailing "SBT" is dropped: "Star Wars (SBT)" -> "STAR WARS".
 static void nmCleanTitle(char *t)
 {
   int o = 0;
@@ -262,6 +262,8 @@ static void nmCleanTitle(char *t)
   }
   while (o > 0 && t[o - 1] == ' ') o--;
   t[o] = 0;
+  // "SBT" (static binary translation) is how a game was ported, not part of its name; several are
+  if (o > 4 && strcmp(t + o - 4, " SBT") == 0) t[o - 4] = 0;
 }
 
 static NmNode *nmNewNode(NmTree *t)
@@ -605,6 +607,7 @@ static int nmAddRoms(NmTree *t, NmNode *into, char (*paths)[NM_ROM_PATH], int np
       NmNode *e = nmNewNode(t);
       if (e == 0) return added;
       nmRomTitle(paths[order[k]], e->title, (int) sizeof e->title);
+      nmCleanTitle(e->title);
       nmRomKey(paths[order[k]], e->key, (int) sizeof e->key);
       e->img = imgDefault;
       e->altImg = imgAlt;
@@ -664,6 +667,7 @@ static int nmAddMissingRoms(NmTree *t, NmNode *into, char (*paths)[NM_ROM_PATH],
     NmNode *e = nmNewNode(t);
     if (e == 0) return added;
     nmRomTitle(p, e->title, (int) sizeof e->title);
+    nmCleanTitle(e->title);
     nmRomKey(p, e->key, (int) sizeof e->key);
     e->img = imgDefault;
     e->altImg = imgAlt;
