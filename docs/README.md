@@ -230,10 +230,12 @@ on your Vectrex with the file from Malban's card, install with `--settings tuned
 `vectrexInterface.ini` and `vectrex.ini` with the ones this package was developed with (your originals are saved in
 the backup). Those values were tuned on one Vectrex, so treat them as a better starting point, not as the answer.
 
-The tuned `vectrex.ini` differs from Malban's in one line: `ROM_FILE = bios/7ADB.bin` (the original Vectrex BIOS,
-so the Vectrex intro plays) instead of `bios/FASTBOOT.IMG`. On the test Vectrex the BIOS text in games (scores,
-"GAME OVER") was steady with `7ADB.bin` and shimmered or was hard to read with `FASTBOOT.IMG`, even with
-`INTERNAL_STRING_DISPLAY = 1` (which both files have). If your game text shimmers, try that line first.
+The tuned `vectrex.ini` differs from Malban's in the BIOS line: `ROM_FILE = bios/7ADB.bin` (the original Vectrex BIOS,
+so the Vectrex intro plays) instead of `bios/FASTBOOT.IMG`. Both files have `INTERNAL_STRING_DISPLAY = 1` (the emulator
+draws the BIOS text itself) and leave `CYCLE_EQUIVALENT` commented out. On the test Vectrex, the text of the Vectrex
+boot screen and of games (scores, "GAME OVER") was steady with exactly that combination, and shimmered or was garbled
+with `FASTBOOT.IMG`, and also with `7ADB.bin` once `CYCLE_EQUIVALENT = 648` was switched on in `vectrex.ini`
+(that line overrides the one in `vectrexInterface.ini`). If your game text shimmers, check those two lines first.
 
 If vectors look slanted or skewed, use the six CALIBRATION values in SETTINGS (they correct vectors of length
 5, 10, 15, 20, 50 and 100); Vectrex monitors differ. Background:
@@ -247,8 +249,8 @@ values; the ones on Malban's card carry his own calibration (that is what `--arc
   seconds the screen shows the Vectrex start screen and then WAVPLAYER; it is not frozen. The sound is quiet:
   turn the Vectrex volume all the way up. The video player plays sound too. Queen is a little scratchy.
 * The menu music slows a little on the busiest screens.
-* Vectrex BIOS text can shimmer or be hard to read with the fast-boot BIOS (`ROM_FILE = bios/FASTBOOT.IMG`, which
-  Malban's `vectrex.ini` uses): see [Settings](#settings).
+* Vectrex BIOS text (boot screen, scores) can shimmer or be garbled depending on `ROM_FILE` and `CYCLE_EQUIVALENT` in
+  `vectrex.ini`: see [Settings](#settings). `--settings tuned` installs a combination that was steady on the test Vectrex.
 * The AAE picker does not show the caveat marks.
 * `NMLOG.TXT` on the card records the first controls, launches and settings steps; look at it first if something
   freezes.

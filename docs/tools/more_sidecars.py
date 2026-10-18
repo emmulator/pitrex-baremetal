@@ -96,17 +96,17 @@ write(folder, 'deluxe', [
     'text = OLDER EMULATOR. NOT TESTED.',
 ])
 write(folder, 'gyrocks', [
-    'title = GYROCKS', 'category = COMPUTER', 'image = gyrocks.img', 'skip = 4',
+    'title = GYROCKS', 'category = PITREX', 'image = gyrocks.img', 'skip = 4',
     'text = NOT TESTED.',
 ])
 for img, title in (('maze', 'MAZE'), ('pacman', 'PACMAN DEMO'), ('perspective', 'PERSPECTIVE')):
     write(folder, img, [
-        'title = ' + title, 'category = COMPUTER / SAMPLE PROGRAMS', 'image = %s.img' % img, 'skip = 4',
+        'title = ' + title, 'category = PITREX / SAMPLE PROGRAMS', 'image = %s.img' % img, 'skip = 4',
         'text = SAMPLE PROGRAM FROM THE SOURCE. NOT TESTED.',
     ])
 for img, title in (('hello', 'HELLO WORLD'), ('window', 'WINDOW')):
     write(folder, img, [
-        'title = ' + title, 'category = COMPUTER / SAMPLE PROGRAMS', 'image = %s.img' % img, 'hide = 1', 'skip = 4',
+        'title = ' + title, 'category = PITREX / SAMPLE PROGRAMS', 'image = %s.img' % img, 'hide = 1', 'skip = 4',
         'text = TEST PROGRAM. HIDDEN. REMOVE THE HIDE LINE',
         'text = TO SHOW IT.',
     ])

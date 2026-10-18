@@ -54,7 +54,7 @@ It is listed under PROGRAMS, named after the file. To put it elsewhere, give it 
 ```
 [entry]
 title = MY GAME
-category = COMPUTER
+category = PITREX
 image = mygame.img
 ```
 

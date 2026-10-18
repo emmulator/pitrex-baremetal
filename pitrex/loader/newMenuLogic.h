@@ -166,7 +166,7 @@ static int nmHelp(const NmNode *n, const char **out, int max)
     "ARCADE GAMES RUN BY THE PITREX EMULATORS.",
     "MOST NEED THEIR ROM FILES ON THE CARD.",
     "ALL AAE GAMES LISTS THE ONES YOU HAVE.", 0 };
-  static const char *computer[] = {
+  static const char *pitrexOwn[] = {
     "PROGRAMS AND GAMES WRITTEN FOR THE PITREX.", 0 };
   static const char *video[] = {
     "VIDEO PLAYBACK ON THE VECTREX SCREEN.", 0 };
@@ -190,7 +190,7 @@ static int nmHelp(const NmNode *n, const char **out, int max)
       if (n->img != 0) break;                    // a game: its own notes are shown instead
       if (nmEqNoCase(n->title, "VECTREX")) t = vectrex;
       else if (nmEqNoCase(n->title, "ARCADE")) t = arcade;
-      else if (nmEqNoCase(n->title, "COMPUTER")) t = computer;
+      else if (nmEqNoCase(n->title, "PITREX") || nmEqNoCase(n->title, "COMPUTER")) t = pitrexOwn;   // COMPUTER: the old name
       else if (nmEqNoCase(n->title, "VIDEO")) t = video;
       else if (nmEqNoCase(n->title, "AUDIO")) t = audio;
       else if (nmEqNoCase(n->title, "SPEEDY VECTREX")) t = speedy;

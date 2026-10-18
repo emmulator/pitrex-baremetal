@@ -164,7 +164,7 @@ int main(int argc, char **argv)
       if (i > 0 && nmTitleCmp(tree.tops[i - 1]->title, tree.tops[i]->title) > 0) sorted = 0;
     CHECK(sorted, "top categories are alphabetical");
     CHECK(tree.tops[tree.ntops - 1] == settings, "SETTINGS is last");
-    CHECK(nmFindTop(&tree, "ARCADE") && nmFindTop(&tree, "VECTREX") && nmFindTop(&tree, "COMPUTER") &&
+    CHECK(nmFindTop(&tree, "ARCADE") && nmFindTop(&tree, "VECTREX") && nmFindTop(&tree, "PITREX") &&
           nmFindTop(&tree, "VIDEO") && nmFindTop(&tree, "AUDIO"), "the five categories come from the entry files");
   }
 
@@ -384,7 +384,7 @@ int main(int argc, char **argv)
 
   /* ---- help texts: only characters the PiTrex font draws ---- */
   {
-    const char *cats[] = { "VECTREX", "ARCADE", "COMPUTER", "VIDEO", "AUDIO", "SPEEDY VECTREX", "EXACT VECTREX", "DEMOS" };
+    const char *cats[] = { "VECTREX", "ARCADE", "PITREX", "VIDEO", "AUDIO", "SPEEDY VECTREX", "EXACT VECTREX", "DEMOS" };
     for (unsigned i = 0; i < sizeof cats / sizeof cats[0]; i++)
     {
       NmNode n;

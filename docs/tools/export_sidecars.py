@@ -96,7 +96,7 @@ if m:
     for cm in re.finditer(r'case\s+(\d+)\s*:\s*(?://[^\n]*)?\s*\{?\s*(?://[^\n]*)?\s*testPath\s*=\s*"([^"]+)"', m.group(1)):
         needs[cm.group(1)] = cm.group(2)
 
-TOP = {'1': 'VECTREX', '2': 'ARCADE', '3': 'COMPUTER', '4': 'VIDEO', '5': 'AUDIO'}
+TOP = {'1': 'VECTREX', '2': 'ARCADE', '3': 'PITREX', '4': 'VIDEO', '5': 'AUDIO'}
 def label(n):
     f = items[n]
     nm = strfield(f[1]).decode('latin-1').strip()
@@ -164,7 +164,7 @@ for n, path in reached:
 EXTRA = {
     'aae': ['title = ALL AAE GAMES', 'category = ARCADE', 'image = aae.img', 'skip = 4',
             'text = LISTS THE ROM ZIPS', 'text = FOUND IN ROMS/AAE'],
-    'vectorburner': ['title = VECTORBURNER', 'category = COMPUTER', 'image = vectorburner.img', 'skip = 4',
+    'vectorburner': ['title = VECTORBURNER', 'category = PITREX', 'image = vectorburner.img', 'skip = 4',
                      'text = VECTORBURNER V065'],
 }
 for k, body in EXTRA.items():

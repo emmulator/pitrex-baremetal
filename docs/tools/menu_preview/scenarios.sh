@@ -56,15 +56,15 @@ run "Button 2 shows the controls page, then Button 4 still starts the game" 190 
 
 # sidecars: hide a program, switch a ROM to Speedy
 mkdir -p "$work/card"; cp -r "$base"/. "$work/card"/
-run "COMPUTER > SAMPLE PROGRAMS starts MAZE first (HELLO WORLD is hidden)" 170 "$(downs 2 10),right@40,$(downs 6 50),right@110,b4@130" 'image=piZero1/maze.img'
+run "PITREX > SAMPLE PROGRAMS starts MAZE first (HELLO WORLD is hidden)" 170 "$(downs 2 10),right@40,$(downs 6 50),right@110,b4@130" 'image=piZero1/maze.img'
 printf '[entry]\nhide = 1\n' > "$work/card/menu/maze.ini"
 run "hide = 1 removes MAZE (the first program is now PACMAN)" 170 "$(downs 2 10),right@40,$(downs 6 50),right@110,b4@130" 'image=piZero1/pacman.img' "$work/card"
 printf '[entry]\nemulator = speedy\n' > "$work/card/menu/rom.demos_epic_bin.ini"
 run "sidecar emulator = speedy: Button 4 starts Speedy" 150 "$roms,b4@110" 'image=piZero1/vectrexspeedy.img param1="demos/epic.bin"' "$work/card"
 run "...and Button 2 then starts Exact" 150 "$roms,b2@110" 'image=piZero1/vectrexexact.img param1="demos/epic.bin"' "$work/card"
 
-# a brand new entry file: no recompiling. COMPUTER is the 3rd category; the new game sorts last in it
-printf '[entry]\ntitle = ZZ NEW GAME\ncategory = COMPUTER\nimage = hello.img\nparam1 = my/param\n' > "$work/card/menu/zznew.ini"
+# a brand new entry file: no recompiling. PITREX is the 3rd category; the new game sorts last in it
+printf '[entry]\ntitle = ZZ NEW GAME\ncategory = PITREX\nimage = hello.img\nparam1 = my/param\n' > "$work/card/menu/zznew.ini"
 run "a new entry file appears in its category, sorted, with its parameter" 200 "$(downs 2 10),right@40,$(downs 12 50),b4@170" 'image=piZero1/hello.img param1="my/param"' "$work/card"
 rm -f "$work/card/menu/zznew.ini"
 
