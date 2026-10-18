@@ -1,0 +1,19 @@
+@echo off
+rem Double-click wrapper is not useful (the script needs the folder), so run it from a command prompt:
+rem   install.bat [--arcade-tweaks] [--dry-run] C:\path\to\PiTrex_sd_Jul29_25
+rem   install.bat --restore C:\path\to\PiTrex_sd_Jul29_25
+setlocal EnableDelayedExpansion
+set "ARGS="
+:next
+if "%~1"=="" goto run
+set "A=%~1"
+if /I "!A!"=="--arcade-tweaks" ( set "ARGS=!ARGS! -ArcadeTweaks" ) else if /I "!A!"=="--dry-run" ( set "ARGS=!ARGS! -DryRun" ) else if /I "!A!"=="--restore" ( set "ARGS=!ARGS! -Restore" ) else ( set "ARGS=!ARGS! "!A!"" )
+shift
+goto next
+:run
+if "!ARGS!"=="" (
+  echo usage: install.bat [--arcade-tweaks] [--dry-run] [--restore] folder
+  exit /b 2
+)
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0install.ps1" !ARGS!
+exit /b %ERRORLEVEL%

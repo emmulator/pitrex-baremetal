@@ -17,7 +17,10 @@ Nothing here is part of upstream.
 | [06-aae-picker.md](menu/06-aae-picker.md) | AAE accepts game names and lists the ROM zips on the card |
 | [07-new-menu.md](menu/07-new-menu.md) | The new list menu (`NEW_MENU = 1`), program and ROM discovery |
 | [09-hardware-test-log.md](menu/09-hardware-test-log.md) | What was tried on a real PiTrex on 2026-10-17 and what happened |
+| [10-other-work.md](menu/10-other-work.md) | Other published menu work (forks, posts) found on 2026-10-18 |
 | [08-menu-preview.md](menu/08-menu-preview.md) | Running the real menu code on a PC with the PiTrex simulator, scripted checks |
+
+Release packaging: `docs/tools/release/` (`install.sh`, `install.ps1`, `install.bat` copy the rebuilt files over Malban's unpacked card with backup and `--restore`; `make_release.sh` assembles the zip from the saved build sets).
 
 Tools in `docs/tools/`: `menu_tables.py` (tables in file 01), `export_sidecars.py` (entry files from the original menu), `controls_sidecars.py` (controls lines), `test_sidecar_key.c` and `test_aae_select.c` and `test_new_menu.c` (host tests), `gen_aae_table.py`, `gen_menu_tree.py` (writes the original compiled menu as C data; no longer used by the tests or the preview), `make_rom_test_data.py`, `build.sh` (ARM build in the container), `emulator-debug-breadcrumbs.patch` (adds an `EMUDBG.TXT` log to `vectrexBase/main.c` for finding where an emulator hangs).
 

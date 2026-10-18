@@ -1,0 +1,169 @@
+<#
+Installs the new PiTrex menu release over an unpacked Malban "PiTrex_sd_Jul29_25" archive
+(or over the SD card made from it). Windows PowerShell 5.1 or PowerShell 7.
+
+  .\install.ps1 [-ArcadeTweaks] [-DryRun] <folder>
+  .\install.ps1 -Restore <folder>
+
+Replaced files are saved in <folder>\backup-menu-<date>\ with a MANIFEST.tsv that -Restore reads.
+Nothing outside the files listed in payload\ (and, with -ArcadeTweaks, arcade-tweaks\) is touched.
+#>
+param(
+  [Parameter(Position = 0)][string]$Folder,
+  [switch]$ArcadeTweaks,
+  [switch]$DryRun,
+  [switch]$Restore
+)
+$ErrorActionPreference = 'Stop'
+
+function Die($msg) { Write-Host "ERROR: $msg" -ForegroundColor Red; exit 1 }
+function P($root, $rel) { Join-Path $root ($rel -replace '/', '\') }
+function Same($a, $b) {
+  (Test-Path -LiteralPath $a) -and (Test-Path -LiteralPath $b) -and
+  ((Get-FileHash -LiteralPath $a -Algorithm SHA256).Hash -eq (Get-FileHash -LiteralPath $b -Algorithm SHA256).Hash)
+}
+
+if (-not $Folder) { Write-Host "usage: .\install.ps1 [-ArcadeTweaks] [-DryRun] [-Restore] <folder>"; exit 2 }
+if (-not (Test-Path -LiteralPath $Folder -PathType Container)) { Die "not a folder: $Folder" }
+$target = (Resolve-Path -LiteralPath $Folder).ProviderPath.TrimEnd('\')
+$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+$payload = Join-Path $here 'payload'
+$tweaks = Join-Path $here 'arcade-tweaks'
+$utf8 = New-Object System.Text.UTF8Encoding($false)
+$latin1 = [System.Text.Encoding]::GetEncoding(28591)
+
+# ---------------------------------------------------------------- restore
+if ($Restore) {
+  $bk = Get-ChildItem -LiteralPath $target -Directory -Filter 'backup-menu-*' |
+    Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName 'MANIFEST.tsv') } |
+    Sort-Object Name | Select-Object -Last 1
+  if (-not $bk) { Die "no backup-menu-* folder with a MANIFEST.tsv in $target" }
+  $bkPath = $bk.FullName
+  Write-Host "restoring from $bkPath"
+  $lines = @(Get-Content -LiteralPath (Join-Path $bkPath 'MANIFEST.tsv'))
+  [array]::Reverse($lines)
+  foreach ($line in $lines) {
+    if (-not $line) { continue }
+    $f = $line.Split("`t")
+    switch ($f[0]) {
+      'R' { Copy-Item -LiteralPath (P $bkPath $f[1]) -Destination (P $target $f[1]) -Force; Write-Host "  restored $($f[1])" }
+      'A' { Remove-Item -LiteralPath (P $target $f[1]) -Force -ErrorAction SilentlyContinue; Write-Host "  removed  $($f[1])" }
+      'M' {
+        if ((Test-Path -LiteralPath (P $target $f[2])) -and -not (Test-Path -LiteralPath (P $target $f[1]))) {
+          Move-Item -LiteralPath (P $target $f[2]) -Destination (P $target $f[1]); Write-Host "  renamed back $($f[1])"
+        }
+      }
+    }
+  }
+  Rename-Item -LiteralPath (Join-Path $bkPath 'MANIFEST.tsv') -NewName 'MANIFEST.tsv.done'
+  $menuDir = Join-Path $target 'menu'
+  if ((Test-Path -LiteralPath $menuDir) -and -not (Get-ChildItem -LiteralPath $menuDir -Force)) { Remove-Item -LiteralPath $menuDir }
+  Write-Host "done. (the backup folder was kept: $bkPath)"
+  exit 0
+}
+
+# ---------------------------------------------------------------- install
+if (-not (Test-Path -LiteralPath $payload -PathType Container)) { Die "payload\ folder missing next to this script" }
+foreach ($f in 'pitrex.img', 'loader.ini', 'piZero1/loader.pit') {
+  if (-not (Test-Path -LiteralPath (P $target $f) -PathType Leaf)) {
+    Die "$target does not look like the unpacked PiTrex_sd_Jul29_25 archive ($f is missing).`nPass the folder that contains pitrex.img, loader.ini and the piZero1 and piZero2 folders."
+  }
+}
+
+$stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+$bkPath = Join-Path $target "backup-menu-$stamp"
+$n = 1
+while (Test-Path -LiteralPath $bkPath) { $n++; $bkPath = Join-Path $target "backup-menu-$stamp-$n" }
+$manifest = Join-Path $bkPath 'MANIFEST.tsv'
+$script:changed = 0
+
+function StartBackup { if (-not $DryRun -and -not (Test-Path -LiteralPath $bkPath)) { New-Item -ItemType Directory -Path $bkPath | Out-Null } }
+function Note($kind, $a, $b) {
+  if ($DryRun) { return }
+  [System.IO.File]::AppendAllText($manifest, "$kind`t$a`t$b`n", $utf8)
+}
+
+function PutFile($src, $rel) {
+  $dest = P $target $rel
+  if (Same $src $dest) { Write-Host "  same     $rel"; return }
+  $script:changed++
+  if (Test-Path -LiteralPath $dest) {
+    Write-Host "  replace  $rel"
+    if (-not $DryRun) {
+      StartBackup
+      $b = P $bkPath $rel
+      New-Item -ItemType Directory -Force -Path (Split-Path -Parent $b) | Out-Null
+      Copy-Item -LiteralPath $dest -Destination $b
+      Note 'R' $rel ''
+    }
+  } else {
+    Write-Host "  add      $rel"
+    if (-not $DryRun) { StartBackup; Note 'A' $rel '' }
+  }
+  if (-not $DryRun) {
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $dest) | Out-Null
+    Copy-Item -LiteralPath $src -Destination $dest -Force
+    if (-not (Same $src $dest)) { Die "copy of $rel does not match the original; the SD card or disk may be failing. Run: .\install.ps1 -Restore `"$target`"" }
+  }
+}
+
+Write-Host "installing into $target"
+if ($DryRun) { Write-Host "(dry run: nothing will be written)" }
+
+$payloadRoot = (Resolve-Path -LiteralPath $payload).ProviderPath.TrimEnd('\')
+Get-ChildItem -LiteralPath $payload -Recurse -File | Sort-Object FullName | ForEach-Object {
+  $rel = $_.FullName.Substring($payloadRoot.Length + 1) -replace '\\', '/'
+  PutFile $_.FullName $rel
+}
+
+# loader.ini: NEW_MENU = 1 (keeps the file's own line endings)
+$ini = P $target 'loader.ini'
+$text = $latin1.GetString([System.IO.File]::ReadAllBytes($ini))
+if ($text -match '(?im)^[ \t]*NEW_MENU[ \t]*=[ \t]*1') {
+  Write-Host "  same     loader.ini (NEW_MENU already 1)"
+} else {
+  $crlf = $text.Contains("`r")
+  $lf = $text -replace "`r", ''
+  if ($lf -match '(?im)^[ \t]*NEW_MENU[ \t]*=') {
+    $lf = [regex]::Replace($lf, '(?im)^[ \t]*NEW_MENU[ \t]*=.*$', 'NEW_MENU = 1')
+  } else {
+    if ($lf.Length -gt 0 -and -not $lf.EndsWith("`n")) { $lf += "`n" }
+    $lf += "NEW_MENU = 1`n"
+  }
+  if ($crlf) { $lf = $lf -replace "`n", "`r`n" }
+  $script:changed++
+  Write-Host "  edit     loader.ini (NEW_MENU = 1)"
+  if (-not $DryRun) {
+    StartBackup
+    Copy-Item -LiteralPath $ini -Destination (Join-Path $bkPath 'loader.ini')
+    Note 'R' 'loader.ini' ''
+    [System.IO.File]::WriteAllBytes($ini, $latin1.GetBytes($lf))
+  }
+}
+
+# optional arcade tweaks
+if ($ArcadeTweaks) {
+  if (-not (Test-Path -LiteralPath $tweaks -PathType Container)) { Die "arcade-tweaks\ folder missing next to this script" }
+  Write-Host "arcade tweaks:"
+  foreach ($f in 'blackwidow.ini', 'battlezone.ini') { PutFile (Join-Path $tweaks $f) $f }
+  foreach ($f in 'starwars.ini', 'lunar.ini') {
+    $src = P $target $f
+    $dst = P $target "$f.author-calibration"
+    if ((Test-Path -LiteralPath $src) -and -not (Test-Path -LiteralPath $dst)) {
+      Write-Host "  rename   $f -> $f.author-calibration"
+      $script:changed++
+      if (-not $DryRun) {
+        StartBackup
+        Move-Item -LiteralPath $src -Destination $dst
+        Note 'M' $f "$f.author-calibration"
+      }
+    }
+  }
+}
+
+if ($DryRun) { Write-Host "dry run finished: $($script:changed) change(s) would be made." }
+elseif ($script:changed -eq 0) { Write-Host "nothing to do: this folder already has the release installed." }
+else {
+  Write-Host "done: $($script:changed) change(s). Originals saved in $bkPath"
+  Write-Host "To undo:  .\install.ps1 -Restore `"$target`""
+}
