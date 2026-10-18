@@ -18,7 +18,6 @@ if [ ! -d "$sim" ]; then
   curl -fsSL -o "$cache/sim.zip" https://rogerboesch.games/learn/gong-rider/gong-rider-pitrex-source.zip
   unzip -q -o "$cache/sim.zip" -d "$cache"
 fi
-python3 -I "$here/../gen_menu_tree.py" "$repo/pitrex/loader/loaderMain.c" > "$out/menu_tree.inc"
 podman exec -w "$sim" pitrex-dev make -s                       # builds the simulator objects in build_sim/
 podman exec -w "$out" pitrex-dev bash -c "
   gcc -c -w -Wno-error=implicit-function-declaration -include stdio.h -include string.h -include ctype.h \

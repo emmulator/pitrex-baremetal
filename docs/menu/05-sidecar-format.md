@@ -102,3 +102,20 @@ the current directory at the moment of the call, drawing, and stack use on the P
 game file. Up to 12 lines of 46 characters (A-Z, 0-9, space, `.`, `!` only). They do not replace the notes and
 do not count as notes (`found` stays 0). `docs/tools/controls_sidecars.py <menu folder>` writes the lines for
 the arcade games; the sources of each mapping are listed at the top of that script.
+
+## Entry files (2026-10-17, late)
+
+A sidecar file with an `image` line is an **entry file**: the new menu builds its list from these. Fields:
+
+| Line | Meaning |
+|---|---|
+| `title` | name in the list (cleaned: upper case, brackets dropped, undrawable characters become spaces, a trailing "SBT" is dropped) |
+| `category` | `A / B / C` path; created when missing; empty = PROGRAMS |
+| `image` | image in `piZero1/` (or `piZero2/`) that starts it |
+| `param1`, `param2` | parameters passed to the program. `0xNN...` (even number of hex digits) is raw bytes: the AAE game number is one byte |
+| `needs` | a file that must exist; "ROM NOT FOUND!" is shown otherwise |
+| `text`, `skip`, `control`, `hide` | as above |
+
+`docs/tools/export_sidecars.py` writes one entry file for every game of the original compiled menu (plus
+`aae.ini` and `vectorburner.ini`); `docs/tools/controls_sidecars.py` adds the controls. File names are not used
+except as the key for notes: any name works for an entry file.

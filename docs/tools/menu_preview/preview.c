@@ -3,12 +3,11 @@
  * Compiles the SAME menu code as the loader (pitrex/loader/newMenuLogic.h, newMenuUi.h,
  * menuSidecarIo.h, menuSidecar.h) against Roger Boesch's PiTrex simulator (MIT licence,
  * https://rogerboesch.games/learn/gong-rider/), which supplies the screen, the stick and the
- * buttons. The compiled-in menu is the real one, read from loaderMain.c by gen_menu_tree.py.
+ * buttons. The menu is built from the entry files in the card folder's menu/ (nothing is compiled in).
  * The SD card is a folder. Starting a program prints a line instead of jumping to it.
  *
  * What it does NOT show: the PiTrex vector font (the simulator draws text in its own 5x7 font at
- * about the same size), the flashing title animation, the old PICK A GAME browser (replaced by a
- * stub), anything about timing or the real FAT driver.
+ * about the same size), the flashing title animation, anything about timing or the real FAT driver.
  *
  *   preview <card folder>      with the simulator's own options as environment variables:
  *   PITREX_SHOT=out.bmp PITREX_FRAMES=60 PITREX_SCRIPT="down@10,right@20" preview card
@@ -48,7 +47,6 @@ typedef struct MenuItemNew
   char *text[12];
 } MenuItemNew;
 
-#include "menu_tree.inc"                /* the compiled-in menu: mock[], vectrexMenu, ... exactPickOne */
 
 /* ini.c's file-based ini_parse() names these; the menu only uses ini_parse_string(), so stubs do */
 char lastAccessedIni[255];
@@ -57,9 +55,6 @@ const char *getErrorText(int e) { (void) e; return ""; }
 int f_getcwd(char *b, int n) { (void) b; (void) n; return 0; }
 
 /* ---- stand-ins for the loader's globals and hardware calls ---- */
-MenuItemNew *currentMenuItem;
-int selectionMade = 0;
-int scrollReset = 1;
 static char cardRoot[PATH_MAX];
 typedef struct dirent dirent;
 
@@ -70,7 +65,6 @@ void v_saveIni();
 void v_SettingsGUI(int own) { (void) own; printf("SETTINGS GUI opened\n"); fflush(stdout); v_saveIni(); /* the real one saves when left with Button 4 */ }
 void v_saveIni() { printf("save ini %s\n", lastAccessedIni); fflush(stdout); }
 void v_message(char *m) { printf("MESSAGE %s\n", m); fflush(stdout); }
-int testRom(MenuItemNew *m) { (void) m; return 1; }
 
 static void showParam(const char *p)
 {
@@ -92,13 +86,6 @@ void loadAndStart(MenuItemNew *item, int button)
   fflush(stdout);
 }
 
-void displayMenu(void)      /* the old PICK A GAME browser: a stub that leaves on stick left */
-{
-  v_printString(-100, 40, "OLD FILE BROWSER", 5, 0x50);
-  v_printString(-100, 20, "(STUB IN THE PREVIEW)", 5, 0x40);
-  if (currentJoy1X < -50) currentMenuItem = &vectrexMenu;
-}
-
 #include "menuSidecar.h"
 #include "newMenuLogic.h"
 #include "menuSidecarIo.h"
@@ -109,10 +96,6 @@ int main(int argc, char **argv)
   const char *card = argc > 1 ? argv[1] : "sdcard";
   if (realpath(card, cardRoot) == 0) { perror(card); return 2; }
   ensureMainPath();
-  mockInit();
-  mockTopsInit();
-  currentMenuItem = &vectrexMenu;
-
   vectrexinit(1);
   v_init();
   v_setRefresh(50);

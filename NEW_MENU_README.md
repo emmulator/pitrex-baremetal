@@ -7,13 +7,16 @@ original back. Everything the original menu starts is still started the same way
 What it adds:
 
 * A simple list: pick a category, go in, pick a game, start it. No icons to decode.
-* **Games are found on the card.** Copy a `.bin` into `vectrex/` and it shows up. No recompiling.
-* Notes and warnings (NO SOUND, WORK IN PROGRESS...) live in small text files on the card, and you
+* **Nothing is compiled in.** The whole menu is built when the PiTrex starts from files on the card:
+  one small *entry file* per game in `menu/`, the program images in `piZero1/`, and the ROMs in `vectrex/`.
+  To add, move, rename or remove a game you edit text files; the loader is never recompiled.
+  (The original menu is still compiled into the loader and is what you get with `NEW_MENU` off.)
+* **Games are found on the card.** Copy a `.bin` into `vectrex/` and it shows up. A program image dropped into
+  `piZero1/` shows up under PROGRAMS. Everything is rebuilt and sorted at every boot, so new things land in
+  alphabetical order.
+* Notes and warnings (NO SOUND, WORK IN PROGRESS...) and the controls help live in the entry files, and you
   can edit them.
 * A picker for the arcade emulator (AAE) that lists the arcade games whose ROM files you have.
-* VECTORBURNER under COMPUTER. That one is a compiled-in entry (added to the loader, so the original menu has it
-  too). Any *other* program image you drop into `piZero1/` that has no compiled entry shows up by itself under
-  PROGRAMS. Everything is rebuilt and sorted at every boot, so new games and programs land in alphabetical order.
 * On-screen help: the line under the list always says what the buttons do.
 
 Status: tested on a real PiTrex (Pi Zero W, Vectrex with a Buzz-type BIOS) on 2026-10-17. The list,
@@ -77,22 +80,28 @@ the emulator. If the screen then goes blank, the program itself is what failed, 
 
 ## What is in the menu
 
+The categories and games below come from the entry files that ship with this build (they were written from
+the original menu's list). They are data: change them freely.
+
 ```
-SETTINGS            screen settings and calibration
-VECTREX
-  VECTORBLADE
-  SPEEDY VECTREX    8 games the original author set up for Speedy
-  EXACT VECTREX     3 games set up for Exact
-  DEMOS             the demos: the 5 the author set up plus any others in vectrex/demos
-  ALL ROMS          every .bin found in vectrex/ (see below)
 ARCADE
-  ATARI, CINEMATRONICS, ... compiled-in arcade games
   ALL AAE GAMES     the picker: only the games whose ROM zip is in roms/aae/
-COMPUTER            ZBlast, Hyperoids, GS BASIC, Elite, VTerm, VECTORBURNER ...
-VIDEO               video players (need files in vectrex/movies)
+  ATARI, CINEMATRONICS, OTHER ARCADE, SEGA   the arcade games
 AUDIO               music players (need files in vectrex/waves)
-PROGRAMS            programs found in piZero1/ that the menu does not know by name
+COMPUTER            ZBlast, Hyperoids, GS BASIC, Elite, VTerm, Vectorburner ...
+VECTREX
+  ALL ROMS          every .bin found in vectrex/ (see below)
+  DEMOS             the demos: the ones with entry files plus any others in vectrex/demos
+  EXACT VECTREX     games set up for Exact
+  SPEEDY VECTREX    games set up for Speedy
+  VECTORBLADE
+VIDEO               video players (need files in vectrex/movies)
+PROGRAMS            programs in piZero1/ that no entry file mentions
+SETTINGS            screen settings and calibration
 ```
+
+Categories are alphabetical, then PROGRAMS, then SETTINGS. An entry whose image is not in `piZero1/` is left
+out, and a category with nothing in it disappears, so the menu only shows what can start.
 
 Highlight a category and the lines under the list explain it. All lists below the top level are in
 alphabetical order (inside ALL ROMS the folders come first, then the loose files).
@@ -144,11 +153,27 @@ those notes and a `!`.
 
 ## Putting your own game on the card
 
-1. Copy the `.bin` into `vectrex/` (or a sub-folder such as `vectrex/homebrew/`).
-2. Put the card in the PiTrex. It appears under VECTREX > ALL ROMS.
+**A Vectrex ROM:** copy the `.bin` into `vectrex/` (or a sub-folder such as `vectrex/homebrew/`). It appears under
+VECTREX > ALL ROMS. Nothing else is needed.
 
-That is all. The list is built every time the menu starts, so a long list makes the menu take a
-moment longer to appear.
+**A program image** (`something.img` for the Pi): copy it into `piZero1/` (and `piZero2/` for a Pi Zero 2). It appears
+under PROGRAMS, named after the file. Vectorburner is listed this way if it has no entry file.
+
+**To put a game where you want it, give it an entry file.** Create `menu/<any name>.ini`:
+
+```
+[entry]
+title = MY GAME
+category = COMPUTER
+image = mygame.img
+```
+
+Now it is listed under COMPUTER, sorted with the others. `category = ARCADE / ATARI` puts it in a sub-folder, and
+a category that does not exist yet is created. See the next section for all the fields. To remove an entry,
+delete its file (a program image is then listed under PROGRAMS again) or put `hide = 1` in it.
+
+The list is read from the card every time the menu starts, so a very long list makes the menu take a moment
+longer to appear.
 
 ## Arcade games on this PiTrex
 
@@ -191,38 +216,50 @@ scale. General background for real Vectrex alignment (aged integrator capacitors
 [AtariAge calibration guide thread](https://forums.atariage.com/topic/339338-vectrex-complete-screen-calibration-and-more-definitive-guide/);
 nothing PiTrex-specific was found online.
 
-## Notes, hiding and the default emulator: sidecar files
+## The files in menu/
 
-For each entry the menu looks for a small text file in `menu/` on the card. If it exists, it
-changes how the entry is shown. Delete the file to get the default back.
+Every file `menu/<name>.ini` is plain text, read when the menu starts. There are two kinds.
 
-The file name is a **key** plus `.ini`:
-
-| Entry | Key | Example |
-|---|---|---|
-| A Vectrex game file | `rom.` + path with every run of other characters as `_`, lower case | `vectrex/homebrew/E-SRG.bin` is `menu/rom.homebrew_e_srg_bin.ini` |
-| A program (`piZero1/foo.img`) | image name, lower case | `menu/foo.ini` |
-| A compiled entry with parameters | image name + `.` + parameter | `menu/vectrexspeedy.original_webwars_bin.ini`, `menu/aae.x2d.ini` |
-
-All keys of the entries that ship with the menu are listed in `docs/menu/sidecar/keys.tsv`; the
-66 files that came with this build already sit in `menu/` on the card, use them as examples.
-
-Contents (each line is `name = value`; `;` starts a comment):
+**Entry files** have an `image` line and define a game in the menu:
 
 ```
 [entry]
-text = WORKS GREAT.            ; a note line, repeat for more lines (max 12)
-text = "  KEEPS LEADING SPACES" ; quote a line to keep spaces
-skip = 2                       ; blank lines before the first note line
-hide = 1                       ; leave this entry out of the menu
-title = MY GAME                ; rename a game found on the card (ROMs and programs)
-control = FIRE  BUTTON 4       ; a line of the CONTROLS page (Button 2), repeat for more lines
-emulator = speedy              ; which emulator Button 4 uses for a ROM: speedy or exact
+title = MAJOR HAVOC            ; shown in the list (capitals; brackets are dropped)
+category = ARCADE / ATARI      ; where it is listed. Empty or missing: under PROGRAMS
+image = aae.img                ; the program image in piZero1/ that starts it
+param1 = 0x2d                  ; first parameter. 0x2d means the single byte 0x2d (AAE game number)
+param2 = original/X.BIN        ; second parameter, if the program takes one
+needs = roms/aae/mhavoc.zip    ; a file the game needs; ROM NOT FOUND! is shown under it if missing
+text = WORK IN PROGRESS!!      ; note lines under the list (max 12). WIP, NO SOUND... add a ! to the list
+control = FIRE  BUTTON 4       ; lines of the CONTROLS page (Button 2), max 12
+hide = 1                       ; leave it out
 ```
 
-Write notes in capitals using only letters, digits, `.` and `!`: other punctuation will not draw.
-A note containing NO SOUND, WIP / WORK IN PROGRESS, or BROKEN / NOT WORKING / CRASHING makes the
-entry show a `!` in the list. Full format: [docs/menu/05-sidecar-format.md](docs/menu/05-sidecar-format.md).
+The shipped files are named by the image and parameter (`aae.x2d.ini`, `vectrexspeedy.original_berzerk_bin.ini`)
+but the name does not matter.
+
+**Notes files** change something that was *found* on the card, and have no `image` line:
+
+| For | File name | Example |
+|---|---|---|
+| A Vectrex game file | `rom.` + path with every run of other characters as `_`, lower case | `vectrex/homebrew/E-SRG.bin` is `menu/rom.homebrew_e_srg_bin.ini` |
+| A program (`piZero1/foo.img`) | image name, lower case | `menu/foo.ini` |
+| A ROM folder group | `dir.` + folder name | `menu/dir.original.ini` |
+
+```
+[entry]
+title = MY GAME                ; rename it (a folder group, a ROM or a program)
+text = WORKS GREAT.            ; note lines
+hide = 1                       ; leave it out
+emulator = speedy              ; for a ROM: which emulator Button 4 uses, speedy or exact
+control = ...                  ; CONTROLS page lines
+```
+
+`;` starts a comment. Write notes in capitals using only letters, digits, `.` and `!`: other punctuation will not
+draw on the PiTrex. A note containing NO SOUND, WIP / WORK IN PROGRESS, or BROKEN / NOT WORKING / CRASHING makes the
+entry show a `!` in the list. Full format: [docs/menu/05-sidecar-format.md](docs/menu/05-sidecar-format.md). The
+entry files that came with this build are generated from the original menu by `docs/tools/export_sidecars.py`;
+the CONTROLS lines by `docs/tools/controls_sidecars.py`.
 
 ## Settings
 
@@ -313,10 +350,10 @@ It left an empty `vectrexInterface.ini`, and an unreadable ini makes later saves
 
 | File | What it does |
 |---|---|
-| `pitrex/loader/newMenuLogic.h` | the tree, discovery, navigation, help texts. No hardware calls, tested on a PC. |
+| `pitrex/loader/newMenuLogic.h` | building the tree from the entry files, program and ROM discovery, sorting, navigation, help texts. No hardware calls, tested on a PC. |
 | `pitrex/loader/newMenuUi.h` | drawing, buttons, launching, scanning the card |
 | `pitrex/loader/menuSidecar.h`, `menuSidecarIo.h` | sidecar key rules and file reading |
-| `pitrex/loader/loaderMain.c` | hooks the new menu in behind `NEW_MENU`, adds the VECTORBURNER and ALL AAE GAMES entries |
+| `pitrex/loader/loaderMain.c` | calls the new menu each frame when `NEW_MENU = 1` (the original compiled menu is untouched) |
 | `aae/aaeSelect.h`, `aae/aaemain.c` | the arcade game picker |
 | `docs/` | findings, the format specs, tests, the build script and the desktop preview |
 

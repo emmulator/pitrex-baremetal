@@ -2,7 +2,8 @@
 """Export the compiled-in menu notes of pitrex/loader/loaderMain.c as sidecar files.
 
 Usage: python3 -I docs/tools/export_sidecars.py pitrex/loader/loaderMain.c OUTDIR
-Writes OUTDIR/menu/<key>.ini for every reachable entry that has note text, and
+Writes OUTDIR/menu/<key>.ini for every reachable entry that starts an image (the entry files the new
+menu is built from: title, category, image, parameters, the ROM files it needs, notes), and
 OUTDIR/keys.tsv (image, param1 hex, param2 hex, key) for the host test
 docs/tools/test_sidecar_key.c. The key rules must match pitrex/loader/menuSidecar.h.
 Format: docs/menu/05-sidecar-format.md
@@ -88,6 +89,13 @@ def chain(first):
         seen.add(n); res.append(n); n = ref(items[n][11])
     return res
 
+# files each entry needs (testOneRomId in the loader): id -> path
+needs = {}
+m = re.search(r'int testOneRomId\(int id\)(.*?)\n}\n', src, re.S)
+if m:
+    for cm in re.finditer(r'case\s+(\d+)\s*:\s*(?://[^\n]*)?\s*\{?\s*(?://[^\n]*)?\s*testPath\s*=\s*"([^"]+)"', m.group(1)):
+        needs[cm.group(1)] = cm.group(2)
+
 TOP = {'1': 'VECTREX', '2': 'ARCADE', '3': 'COMPUTER', '4': 'VIDEO', '5': 'AUDIO'}
 def label(n):
     f = items[n]
@@ -116,13 +124,12 @@ manifest = []; written = {}; problems = []; expected = []
 for n, path in reached:
     f = items[n]
     img = imgfield(f[3]); p1 = strfield(f[4]); p2 = strfield(f[5])
-    if f[0] == '9999':          # PICK A GAME: loader skips sidecars for it
+    if f[0] in ('9999', '102', '107'):   # PICK A GAME and the two emulator slots are not games
         continue
     k = key(img, p1, p2)
     if k is None: continue
     manifest.append((img, p1, p2, k))
     skip, rows = rows_of(f)
-    if not rows: continue
     for r in rows:
         if ';' in r or '#' in r: problems.append(f'{n}: ";" or "#" in note {r!r}')
         if len(r) >= 48: problems.append(f'{n}: note longer than 47 chars {r!r}')
@@ -132,14 +139,15 @@ for n, path in reached:
     def show(bs):
         if len(bs) == 1: return '0x%02x' % bs[0]
         return bs.decode('latin-1')
-    lines = ['; PiTrex menu sidecar: overrides the note lines shown for this entry.',
-             '; Delete this file to fall back to the notes compiled into the loader.',
+    lines = ['; PiTrex menu entry: the new menu is built from files like this one.',
+             '; Delete the file and the entry is gone from the menu (a program is then listed under PROGRAMS).',
              '; Format: docs/menu/05-sidecar-format.md',
              '[entry]', f'title = {title}',
              'category = ' + ' / '.join(x for x in path if x)]
     lines.append('image = ' + img.split('/')[-1])
     if p1: lines.append('param1 = ' + show(p1))
     if p2: lines.append('param2 = ' + show(p2))
+    if f[0] in needs: lines.append('needs = ' + needs[f[0]])
     if skip: lines.append(f'skip = {skip}')
     for r in rows:
         q = '"%s"' % r if (r != r.strip()) else r
@@ -151,6 +159,19 @@ for n, path in reached:
     written[k] = body
     expected.append((k, skip, rows))
     open(f'{out}/menu/{k}.ini', 'w').write(body)
+
+# entries that are plain data and were never in the compiled menu
+EXTRA = {
+    'aae': ['title = ALL AAE GAMES', 'category = ARCADE', 'image = aae.img', 'skip = 4',
+            'text = LISTS THE ROM ZIPS', 'text = FOUND IN ROMS/AAE'],
+    'vectorburner': ['title = VECTORBURNER', 'category = COMPUTER', 'image = vectorburner.img', 'skip = 4',
+                     'text = VECTORBURNER V065'],
+}
+for k, body in EXTRA.items():
+    if k not in written:
+        text = '; PiTrex menu entry: the new menu is built from files like this one.\n[entry]\n' + '\n'.join(body) + '\n'
+        written[k] = text
+        open(f'{out}/menu/{k}.ini', 'w').write(text)
 
 with open(out + '/keys.tsv', 'w') as fh:
     for img, p1, p2, k in manifest:

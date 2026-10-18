@@ -122,4 +122,14 @@ for key, lines in todo.items():
         text += '\n'
     text += ''.join('control = %s\n' % l for l in lines)
     open(path, 'w', encoding='latin-1').write(text)
+# keep the exporter's expected.tsv (one level above the menu folder) in step with the notes changed above
+exp = os.path.join(os.path.dirname(os.path.abspath(folder)), 'expected.tsv')
+if os.path.exists(exp):
+    out_lines = []
+    for line in open(exp, encoding='latin-1').read().splitlines():
+        k, skip, rows = (line.split('\t') + ['', ''])[:3]
+        if k in TEXT_BY_KEY:
+            rows = '\x1f'.join(TEXT_BY_KEY[k])
+        out_lines.append('\t'.join([k, skip, rows]))
+    open(exp, 'w', encoding='latin-1').write('\n'.join(out_lines) + '\n')
 print(len(todo), 'files updated')

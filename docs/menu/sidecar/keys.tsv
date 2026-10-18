@@ -1,5 +1,4 @@
 piZero1/vectorblade.img			vectorblade
-piZero1/vectrexspeedy.img			vectrexspeedy
 piZero1/vectrexspeedy.img	6f726967696e616c2f574542574152532e42494e		vectrexspeedy.original_webwars_bin
 piZero1/vectrexspeedy.img	6f726967696e616c2f4245525a45524b2e42494e		vectrexspeedy.original_berzerk_bin
 piZero1/vectrexspeedy.img	6f726967696e616c2f4d53544f524d322e42494e		vectrexspeedy.original_mstorm2_bin
@@ -8,7 +7,6 @@ piZero1/vectrexspeedy.img	6f726967696e616c2f434153544c452e42494e		vectrexspeedy.
 piZero1/vectrexspeedy.img	6f726967696e616c2f4e41525a4f442e42494e		vectrexspeedy.original_narzod_bin
 piZero1/vectrexspeedy.img	6f726967696e616c2f534352414d424c452e42494e		vectrexspeedy.original_scramble_bin
 piZero1/vectrexspeedy.img	6f726967696e616c2f534f4c41522e42494e		vectrexspeedy.original_solar_bin
-piZero1/vectrexexact.img			vectrexexact
 piZero1/vectrexexact.img	4b41524c5f5155415050452e42494e		vectrexexact.karl_quappe_bin
 piZero1/vectrexexact.img	52454c454153452e42494e		vectrexexact.release_bin
 piZero1/vectrexexact.img	6f726967696e616c2f4d525f424f53544f4e2e42494e		vectrexexact.original_mr_boston_bin
@@ -49,7 +47,6 @@ piZero1/aae.img	24		aae.x24
 piZero1/aae.img	25		aae.x25
 piZero1/aae.img	28		aae.x28
 piZero1/aae.img	0a		aae.x0a
-piZero1/aae.img			aae
 piZero1/zblast.img			zblast
 piZero1/vhyperoid.img			vhyperoid
 piZero1/gsbasic.img			gsbasic
@@ -59,7 +56,6 @@ piZero1/bz2.img			bz2
 piZero1/voom.img			voom
 piZero1/rebel.img			rebel
 piZero1/vterm.img			vterm
-piZero1/vectorburner.img			vectorburner
 piZero1/vectrexvideo.img	766563747265782f6d6f76696573	4261644170706c652e62696e	vectrexvideo.vectrex_movies.badapple_bin
 piZero1/vectrexvideo.img	766563747265782f6d6f76696573	426c61426c612e62696e	vectrexvideo.vectrex_movies.blabla_bin
 piZero1/vectrexvideo.img	766563747265782f6d6f76696573	4c614c696e65612e62696e	vectrexvideo.vectrex_movies.lalinea_bin

@@ -5,39 +5,46 @@
 //
 // Documentation: docs/menu/07-new-menu.md
 //
-// Needs the MenuItemNew type from loaderMain.c (or a copy of it in the test) before it.
+// The menu has nothing compiled in: it is built from the entry files in menu/ on the card, the
+// programs found in the image folder and the ROMs found under vectrex/.
 #ifndef NEW_MENU_LOGIC_H
 #define NEW_MENU_LOGIC_H
 
 #include <string.h>
+#include "menuSidecar.h"
 
 #define NM_MAX_NODES 700
-#define NM_MAX_IMAGES 64
+#define NM_MAX_IMAGES 200
 #define NM_MAX_ROMS 400
 #define NM_ROM_PATH 64
 #define NM_MAX_LIST 128
 #define NM_MAX_DEPTH 4
-#define NM_MAX_TOPS 8
+#define NM_MAX_TOPS 16
 #define NM_ROWS 7
 #define NM_MAX_PROGS 48
 #define NM_NAME_LEN 40
+#define NM_KEY_LEN 64
+#define NM_MAX_ENTRIES 160
 
 typedef struct NmNode
 {
   char title[36];
-  int id;                       // id of the compiled entry (0 = settings, 9999 = PICK A GAME)
-  const char *img;              // image to launch (0 for categories)
+  int id;                       // NM_ID_* for nodes the menu adds itself, else 0
+  const char *img;              // image to launch (0 for categories); points at imgBuf or a constant
   const char *param1;
   const char *param2;
   const char *altImg;           // for a ROM: the other emulator's image (Button 2 starts with it)
   struct NmNode *child;         // first child
   struct NmNode *right;         // next sibling
   struct NmNode *parent;
-  MenuItemNew *src;             // the compiled entry this came from, 0 for discovered programs
   int tags;                     // NM_TAG_* found in the notes
-  int hidden;                   // set from a sidecar (hide = 1)
-  int discovered;               // found on the card, not compiled in
-  char key[NM_NAME_LEN];        // for discovered programs: image base name, used for the sidecar
+  int hidden;                   // hide = 1 in a sidecar, or the entry's image is not on the card
+  int discovered;               // found on the card (a ROM or a program), not described by an entry file
+  char key[NM_KEY_LEN];         // name of the sidecar file (without .ini): notes, controls and the entry itself
+  char imgBuf[48];              // the entry's image path, e.g. piZero1/swsbt.img
+  char p1[40];                  // the entry's parameters (a parameter can be one raw byte)
+  char p2[24];
+  char needs[56];               // a file the game needs; "ROM NOT FOUND!" is shown when it is missing
 } NmNode;
 
 typedef struct
@@ -108,10 +115,22 @@ static int nmTagsOfLine(const char *line)
   return tags;
 }
 
-// Ids of nodes that the menu adds itself (compiled ids are below 9000, 9999 is PICK A GAME).
+// Ids of nodes that the menu adds itself.
+#define NM_ID_SETTINGS 9004
 #define NM_ID_PROGRAMS 9001
 #define NM_ID_ALL_ROMS 9002
 #define NM_ID_ROM_FOLDER 9003
+
+static int nmEqNoCase(const char *a, const char *b)
+{
+  while (*a != 0 && *b != 0)
+  {
+    if (nmLower(*a) != nmLower(*b)) return 0;
+    a++;
+    b++;
+  }
+  return *a == 0 && *b == 0;
+}
 
 // Plain-language help shown under a highlighted category. Only the characters the PiTrex
 // vector font draws are used: A-Z, 0-9, space, "." and "!". Returns the number of lines.
@@ -119,7 +138,7 @@ static int nmHelp(const NmNode *n, const char **out, int max)
 {
   static const char *vectrex[] = {
     "GAMES FOR THE VECTREX EMULATORS.",
-    "SPEEDY AND EXACT EACH LIST A FEW GAMES.",
+    "SPEEDY AND EXACT LIST GAMES SET UP FOR THEM.",
     "ALL ROMS LISTS EVERY GAME ON THE CARD.",
     "DEMOS ARE SMALL VECTREX SHOWS.", 0 };
   static const char *speedy[] = {
@@ -129,7 +148,7 @@ static int nmHelp(const NmNode *n, const char **out, int max)
   static const char *exact[] = {
     "EXACT RUNS GAMES THE WAY A REAL VECTREX DOES.",
     "IT IS THE SAFE CHOICE FOR ANY GAME.",
-    "PICK A GAME LETS YOU BROWSE THE CARD.", 0 };
+    "ALL ROMS LISTS EVERY GAME ON THE CARD.", 0 };
   static const char *demos[] = {
     "SMALL SHOWS MADE FOR THE VECTREX.", 0 };
   static const char *allRoms[] = {
@@ -163,18 +182,21 @@ static int nmHelp(const NmNode *n, const char **out, int max)
   const char **t = 0;
   switch (n->id)
   {
-    case 1: t = vectrex; break;
-    case 2: t = arcade; break;
-    case 3: t = computer; break;
-    case 4: t = video; break;
-    case 5: t = audio; break;
-    case 102: t = speedy; break;
-    case 107: t = exact; break;
-    case 108: t = demos; break;
     case NM_ID_PROGRAMS: t = programs; break;
     case NM_ID_ALL_ROMS: t = allRoms; break;
     case NM_ID_ROM_FOLDER: t = folder; break;
-    default: if (n->id == 0 && n->img == 0 && n->child == 0) t = settings; break;
+    case NM_ID_SETTINGS: t = settings; break;
+    default:
+      if (n->img != 0) break;                    // a game: its own notes are shown instead
+      if (nmEqNoCase(n->title, "VECTREX")) t = vectrex;
+      else if (nmEqNoCase(n->title, "ARCADE")) t = arcade;
+      else if (nmEqNoCase(n->title, "COMPUTER")) t = computer;
+      else if (nmEqNoCase(n->title, "VIDEO")) t = video;
+      else if (nmEqNoCase(n->title, "AUDIO")) t = audio;
+      else if (nmEqNoCase(n->title, "SPEEDY VECTREX")) t = speedy;
+      else if (nmEqNoCase(n->title, "EXACT VECTREX")) t = exact;
+      else if (nmEqNoCase(n->title, "DEMOS")) t = demos;
+      break;
   }
   int c = 0;
   for (; t != 0 && t[c] != 0 && c < max; c++) out[c] = t[c];
@@ -188,17 +210,6 @@ static const char *nmTagText(int tags)
   if (tags & NM_TAG_WIP) return "WIP";
   if (tags & NM_TAG_NOSOUND) return "NO SOUND";
   return "";
-}
-
-static int nmEqNoCase(const char *a, const char *b)
-{
-  while (*a != 0 && *b != 0)
-  {
-    if (nmLower(*a) != nmLower(*b)) return 0;
-    a++;
-    b++;
-  }
-  return *a == 0 && *b == 0;
 }
 
 // "VECTOR_BURNER" -> "VECTOR BURNER": upper case, '_' and '-' become spaces
@@ -230,23 +241,6 @@ static int nmImageBase(const char *img, char *out, int max)
 
 // ---- building the tree from the compiled-in menu ------------------------------------
 
-// The category slots have no name in the compiled data (they are drawn as icons).
-static const char *nmFallbackTitle(int id)
-{
-  switch (id)
-  {
-    case 0: return "SETTINGS";
-    case 1: return "VECTREX";
-    case 2: return "ARCADE";
-    case 3: return "COMPUTER";
-    case 4: return "VIDEO";
-    case 5: return "AUDIO";
-    case 102: return "SPEEDY VECTREX";
-    case 107: return "EXACT VECTREX";
-    default: return "?";
-  }
-}
-
 // Upper case, brackets dropped, any other character the PiTrex font cannot draw becomes a space,
 // double spaces collapse, a trailing "SBT" is dropped: "Star Wars (SBT)" -> "STAR WARS".
 static void nmCleanTitle(char *t)
@@ -274,55 +268,7 @@ static NmNode *nmNewNode(NmTree *t)
   return n;
 }
 
-static NmNode *nmCloneNode(NmTree *t, MenuItemNew *m, NmNode *parent, int depth)
-{
-  NmNode *n = nmNewNode(t);
-  if (n == 0) return 0;
-  n->id = m->id;
-  n->src = m;
-  n->parent = parent;
-  if (m->DISPLAYNAME != 0 && m->DISPLAYNAME[0] != 0)
-    nmCopyTrimmed(n->title, m->DISPLAYNAME, (int) sizeof n->title);
-  else
-    nmCopy(n->title, nmFallbackTitle(m->id), (int) sizeof n->title);
-  nmCleanTitle(n->title);
-  if (m->img != 0 && m->img[0] != 0)
-  {
-    n->img = m->img;
-    n->param1 = m->param1;
-    n->param2 = m->param2;
-    for (int i = 0; i < 12 && m->text[i] != 0; i++)       // the notes of an entry
-      n->tags |= nmTagsOfLine(m->text[i]);
-  }
-  if (depth < 4)
-  {
-    NmNode *prev = 0;
-    int guard = 0;
-    for (MenuItemNew *c = (MenuItemNew *) m->child; c != 0 && guard < NM_MAX_LIST; c = (MenuItemNew *) c->right, guard++)
-    {
-      // a category with no image and no children is empty: leave it out
-      if ((c->img == 0 || c->img[0] == 0) && c->child == 0) continue;
-      NmNode *k = nmCloneNode(t, c, n, depth + 1);
-      if (k == 0) break;
-      if (prev != 0) prev->right = k; else n->child = k;
-      prev = k;
-    }
-  }
-  return n;
-}
-
-// roots: the compiled top-level category entries, in the order they should be listed.
-static void nmBuildTree(NmTree *t, MenuItemNew *const *roots, int nroots)
-{
-  memset(t, 0, sizeof *t);
-  for (int i = 0; i < nroots && t->ntops < NM_MAX_TOPS; i++)
-  {
-    NmNode *n = nmCloneNode(t, roots[i], 0, 0);
-    if (n != 0) t->tops[t->ntops++] = n;
-  }
-}
-
-// A category node that is not in the compiled menu (SETTINGS, PROGRAMS).
+// A top-level category node.
 static NmNode *nmAddTop(NmTree *t, const char *title, int id)
 {
   if (t->ntops >= NM_MAX_TOPS) return 0;
@@ -334,35 +280,29 @@ static NmNode *nmAddTop(NmTree *t, const char *title, int id)
   return n;
 }
 
-// Every image the compiled menu launches, as lower-case base names.
-static int nmCollectImages(NmNode *const *tops, int ntops, char (*out)[NM_NAME_LEN], int max)
+// Every image any node of the tree starts, as lower-case base names.
+static int nmCollectImages(const NmTree *t, char (*out)[NM_NAME_LEN], int max)
 {
   int count = 0;
-  // walk the pool order via explicit stack to avoid recursion
-  NmNode *stack[NM_MAX_NODES];
-  int sp = 0;
-  for (int i = 0; i < ntops && sp < NM_MAX_NODES; i++) stack[sp++] = tops[i];
-  while (sp > 0)
+  for (int i = 0; i < t->used; i++)
   {
-    NmNode *n = stack[--sp];
     char base[NM_NAME_LEN];
-    if (nmImageBase(n->img, base, sizeof base))
-    {
-      int dup = 0;
-      for (int k = 0; k < count; k++) if (strcmp(out[k], base) == 0) dup = 1;
-      if (!dup && count < max) nmCopy(out[count++], base, NM_NAME_LEN);
-    }
-    for (NmNode *c = n->child; c != 0 && sp < NM_MAX_NODES; c = c->right) stack[sp++] = c;
+    if (!nmImageBase(t->pool[i].img, base, sizeof base)) continue;
+    int dup = 0;
+    for (int k = 0; k < count; k++) if (strcmp(out[k], base) == 0) dup = 1;
+    if (!dup && count < max) nmCopy(out[count++], base, NM_NAME_LEN);
   }
   return count;
 }
 
 // ---- finding programs on the card ---------------------------------------------------
 
-// Images that are part of the boot chain and never a program to start.
+// Images that are part of the boot chain or the Vectrex ROM engines (started through ALL ROMS),
+// never listed as a program.
 static int nmIsSystemImage(const char *base)
 {
-  return strcmp(base, "pitrex") == 0 || strcmp(base, "pitrex7") == 0;
+  return strcmp(base, "pitrex") == 0 || strcmp(base, "pitrex7") == 0 ||
+         strcmp(base, "vectrexexact") == 0 || strcmp(base, "vectrexspeedy") == 0;   // the engines that start ROMs
 }
 
 // files: names found in the image folder (piZero1 or piZero2). Fills out[] with the base
@@ -755,6 +695,137 @@ static void nmRebuild(NmNav *n)
   nmFixWindow(n);
 }
 
+// ---- building the tree from the entry files ------------------------------------------
+
+static NmNode *nmFindChildByTitle(NmNode *p, const char *title)
+{
+  for (NmNode *c = p->child; c != 0; c = c->right)
+    if (nmEqNoCase(c->title, title)) return c;
+  return 0;
+}
+
+static NmNode *nmFindTop(NmTree *t, const char *title)
+{
+  for (int i = 0; i < t->ntops; i++)
+    if (nmEqNoCase(t->tops[i]->title, title)) return t->tops[i];
+  return 0;
+}
+
+// The category for a path such as "ARCADE / ATARI": found or created, with its parents. 0 if the
+// tree is full.
+static NmNode *nmCategory(NmTree *t, const char *path)
+{
+  NmNode *cur = 0;
+  const char *p = path;
+  while (*p != 0)
+  {
+    char seg[36];
+    int n = 0;
+    while (*p != 0 && *p != '/') { if (n < 35) seg[n++] = *p; p++; }
+    if (*p == '/') p++;
+    seg[n] = 0;
+    nmCleanTitle(seg);
+    if (seg[0] == 0) continue;
+    NmNode *next = cur != 0 ? nmFindChildByTitle(cur, seg) : nmFindTop(t, seg);
+    if (next == 0)
+    {
+      if (cur == 0 && t->ntops >= NM_MAX_TOPS) return 0;
+      next = nmNewNode(t);
+      if (next == 0) return cur;
+      nmCopy(next->title, seg, (int) sizeof next->title);
+      if (cur != 0) nmAppendChild(cur, next);
+      else t->tops[t->ntops++] = next;
+    }
+    cur = next;
+  }
+  return cur;
+}
+
+// PROGRAMS: entries without a category and programs found on the card.
+static NmNode *nmProgramsNode(NmTree *t)
+{
+  for (int i = 0; i < t->ntops; i++)
+    if (t->tops[i]->id == NM_ID_PROGRAMS) return t->tops[i];
+  return nmAddTop(t, "PROGRAMS", NM_ID_PROGRAMS);
+}
+
+// Adds the game that an entry file describes. key = file name without ".ini", prefix = image folder
+// ("piZero1/"). Returns the node, or 0 if the file has no image.
+static NmNode *nmAddEntry(NmTree *t, const char *key, const SidecarText *s, const char *prefix)
+{
+  if (s->image[0] == 0) return 0;
+  NmNode *parent = s->category[0] != 0 ? nmCategory(t, s->category) : 0;
+  if (parent == 0) parent = nmProgramsNode(t);
+  if (parent == 0) return 0;
+  NmNode *n = nmNewNode(t);
+  if (n == 0) return 0;
+  if (s->title[0] != 0) nmCopy(n->title, s->title, (int) sizeof n->title);
+  else { char base[NM_NAME_LEN]; if (nmImageBase(s->image, base, sizeof base)) nmPrettyTitle(base, n->title, (int) sizeof n->title); }
+  nmCleanTitle(n->title);
+  nmCopy(n->key, key, (int) sizeof n->key);
+  nmCopy(n->imgBuf, prefix, (int) sizeof n->imgBuf);
+  int pl = (int) strlen(n->imgBuf);
+  nmCopy(n->imgBuf + pl, s->image, (int) sizeof n->imgBuf - pl);
+  n->img = n->imgBuf;
+  if (s->p1[0] != 0) { memcpy(n->p1, s->p1, sizeof n->p1); n->param1 = n->p1; }
+  if (s->p2[0] != 0) { memcpy(n->p2, s->p2, sizeof n->p2); n->param2 = n->p2; }
+  nmCopy(n->needs, s->needs, (int) sizeof n->needs);
+  for (int r = 0; r < s->rows; r++) n->tags |= nmTagsOfLine(s->row[r]);
+  n->hidden = s->hide;
+  nmAppendChild(parent, n);
+  return n;
+}
+
+typedef int (*NmReadFn)(const char *key, SidecarText *t);
+
+// Reads every sidecar file in names[] (keys, no ".ini") and adds those that describe a game.
+static int nmAddEntries(NmTree *t, char (*names)[NM_KEY_LEN], int nnames, NmReadFn rd, const char *prefix)
+{
+  SidecarText st;
+  int added = 0;
+  for (int i = 0; i < nnames; i++)
+    if (rd(names[i], &st) && st.image[0] != 0 && nmAddEntry(t, names[i], &st, prefix) != 0) added++;
+  return added;
+}
+
+// An entry whose image is not in the image folder cannot start: hide it. files = names in that folder.
+static void nmHideMissingImages(NmTree *t, const char *const *files, int nfiles)
+{
+  if (nfiles <= 0) return;                       // listing failed: leave everything as it is
+  for (int i = 0; i < t->used; i++)
+  {
+    NmNode *n = &t->pool[i];
+    if (n->imgBuf[0] == 0) continue;
+    const char *name = strrchr(n->imgBuf, '/');
+    name = name != 0 ? name + 1 : n->imgBuf;
+    int found = 0;
+    for (int f = 0; f < nfiles && !found; f++) if (nmEqNoCase(files[f], name)) found = 1;
+    if (!found) n->hidden = 1;
+  }
+}
+
+static int nmTopRank(const NmNode *n)
+{
+  return n->id == NM_ID_SETTINGS ? 2 : (n->id == NM_ID_PROGRAMS ? 1 : 0);
+}
+
+// Top level: the categories alphabetically, then PROGRAMS, then SETTINGS.
+static void nmSortTops(NmTree *t)
+{
+  for (int a = 1; a < t->ntops; a++)
+  {
+    NmNode *v = t->tops[a];
+    int b = a - 1;
+    while (b >= 0 && (nmTopRank(t->tops[b]) > nmTopRank(v) ||
+                      (nmTopRank(t->tops[b]) == nmTopRank(v) && nmTitleCmp(t->tops[b]->title, v->title) > 0)))
+    {
+      t->tops[b + 1] = t->tops[b];
+      b--;
+    }
+    t->tops[b + 1] = v;
+  }
+}
+
 static void nmInit(NmNav *n, NmTree *t)
 {
   memset(n, 0, sizeof *n);
@@ -780,6 +851,16 @@ static int nmHasVisibleChild(NmNode *c)
 {
   for (c = c->child; c != 0; c = c->right) if (!c->hidden) return 1;
   return 0;
+}
+
+// A category with nothing visible in it is hidden too (all its games hidden or missing).
+static void nmHideEmpty(NmNode *n)
+{
+  for (; n != 0; n = n->right)
+  {
+    nmHideEmpty(n->child);
+    if (n->img == 0 && n->id != NM_ID_SETTINGS && !nmHasVisibleChild(n)) n->hidden = 1;
+  }
 }
 
 // Enter the selected category, or return the selected entry so the caller can start it.
@@ -827,5 +908,82 @@ static void nmPath(NmNav *n, char *out, int max)
     out[len] = 0;
   }
 }
+
+// Notes, title, hide and emulator choice for what was found on the card (ROMs, programs, ROM folders).
+// Entry files were applied when they were read.
+static void nmApplySidecars(NmTree *t, NmReadFn rd)
+{
+  SidecarText st;
+  for (int i = 0; i < t->used; i++)
+  {
+    NmNode *n = &t->pool[i];
+    if (!n->discovered && n->id != NM_ID_ROM_FOLDER) continue;
+    if (n->key[0] == 0 || !rd(n->key, &st)) continue;
+    if (n->id == NM_ID_ROM_FOLDER)
+    {
+      if (st.title[0] != 0) { nmCopy(n->title, st.title, (int) sizeof n->title); nmCleanTitle(n->title); }
+      continue;
+    }
+    if (st.hide) n->hidden = 1;
+    if (st.found)                               // a sidecar's notes carry their own caveats
+    {
+      n->tags = 0;
+      for (int r = 0; r < st.rows; r++) n->tags |= nmTagsOfLine(st.row[r]);
+    }
+    if (st.title[0] != 0) { nmCopy(n->title, st.title, (int) sizeof n->title); nmCleanTitle(n->title); }
+    if (st.emulator != 0) nmChooseEmulator(n, st.emulator);
+  }
+}
+
+typedef struct
+{
+  char known[NM_MAX_IMAGES][NM_NAME_LEN];
+  char found[NM_MAX_PROGS][NM_NAME_LEN];
+  char paths[NM_MAX_PROGS][56];
+} NmScratch;
+
+// Builds the whole tree. Inputs: the names of the files in menu/ (sideNames) and a reader for them, the
+// image folder ("piZero1/" prefix, file names in files[]), the ROM paths found under vectrex/ and the two
+// emulator images. Returns the SETTINGS node. Nothing here is compiled-in data.
+static NmNode *nmAssemble(NmTree *t, NmScratch *sc, char (*sideNames)[NM_KEY_LEN], int nside, NmReadFn rd,
+                          const char *prefix, const char *const *files, int nfiles,
+                          char (*romPaths)[NM_ROM_PATH], int nroms,
+                          const char *exactImg, const char *speedyImg, int *nentries, int *nfound)
+{
+  *nentries = nmAddEntries(t, sideNames, nside, rd, prefix);
+  nmHideMissingImages(t, files, nfiles);
+
+  int nknown = nmCollectImages(t, sc->known, NM_MAX_IMAGES);
+  *nfound = nmDiscover(files, nfiles, sc->known, nknown, sc->found, NM_MAX_PROGS);
+  if (*nfound > 0)
+  {
+    NmNode *programs = nmProgramsNode(t);
+    if (programs != 0) nmAddPrograms(t, programs, prefix, sc->found, *nfound, sc->paths);
+  }
+
+  if (nroms > 0)                                // VECTREX / ALL ROMS: Exact starts a game, Button 2 starts Speedy
+  {
+    NmNode *vectrex = nmCategory(t, "VECTREX");
+    NmNode *romsNode = nmNewNode(t);
+    if (vectrex != 0 && romsNode != 0)
+    {
+      nmCopy(romsNode->title, "ALL ROMS", (int) sizeof romsNode->title);
+      romsNode->id = NM_ID_ALL_ROMS;
+      nmAppendChild(vectrex, romsNode);
+      nmAddRoms(t, romsNode, romPaths, nroms, exactImg, speedyImg);
+      NmNode *demos = nmFindChildByTitle(vectrex, "DEMOS");   // a DEMOS group that entry files made also gets vectrex/demos
+      if (demos != 0) nmAddMissingRoms(t, demos, romPaths, nroms, "demos/", exactImg, speedyImg);
+    }
+  }
+
+  nmApplySidecars(t, rd);
+  for (int i = 0; i < t->ntops; i++)             // every list below the top level is alphabetical
+    if (t->tops[i]->child != 0) { nmSortChildren(t->tops[i]); nmSortAll(t->tops[i]->child); }
+  NmNode *settings = nmAddTop(t, "SETTINGS", NM_ID_SETTINGS);
+  for (int i = 0; i < t->ntops; i++) nmHideEmpty(t->tops[i]);
+  nmSortTops(t);
+  return settings;
+}
+
 
 #endif

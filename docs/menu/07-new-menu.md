@@ -1,5 +1,14 @@
 # The new menu
 
+> **Update 2026-10-17 (late): the menu has nothing compiled in.** Everything below that talks about the
+> "compiled-in tree" describes the first version. The tree is now built from `menu/*.ini` entry files (title,
+> category, image, parameters, needs, notes, controls), the images in `piZero1/` and the ROMs in `vectrex/`
+> (`nmAssemble()` in `newMenuLogic.h`). The VECTORBURNER and ALL AAE GAMES entries I had added to `loaderMain.c`
+> are removed; they are plain entry files now. Categories come from the entry files and are sorted; an entry whose
+> image is missing and an emptied category are hidden; PROGRAMS and SETTINGS come last. The loader's compiled menu
+> still exists for `NEW_MENU = 0`. Format: `05-sidecar-format.md`, user guide: `NEW_MENU_README.md`.
+
+
 Status: implemented on branch `menu-redesign`, **off by default**. Built for both Pi
 targets; the logic is unit tested on a PC; **not run on hardware**.
 

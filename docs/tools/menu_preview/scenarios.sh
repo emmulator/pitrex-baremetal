@@ -33,15 +33,15 @@ runnot() {  # name frames script text-that-must-not-appear [card]
   else pass=$((pass+1)); echo "ok    $name"; fi
 }
 
-# ARCADE (1 down) > ATARI (2nd after ALL AAE GAMES) > MAJOR HAVOC (7th) > Button 4
-run "Major Havoc starts aae.img with game byte 0x2d" 170 "down@10,right@20,down@30,right@40,$(downs 6 50),b4@110" 'image=piZero1/aae.img param1="-" param2=- button=4 id=2009'
-run "Button 1 starts it with button=1" 170 "down@10,right@20,down@30,right@40,$(downs 6 50),b1@110" 'button=1 id=2009'
+# ARCADE (first) > ATARI (2nd after ALL AAE GAMES) > MAJOR HAVOC (7th) > Button 4
+run "Major Havoc starts aae.img with game byte 0x2d" 170 "right@10,down@20,right@30,$(downs 6 40),b4@100" 'image=piZero1/aae.img param1="-" param2=- button=4'
+run "Button 1 starts it with button=1" 170 "right@10,down@20,right@30,$(downs 6 40),b1@100" 'param1="-" param2=- button=1'
 
-# VECTREX > SPEEDY VECTREX (4th: ALL ROMS, DEMOS, EXACT, SPEEDY) > WEB WARS
-run "SPEEDY group is alphabetical: first game is Berzerk" 90 "right@10,$(downs 3 20),right@50,b4@70" 'image=piZero1/vectrexspeedy.img param1="original/BERZERK.BIN"'
+# VECTREX (4th category) > SPEEDY VECTREX (4th: ALL ROMS, DEMOS, EXACT, SPEEDY) > first game
+run "SPEEDY group is alphabetical: first game is Berzerk" 130 "$(downs 3 10),right@50,$(downs 3 60),right@90,b4@110" 'image=piZero1/vectrexspeedy.img param1="original/BERZERK.BIN"'
 
 # VECTREX > ALL ROMS (first) > DEMOS FOLDER (first group) > EPIC (2 down)
-roms="right@10,right@20,right@30,down@40,down@48"
+roms="$(downs 3 10),right@50,right@60,right@70,down@80,down@88"
 run "ROM starts the Exact emulator with its path" 150 "$roms,b4@110" 'image=piZero1/vectrexexact.img param1="demos/epic.bin"'
 run "Button 2 starts the same ROM with Speedy" 150 "$roms,b2@110" 'image=piZero1/vectrexspeedy.img param1="demos/epic.bin"'
 
@@ -52,7 +52,7 @@ run "SETTINGS saves to vectrexInterface.ini, not the last ini read" 100 "$(downs
 
 
 # ARCADE > ATARI > ASTEROIDS: Button 2 opens the CONTROLS page (it starts nothing), a button leaves it, Button 4 then starts the game
-run "Button 2 shows the controls page, then Button 4 still starts the game" 190 "down@10,right@20,down@30,right@40,b2@60,b1@100,b4@130" 'image=piZero1/asteroids_sbt.img'
+run "Button 2 shows the controls page, then Button 4 still starts the game" 190 "right@10,down@20,right@30,b2@50,b1@90,b4@120" 'image=piZero1/asteroids_sbt.img'
 
 # sidecars: hide a program, switch a ROM to Speedy
 mkdir -p "$work/card"; cp -r "$base"/. "$work/card"/
@@ -61,6 +61,11 @@ run "hide = 1 removes MAZE (4 down in PROGRAMS now reaches PACMAN)" 140 "$(downs
 printf '[entry]\nemulator = speedy\n' > "$work/card/menu/rom.demos_epic_bin.ini"
 run "sidecar emulator = speedy: Button 4 starts Speedy" 150 "$roms,b4@110" 'image=piZero1/vectrexspeedy.img param1="demos/epic.bin"' "$work/card"
 run "...and Button 2 then starts Exact" 150 "$roms,b2@110" 'image=piZero1/vectrexexact.img param1="demos/epic.bin"' "$work/card"
+
+# a brand new entry file: no recompiling. COMPUTER is the 3rd category; the new game sorts last in it
+printf '[entry]\ntitle = ZZ NEW GAME\ncategory = COMPUTER\nimage = hello.img\nparam1 = my/param\n' > "$work/card/menu/zznew.ini"
+run "a new entry file appears in its category, sorted, with its parameter" 170 "$(downs 2 10),right@40,$(downs 10 50),b4@150" 'image=piZero1/hello.img param1="my/param"' "$work/card"
+rm -f "$work/card/menu/zznew.ini"
 
 # back navigation: enter ARCADE, go back with the stick, the next Button 4 enters VECTREX again (first row)
 runnot "entering and leaving a category starts nothing" 80 "down@10,right@20,left@30" 'LAUNCH'

@@ -21,6 +21,11 @@ typedef struct
   int hide;                        // 1: leave the entry out of the new menu
   char title[32];                  // display name of a program found on the card (new menu)
   char emulator;                   // 's' or 'e': which Vectrex emulator starts a ROM (new menu)
+  char image[40];                  // entry files: the image to start (without the piZero1/ folder)
+  char category[56];               // entry files: where it is listed, "ARCADE / ATARI"
+  char p1[40];                     // entry files: parameter 1 ("0x2d" is one byte)
+  char p2[24];                     // entry files: parameter 2
+  char needs[56];                  // entry files: a file that must exist (roms/aae/mhavoc.zip)
   int nctl;                        // number of control lines ("control = ..."), shown by Button 2 (new menu)
   char ctl[SC_MAX_ROWS][SC_ROW_LEN];
 } SidecarText;
@@ -98,6 +103,41 @@ static int sidecarKey(const char *img, const char *param1, const char *param2, c
   return 1;
 }
 
+// "0x2d" is the single byte 0x2d (the AAE game number); anything else is taken as it is.
+static void sidecarParam(char *out, int max, const char *value)
+{
+  int len = (int) strlen(value);
+  if (len >= 4 && (len % 2) == 0 && value[0] == '0' && (value[1] == 'x' || value[1] == 'X'))
+  {
+    int n = 0;
+    int ok = 1;
+    for (int i = 2; i + 1 < len && n < max - 1; i += 2)
+    {
+      int v = 0;
+      for (int k = 0; k < 2; k++)
+      {
+        char c = value[i + k];
+        int d = (c >= '0' && c <= '9') ? c - '0' : (c >= 'a' && c <= 'f') ? c - 'a' + 10 : (c >= 'A' && c <= 'F') ? c - 'A' + 10 : -1;
+        if (d < 0) ok = 0;
+        v = v * 16 + (d < 0 ? 0 : d);
+      }
+      out[n++] = (char) v;
+    }
+    if (ok && n > 0) { out[n] = 0; return; }
+  }
+  int l = len > max - 1 ? max - 1 : len;
+  memcpy(out, value, (size_t) l);
+  out[l] = 0;
+}
+
+static void sidecarCopy(char *out, int max, const char *value)
+{
+  int l = (int) strlen(value);
+  if (l > max - 1) l = max - 1;
+  memcpy(out, value, (size_t) l);
+  out[l] = 0;
+}
+
 // Handles one name=value line of a sidecar file. Unknown names are ignored on purpose,
 // so files may carry human-readable fields (title, image, ...).
 // A value wrapped in double quotes keeps its inner spaces.
@@ -121,6 +161,11 @@ static void sidecarLine(SidecarText *t, const char *name, const char *value)
     if (c >= 'A' && c <= 'Z') c = (char) (c + 32);
     t->emulator = (c == 's' || c == 'e') ? c : 0;
   }
+  else if (strcmp(name, "image") == 0) sidecarCopy(t->image, (int) sizeof t->image, value);
+  else if (strcmp(name, "category") == 0) sidecarCopy(t->category, (int) sizeof t->category, value);
+  else if (strcmp(name, "param1") == 0) sidecarParam(t->p1, (int) sizeof t->p1, value);
+  else if (strcmp(name, "param2") == 0) sidecarParam(t->p2, (int) sizeof t->p2, value);
+  else if (strcmp(name, "needs") == 0) sidecarCopy(t->needs, (int) sizeof t->needs, value);
   else if (strcmp(name, "title") == 0)
   {
     int len = (int) strlen(value);
