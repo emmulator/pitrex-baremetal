@@ -11,8 +11,12 @@ root="$out/$name"
 rm -rf "$root"
 mkdir -p "$root/payload" "$root/arcade-tweaks" "$root/settings"
 
+# the bootstrap (pitrex.img, pitrex7.img) must come from the same source as the loader: Malban's May 2025 one does
+# not start this loader (blank screen)
+cp "$builds/loader-latest/pitrex.img" "$builds/loader-latest/pitrex7.img" "$root/payload/"
 for pi in piZero1 piZero2; do
   mkdir -p "$root/payload/$pi"
+  cp "$builds/loader-latest/$pi/aae.img" "$root/payload/$pi/"
   cp "$builds/loader-latest/$pi/loader.pit" "$root/payload/$pi/"
   cp "$builds/emulators-2025src-gcc10.3.1/$pi/"vectrexspeedy.img "$builds/emulators-2025src-gcc10.3.1/$pi/"vectrexexact.img "$root/payload/$pi/"
   cp "$builds/vectrex-players-fork-source/$pi/"*.img "$root/payload/$pi/"

@@ -6,7 +6,7 @@
 #   ./install.sh --restore <folder>
 #
 # Replaced files are saved in <folder>/backup-menu-<date>/ with a MANIFEST.tsv that --restore reads.
-# Nothing outside the files listed in payload/ (and, with --arcade-tweaks, arcade-tweaks/) is touched.
+# Nothing outside the files listed in payload/ (and, with --arcade-tweaks, arcade-tweaks/; with --settings tuned, settings/) is touched.
 set -eu
 
 here=$(cd "$(dirname "$0")" && pwd)

@@ -52,9 +52,9 @@ route A.
   Star Wars and Lunar Lander calibration files aside (they are for his Vectrex).
 * `--restore` (route A) undoes the newest install.
 
-The installer saves every file it replaces in `backup-menu-<date>/` first, never touches ROMs, BIOS files,
-`pitrex.img` or your own settings, and can be run twice safely. It replaces the loader, the Vectrex emulators
-and players (the July 2025 emulators show a blank screen on a Pi Zero W), three rebuilt arcade programs (Star
+The installer saves every file it replaces in `backup-menu-<date>/` first, never touches ROMs, BIOS files
+or your own settings, and can be run twice safely. It replaces the boot files `pitrex.img` and `pitrex7.img` (they must match the loader), the loader, AAE (with its
+game picker), the Vectrex emulators and players (the July 2025 emulators show a blank screen on a Pi Zero W), three rebuilt arcade programs (Star
 Wars, Tempest, Black Widow), the entry files in `menu/`, and adds `NEW_MENU = 1` to `loader.ini`.
 To go back to the original menu, delete that line.
 

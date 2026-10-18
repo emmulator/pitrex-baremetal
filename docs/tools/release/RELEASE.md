@@ -24,7 +24,7 @@ or build a whole card, arcade ROMs included, from Malban's zip and the RpiTeaM E
 |---|---|
 | `README.md`, `NEW_MENU_README.md` | the plug-and-play guide, and the guide to changing the menu |
 | `install.sh`, `install.ps1`, `install.bat`, `make_card.py` | the installers |
-| `payload/` | loader, Vectrex emulators and players, rebuilt Star Wars / Tempest / Black Widow, 114 entry files in `menu/` (both Pi models) |
+| `payload/` | bootstrap (`pitrex.img`, `pitrex7.img`), loader, AAE with the game picker, Vectrex emulators and players, rebuilt Star Wars / Tempest / Black Widow, 114 entry files in `menu/` (both Pi models) |
 | `settings/` | the tuned `vectrexInterface.ini` (used only with `--settings tuned`, or if yours is missing or empty) |
 | `arcade-tweaks/` | single-controller `blackwidow.ini` and `battlezone.ini` (only with `--arcade-tweaks`) |
 
