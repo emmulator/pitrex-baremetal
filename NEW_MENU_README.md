@@ -318,11 +318,15 @@ problem.
 
 ## Known problems
 
-* Audio entries (Queen, Prince): the player showed a standard Vectrex screen, then WAVPLAYER, then went black and
-  needed a power cycle (even with players rebuilt from source). The card has logging builds of the audio and video
-  players that write `EMUDBG.TXT`; cause not yet known.
-* The menu music runs at the speed the screen is redrawn, so it slows down as more lines are drawn (long lists,
-  notes, the controls page). Not fixed yet.
+* Audio (Queen, Prince) and video: the player loads the whole 3-10 MB data file into memory first, so the
+  screen shows the Vectrex start screen, then WAVPLAYER, and nothing for a while (several seconds) before the
+  music starts. It is not frozen. The sound is **very quiet** (the Vectrex volume has to go all the way up) and
+  Queen is scratchy. The FAQ says digitized sound is very soft on the Vectrex, a hardware limit; the scratchiness
+  is not understood. The video player is the "Extreme multicart" movie player (the Vectrex version of Bad Apple
+  by Sprite_TM uses the same 8-bit DAC for sound, so the volume has to be turned up there too); the video
+  entries gave no audible sound on the test PiTrex, even so.
+* The menu music is paced by the clock (one 50 Hz step per 20 ms, skipped rather than delayed when a refresh is
+  slow). Before, it ran slower the more lines were drawn. Not yet confirmed on hardware.
 * The BIOS text in Vectrex games is readable with the 2025 emulators but can shimmer: it flickers
   between bright and dim and shifts sideways between frames. Not yet understood; try the settings above
   and the calibration pages in SETTINGS.

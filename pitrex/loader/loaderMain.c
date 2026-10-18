@@ -8,6 +8,7 @@
 #include <vectrex/mathSupport.h>
 #include <vectrex/ini.h>
 #include "menuSidecar.h"
+volatile uint64_t bcm2835_st_read(void);   // microsecond timer (pitrexio-gpio.c)
 extern char lastAccessedIni[255];   // the ini that v_saveIni() writes to (vectrexInterface.c)
 
 #if RASPPI != 1 
@@ -484,6 +485,7 @@ int main(int argc, char *argv[])
 
   
   int ymloaded;
+  uint32_t ymClock = 0;                // time of the music's last step, in microseconds
   int s = 0;
   int bDir = 1;
   int b = 30;
@@ -630,7 +632,21 @@ int main(int argc, char *argv[])
     if (b==20) bDir = 1;
     v_printString(-100, 100, ss[0], 5, b);
     if (newMenuEnabled) newMenuFrame(); else displayMenu();
-    if (ymloaded) v_playYM();      
+    if (ymloaded)
+    {
+      // The music advances one 50 Hz step per call. Calling it once per screen refresh made it slower
+      // the more lines a refresh draws, so it is paced by the clock instead: as many steps as are due
+      // (a step is skipped, not delayed, when a refresh took long). A pause longer than 3 steps (card
+      // access, the controls page) restarts the clock instead of fast-forwarding the music.
+      uint32_t now = (uint32_t) bcm2835_st_read();
+      uint32_t due = (now - ymClock) / 20000;
+      if (due > 3) { ymClock = now; due = 1; }
+      if (due > 0)
+      {
+        ymClock += due * 20000;
+        while (due-- > 0) v_playYM();
+      }
+    }
   }
 }
 
