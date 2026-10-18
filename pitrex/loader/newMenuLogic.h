@@ -788,6 +788,36 @@ static int nmAddEntries(NmTree *t, char (*names)[NM_KEY_LEN], int nnames, NmRead
   return added;
 }
 
+typedef int (*NmExistsFn)(const char *path);
+
+// An entry whose "needs" file (a ROM zip) is not on the card cannot be played: hide it, so the menu lists what
+// the card can run. It comes back by itself when the file is added. A needs that ends in "/" (the AAE picker:
+// "roms/aae/") means "any other entry that needs a file in this folder is still showing".
+static void nmHideMissingNeeds(NmTree *t, NmExistsFn exists)
+{
+  if (exists == 0) return;
+  for (int i = 0; i < t->used; i++)
+  {
+    NmNode *n = &t->pool[i];
+    size_t l = strlen(n->needs);
+    if (l == 0 || n->needs[l - 1] == '/' || n->hidden) continue;
+    if (!exists(n->needs)) n->hidden = 1;
+  }
+  for (int i = 0; i < t->used; i++)
+  {
+    NmNode *n = &t->pool[i];
+    size_t l = strlen(n->needs);
+    if (l == 0 || n->needs[l - 1] != '/' || n->hidden) continue;
+    int any = 0;
+    for (int k = 0; k < t->used && !any; k++)
+    {
+      const NmNode *o = &t->pool[k];
+      if (o != n && !o->hidden && strncmp(o->needs, n->needs, l) == 0 && o->needs[l] != 0) any = 1;
+    }
+    if (!any) n->hidden = 1;
+  }
+}
+
 // An entry whose image is not in the image folder cannot start: hide it. files = names in that folder.
 static void nmHideMissingImages(NmTree *t, const char *const *files, int nfiles)
 {
@@ -946,9 +976,10 @@ typedef struct
 // hides entries with no image, finds programs and ROMs, sorts. Returns the SETTINGS node.
 static NmNode *nmAssembleRest(NmTree *t, NmScratch *sc, NmReadFn rd, const char *prefix,
                               const char *const *files, int nfiles, char (*romPaths)[NM_ROM_PATH], int nroms,
-                              const char *exactImg, const char *speedyImg, int *nfound)
+                              const char *exactImg, const char *speedyImg, NmExistsFn exists, int *nfound)
 {
   nmHideMissingImages(t, files, nfiles);
+  nmHideMissingNeeds(t, exists);
 
   int nknown = nmCollectImages(t, sc->known, NM_MAX_IMAGES);
   *nfound = nmDiscover(files, nfiles, sc->known, nknown, sc->found, NM_MAX_PROGS);
@@ -988,10 +1019,10 @@ static NmNode *nmAssembleRest(NmTree *t, NmScratch *sc, NmReadFn rd, const char 
 static NmNode *nmAssemble(NmTree *t, NmScratch *sc, char (*sideNames)[NM_KEY_LEN], int nside, NmReadFn rd,
                           const char *prefix, const char *const *files, int nfiles,
                           char (*romPaths)[NM_ROM_PATH], int nroms,
-                          const char *exactImg, const char *speedyImg, int *nentries, int *nfound)
+                          const char *exactImg, const char *speedyImg, NmExistsFn exists, int *nentries, int *nfound)
 {
   *nentries = nmAddEntries(t, sideNames, nside, rd, prefix);
-  return nmAssembleRest(t, sc, rd, prefix, files, nfiles, romPaths, nroms, exactImg, speedyImg, nfound);
+  return nmAssembleRest(t, sc, rd, prefix, files, nfiles, romPaths, nroms, exactImg, speedyImg, exists, nfound);
 }
 
 

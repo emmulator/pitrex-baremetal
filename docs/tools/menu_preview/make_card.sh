@@ -11,6 +11,7 @@ done
 cp "$src/config.txt" "$out/" 2>/dev/null || : > "$out/config.txt"
 : > "$out/vectorburner-placeholder"; mkdir -p "$out/piZero1" "$out/piZero2"
 : > "$out/piZero1/vectorburner.img"; : > "$out/piZero2/vectorburner.img"
+: > "$out/piZero1/zzprog.img"; : > "$out/piZero2/zzprog.img"    # a program without an entry file: listed under PROGRAMS
 mkdir -p "$out/menu"; cp "$side"/*.ini "$out/menu/"
 if [ -n "$extra" ]; then
   for f in "$extra"/*; do

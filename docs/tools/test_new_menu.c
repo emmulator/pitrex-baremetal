@@ -77,11 +77,19 @@ static char romPaths[NM_MAX_ROMS][NM_ROM_PATH];
 static int nroms = 0;
 static int nentries, nfound;
 
+static const char *present[8];                  /* paths the fake card has; 0 = no checking at all */
+static int npresent = -1;
+static int fakeExists(const char *p)
+{
+  for (int i = 0; i < npresent; i++) if (strcmp(present[i], p) == 0) return 1;
+  return 0;
+}
+
 static NmNode *build(const char *const *fl, int nfl)
 {
   memset(&tree, 0, sizeof tree);
   return nmAssemble(&tree, &scratch, sideNames, nside, hostRead, "piZero1/", fl, nfl, romPaths, nroms,
-                    "piZero1/vectrexexact.img", "piZero1/vectrexspeedy.img", &nentries, &nfound);
+                    "piZero1/vectrexexact.img", "piZero1/vectrexspeedy.img", npresent >= 0 ? fakeExists : 0, &nentries, &nfound);
 }
 
 static int selectTitle(const char *title)
@@ -407,6 +415,41 @@ int main(int argc, char **argv)
     entry.img = "x.img";
     const char *lines[6];
     CHECK(nmHelp(&entry, lines, 6) == 0, "a game has no category help");
+  }
+
+  /* ---- entries whose ROM is not on the card are hidden ---- */
+  {
+    npresent = 0;
+    build(files, nf);
+    NmNode *arc = nmFindTop(&tree, "ARCADE");
+    CHECK(arc == 0 || arc->hidden, "no ROMs: no ARCADE category at all");
+    int shown = 0;
+    for (int i = 0; i < tree.used; i++)
+      if (tree.pool[i].needs[0] != 0 && !tree.pool[i].hidden) shown++;
+    CHECK(shown == 0, "no ROMs: %d entries with a needs file still show", shown);
+
+    present[0] = "roms/aae/mhavoc.zip";
+    npresent = 1;
+    build(files, nf);
+    shown = 0;
+    int picker = 0;
+    for (int i = 0; i < tree.used; i++)
+    {
+      const NmNode *n = &tree.pool[i];
+      if (n->hidden || n->needs[0] == 0) continue;
+      if (n->needs[strlen(n->needs) - 1] == '/') picker++; else { shown++; CHECK(strcmp(n->title, "MAJOR HAVOC") == 0, "only Major Havoc shows, not %s", n->title); }
+    }
+    CHECK(shown == 1, "one ROM: one game shows (%d)", shown);
+    CHECK(picker == 1, "one AAE ROM: the AAE picker shows");
+
+    present[0] = "roms/bzone.zip";
+    build(files, nf);
+    picker = 0;
+    for (int i = 0; i < tree.used; i++)
+      if (!tree.pool[i].hidden && tree.pool[i].needs[0] != 0 && tree.pool[i].needs[strlen(tree.pool[i].needs) - 1] == '/') picker++;
+    CHECK(picker == 0, "a dedicated emulator's ROM does not bring the AAE picker back");
+    npresent = -1;
+    build(files, nf);                           /* later checks use the unfiltered tree */
   }
 
   if (getenv("NM_DUMP"))

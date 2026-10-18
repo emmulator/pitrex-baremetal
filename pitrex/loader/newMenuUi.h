@@ -142,6 +142,16 @@ static int nmInitFiles = 0, nmInitRoms = 0, nmInitDone = 0, nmInitEntries = 0, n
 
 // One step of building the menu. Returns 1 when the menu is ready. While it is not, the screen says
 // READING SD CARD (the PITREX logo and the music go on, because the loader's main loop keeps running).
+// A ROM zip an entry needs: is it on the card?
+static int nmFileExists(const char *path)
+{
+  ensureMainPath();
+  FILE *f = fopen(path, "rb");
+  if (f == 0) return 0;
+  fclose(f);
+  return 1;
+}
+
 static int newMenuInitStep(void)
 {
   switch (nmInitStage)
@@ -182,7 +192,8 @@ static int newMenuInitStep(void)
     default:
       nmSettingsNode = nmAssembleRest(&nmTree, &nmScratch, nmReadListed, IMG_FILE_PREFIX, nmFilePtr, nmInitFiles,
                                       nmRomPaths, nmInitRoms, IMG_FILE_PREFIX "vectrexexact.img",
-                                      IMG_FILE_PREFIX "vectrexspeedy.img", &nmFound);
+                                      IMG_FILE_PREFIX "vectrexspeedy.img",
+                                      newMenuShowMissing ? 0 : nmFileExists, &nmFound);
       nmInit(&nmNav, &nmTree);
       nmNotesOwner = 0;
       printf("New menu: %i nodes, %i entry files, %i programs, %i ROMs found\n\r", nmTree.used, nmInitEntries, nmFound, nmInitRoms);
