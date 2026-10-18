@@ -254,7 +254,9 @@ Images rebuilt from this source and installed on the test card so far: `vectrexe
 `blackwidow`. The reasons: the shipped Exact and Speedy blanked; Star Wars and Tempest blanked; the
 Video and Audio entries did not start; Black Widow needed the one-stick fire. Games that worked from the
 shipped images (Asteroids, Gravitar, Space Duel, Red Baron, Lunar Lander...) were left alone. A rebuild of
-every other program in the tree is available for comparison (`pitrex-builds/all-fork-source-gcc10.3.1`).
+the other programs can be rebuilt the same way if one of them misbehaves. **Asteroids (SBT) cannot be
+rebuilt from this repository**: its translation step needs the original ROM file `035127-02.np3`, which is not
+included, so keep the shipped `asteroids_sbt.img`.
 
 Build them yourself (needs the `pitrex-dev` container, see `docs/tools/build.sh`):
 
