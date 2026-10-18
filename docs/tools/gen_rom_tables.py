@@ -12,7 +12,7 @@ import glob, os, re, sys
 # roms/ in PitreX_Baremetal_RpiTeaM_Edition.img: 26 zips; roms/aae/: 60 zips (checked 2026-10-18)
 NOT_IN_RPITEAM = {'bradley', 'mhavoc2', 'mhavocrv', 'mhavocp', 'alphaone', 'alphaona', 'quantum1', 'quantump', 'gravitr2', 'gravp'}
 DEDICATED = {'llander', 'bzone', 'redbaron', 'spacduel', 'bwidow', 'gravitar', 'tempest', 'starwars', 'barrier', 'tailg', 'spacewar', 'demon'}
-NICE = {'qb3.zip': "QB3 (Q*bert's Qubes prototype)", 'astdelux.zip': 'Asteroids Deluxe (older emulator)',
+NICE = {'qb3.zip': 'QB-3 (Rock-Ola prototype)', 'astdelux.zip': 'Asteroids Deluxe (older emulator)',
         'asteroid.zip': 'Asteroids (older emulator; also the second set Asteroids reads)', 'asteroid2.zip': 'Asteroids'}
 
 folder, namesfile = sys.argv[1], sys.argv[2]

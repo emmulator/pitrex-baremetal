@@ -1,9 +1,11 @@
 #!/bin/sh
 # Assembles the release folder and zip from the saved build sets in pitrex-builds.
 #   make_release.sh <version> <pitrex-builds dir> <fork checkout> <output dir>
-# Nothing from Malban's archive (ROMs, pitrex.img, BIOS, ...) is included, only what we built or wrote.
+# Nothing from Malban's archive (ROMs, BIOS, his images, ...) is included, only what we built or wrote (pitrex.img and
+# pitrex7.img are our builds of the bootstrap). BUILDINFO.txt names the loader's source commit:
+#   LOADER_COMMIT=<sha> make_release.sh ...     (default: the fork checkout's HEAD)
 set -eu
-[ $# -eq 4 ] || { sed -n '2,4p' "$0" | sed 's/^# \{0,1\}//'; exit 2; }
+[ $# -eq 4 ] || { sed -n '2,6p' "$0" | sed 's/^# \{0,1\}//'; exit 2; }
 ver=$1; builds=$2; fork=$3; out=$4
 here=$(cd "$(dirname "$0")" && pwd)
 name="pitrex-new-menu-$ver"
@@ -24,17 +26,10 @@ for pi in piZero1 piZero2; do
 done
 mkdir -p "$root/payload/menu"
 cp "$fork/docs/menu/sidecar/menu/"*.ini "$root/payload/menu/"
-cp "$fork/NEW_MENU_README.md" "$root/payload/NEW_MENU_README.md"
-cp "$fork/NEW_MENU_README.md" "$root/NEW_MENU_README.md"
-# the plug-and-play guide is the front page of the package; its links to the repository's docs/ become plain text
-python3 -I - "$fork/docs/README.md" "$root/README.md" <<'PY'
-import sys
-s = open(sys.argv[1]).read()
-s = s.replace("](../NEW_MENU_README.md)", "](NEW_MENU_README.md)")
-s = s.replace("Licensing notes: [LICENSING.md](LICENSING.md).\nDeveloper notes for this fork: [DEVELOPMENT.md](DEVELOPMENT.md).",
-              "Licensing notes and developer notes: `docs/` in the source repository.")
-open(sys.argv[2], "w").write(s)
-PY
+
+# the guides: README.md (from docs/README.md) is the front page. Links into the repository's other docs point at the
+# source repository, which is public before a release goes out.
+python3 -I "$here/release_links.py" "$fork" "$root"
 
 # arcade tweaks: files exactly as tested on the card
 cp "$here/arcade-tweaks/blackwidow.ini" "$here/arcade-tweaks/battlezone.ini" "$root/arcade-tweaks/"
@@ -43,6 +38,8 @@ cp "$here/settings/vectrexInterface.ini" "$here/settings/vectrex.ini" "$root/set
 cp "$here/install.sh" "$here/install.ps1" "$here/install.bat" "$here/make_card.py" "$root/"
 chmod +x "$root/install.sh"
 sed "s/@VERSION@/$ver/g" "$here/RELEASE.md" > "$root/RELEASE.md"
+commit=${LOADER_COMMIT:-$(git -C "$fork" rev-parse --short HEAD)}
+sed -e "s/@VERSION@/$ver/g" -e "s/@COMMIT@/$commit/g" "$here/BUILDINFO.txt" > "$root/BUILDINFO.txt"
 
 (cd "$root" && find . -type f ! -name SHA256SUMS | sed 's|^\./||' | sort | xargs sha256sum > SHA256SUMS)
 (cd "$out" && rm -f "$name.zip" && zip -qr "$name.zip" "$name")

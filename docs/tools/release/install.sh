@@ -196,6 +196,8 @@ if [ "$dry" = 1 ]; then
   echo "dry run finished: $changed change(s) would be made."
 elif [ "$changed" = 0 ]; then
   echo "nothing to do: this folder already has the release installed."
+elif [ -n "${PITREX_FRESH_CARD:-}" ]; then
+  echo "done: $changed change(s)."                # make_card.py: a new card, its backup is removed
 else
   echo "done: $changed change(s). Originals saved in $bk"
   echo "To undo:  $0 --restore \"$target\""

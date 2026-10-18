@@ -78,6 +78,7 @@ MenuItemNew *currentMenuItem;
 
 int newMenuEnabled = 0;     // loader.ini: NEW_MENU = 1 selects the new list menu
 int newMenuShowMissing = 0; // loader.ini: NEW_MENU_SHOW_MISSING = 1 lists games whose ROM is not on the card too
+int newMenuLog = 0;         // loader.ini: NEW_MENU_LOG = 1 writes NMLOG.TXT (start-up, launches, settings steps)
 void newMenuFrame(void);
 static int newMenuIniHandler(void* user, const char* section, const char* name, const char* value);
 
@@ -345,6 +346,10 @@ static int loaderIniHandler(void* user, const char* section, const char* name, c
   {
     newMenuShowMissing = atoi(value);
   }
+  if (MATCH_NAME("NEW_MENU_LOG"))
+  {
+    newMenuLog = atoi(value);
+  }
 #if RASPPI != 1 
   if (MATCH_NAME("USE_SMP")) 
   {
@@ -359,6 +364,7 @@ static int newMenuIniHandler(void* user, const char* section, const char* name, 
 {
   if (strcmp(name, "NEW_MENU") == 0) newMenuEnabled = atoi(value);
   if (strcmp(name, "NEW_MENU_SHOW_MISSING") == 0) newMenuShowMissing = atoi(value);
+  if (strcmp(name, "NEW_MENU_LOG") == 0) newMenuLog = atoi(value);
   return 1;
 }
 

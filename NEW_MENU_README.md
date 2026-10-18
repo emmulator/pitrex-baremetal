@@ -35,8 +35,9 @@ alphabetical too (inside ALL ROMS the folders come first).
 ## Controls
 
 (The user view is in [docs/README.md](docs/README.md).) Stick up/down moves, right or Button 4 enters or starts,
-left goes back, Button 2 starts a Vectrex game with the other emulator or, on an arcade game, shows its CONTROLS
-page, Button 1 is Button 4 plus "load the last saved state". The menu ignores the controls until they have
+left goes back, Button 2 starts a game under ALL ROMS with the other emulator or, on an entry with `control` lines,
+shows its CONTROLS page, Button 1 is Button 4 plus "load the last saved state" (the Vectrex emulators only do that
+with `HANDLE_STATES = 1` in `vectrex.ini`; the menu reads that line and only then says AND SAVED STATE). The menu ignores the controls until they have
 rested for 15 frames, so a Button 4 held at power-on does not open anything.
 
 ## Adding a game
@@ -78,8 +79,8 @@ image = aae.img                ; the program image in piZero1/ that starts it
 param1 = 0x2d                  ; first parameter. 0x2d means the single byte 0x2d; anything else is text
 param2 = original/X.BIN        ; second parameter, if the program takes one
 needs = roms/aae/mhavoc.zip    ; the entry is only shown while this file exists
-skip = 4                       ; blank rows before the first note line
-text = WORK IN PROGRESS!!      ; note lines under the list (max 12). WIP, NO SOUND... add a ! to the list
+skip = 4                       ; old menu only: blank rows before the first note line (the new menu ignores it)
+text = WORK IN PROGRESS!!      ; note lines under the list (max 12). NO SOUND, WORK IN PROGRESS... add a ! to the list
 control = FIRE  BUTTON 4       ; lines of the CONTROLS page (Button 2), max 12
 hide = 1                       ; leave it out
 ```
@@ -101,12 +102,13 @@ emulator = speedy              ; for a ROM: which emulator Button 4 uses, speedy
 control = ...                  ; CONTROLS page lines
 ```
 
-`;` starts a comment. A note containing NO SOUND, WIP / WORK IN PROGRESS, or BROKEN / NOT WORKING / CRASHING
-makes the entry show a `!` in the list. Full format: [docs/menu/05-sidecar-format.md](docs/menu/05-sidecar-format.md).
+`;` starts a comment. A note containing NO SOUND, WORK IN PROGRESS, NOT WORKING or CRASH (any case, also inside
+a longer word such as CRASHES) makes the entry show a `!` in the list. Full format: [docs/menu/05-sidecar-format.md](docs/menu/05-sidecar-format.md).
 
 **Text rules.** The PiTrex's vector font only draws `A-Z`, `0-9`, `.`, `!` and the arrows `<` `>`
-(`$` is the folder symbol). Brackets, slashes, dashes, colons and commas print as blanks, so write text in
-capitals with only those characters. Lines longer than about 46 characters run off the screen.
+(`$` is the folder symbol); lower case is drawn as capitals. Brackets, slashes, dashes, colons and commas print as
+blanks, so write text with only those characters. Note lines longer than about 46 characters run off the screen;
+titles are cut at 31 characters and about 28 fit in the list.
 
 ## Changing how it looks
 
@@ -119,7 +121,7 @@ sort order without rebuilding the loader. Those live in `pitrex/loader/newMenuUi
 | Rows shown (7), list position and spacing, notes position, button hints | `NM_ROWS` in `newMenuLogic.h`; `NM_LIST_Y`, `NM_LIST_STEP`, `NM_NOTE_Y`, `NM_NOTE_STEP` and the `v_printString` calls in `newMenuUi.h` (size 7 is the large text, 5 the small) |
 | Help texts for the categories | `nmHelp()` in `newMenuLogic.h` |
 | Sorting | `nmTitleCmp`, `nmSortChildren` in `newMenuLogic.h` |
-| Limits | 700 menu nodes in total (entries, folders and ROMs), 320 files in `menu/`, 400 ROM files, 128 rows in a list |
+| Limits | 700 menu nodes in total (entries, folders and ROMs), 320 files in `menu/` (2 KB each), 160 files in `piZero1/`, 48 programs without an entry file, 400 ROM files in at most 23 folders, 16 top-level categories, 4 category levels (a fifth cannot be opened), 128 rows in a list. All in `newMenuLogic.h` and `newMenuUi.h` (`NM_MAX_*`) |
 
 Build the loader with `docs/tools/build.sh zero1 pitrex/loader` (or `zero2`) in the `pitrex-dev` container (see
 the top of that script) and put `loader.pit` in `piZero1/` (or `piZero2/`) on the card. The menu code also runs on a
@@ -133,6 +135,7 @@ tests: `docs/tools/test_new_menu.c`.
 |---|---|
 | `NEW_MENU = 1` | use the new menu (remove it for the original menu) |
 | `NEW_MENU_SHOW_MISSING = 1` | also list arcade games whose ROM is not on the card |
+| `NEW_MENU_LOG = 1` | write `NMLOG.TXT` on the card: the first controls read, launches, settings steps (for tracking down a freeze; off by default because it writes to the card at every start) |
 
 ## Regenerating the shipped entry files
 

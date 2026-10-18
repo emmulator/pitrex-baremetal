@@ -29,7 +29,7 @@ Run the installer with the folder (or the SD card), then copy the folder to the 
 | System | Command |
 |---|---|
 | Linux, macOS | `./install.sh /path/to/PiTrex_sd_Jul29_25` |
-| Windows | `install.bat C:\path\to\PiTrex_sd_Jul29_25` |
+| Windows | `install.bat C:\path\to\PiTrex_sd_Jul29_25`, or the card itself: `install.bat E:\` |
 
 ### B. Build a complete card from the two downloads
 
@@ -52,11 +52,13 @@ route A.
   Star Wars and Lunar Lander calibration files aside (they are for his Vectrex).
 * `--restore` (route A) undoes the newest install.
 
-The installer saves every file it replaces in `backup-menu-<date>/` first, never touches ROMs, BIOS files
-or your own settings, and can be run twice safely. It replaces the boot files `pitrex.img` and `pitrex7.img` (they must match the loader), the loader, AAE (with its
-game picker), the Vectrex emulators and players (the July 2025 emulators show a blank screen on a Pi Zero W), three rebuilt arcade programs (Star
-Wars, Tempest, Black Widow), the entry files in `menu/`, and adds `NEW_MENU = 1` to `loader.ini`.
-To go back to the original menu, delete that line.
+The installer saves every file it replaces in `backup-menu-<date>/` first, never touches ROMs or BIOS files,
+leaves your settings and game `.ini` files alone unless you ask (`--settings tuned`, `--arcade-tweaks`), and can be
+run twice safely. It replaces the boot files `pitrex.img` and `pitrex7.img` (they must match the loader), the
+loader, AAE (with its game picker), the Vectrex emulators, the video, audio and line-art players and Vectorblade
+(the July 2025 images show a blank screen on a Pi Zero W), three rebuilt arcade programs (Star Wars, Tempest,
+Black Widow), the entry files in `menu/`, and adds `NEW_MENU = 1` to `loader.ini`. To go back to the original
+menu, delete that line.
 
 ## Using the menu
 
@@ -67,9 +69,9 @@ The menu opens at the top when the PiTrex starts (it ignores the controls until 
 | Stick **up / down** | Move the `>` marker. Hold to repeat. |
 | Stick **right**, or **Button 4** | Open a category or start the highlighted game. |
 | Stick **left** | Go back up one level. |
-| **Button 2** on a Vectrex game | Start it with the *other* emulator (Button 4 uses Exact, Button 2 uses Speedy). |
+| **Button 2** on a game under VECTREX > ALL ROMS | Start it with the *other* emulator (Button 4 uses Exact, Button 2 uses Speedy; the hint at the bottom says which). |
 | **Button 2** on an arcade game | Show how its controls work. Any button or the stick comes back. |
-| **Button 1** | Like Button 4, but a Vectrex emulator loads the last saved state. |
+| **Button 1** | Like Button 4. With `HANDLE_STATES = 1` in `vectrex.ini` the Vectrex emulators also load the game's last saved state (they save one when you leave a game with all four buttons); the STARTING screen then says AND SAVED STATE. Malban's card ships with it set to 0. |
 
 `$` in front of a row is a category (folder), `!` means there is a caveat (read the notes under the list).
 
@@ -112,7 +114,7 @@ Some games have their own emulator; the rest run on AAE ("Another Arcade Emulato
 | `demon.zip` | Demon | Cinematronics | `cine.img` |
 | `gravitar.zip` | Gravitar | Atari | `gravitar.img` |
 | `llander.zip` | Lunar Lander | Atari | `lunar.img` |
-| `qb3.zip` | QB3 (Q*bert's Qubes prototype) | Other Arcade | `cine.img` |
+| `qb3.zip` | QB-3 (Rock-Ola prototype) | Other Arcade | `cine.img` |
 | `redbaron.zip` | Red Baron | Atari | `redbaron.img` |
 | `spacduel.zip` | Space Duel | Atari | `spaceduel.img` |
 | `spacewar.zip` | Space Wars | Cinematronics | `cine.img` |
@@ -175,7 +177,7 @@ does not have are other versions of games it does have; everything else works wi
 | `mhavocp.zip` | Major Havoc (Prototype) | Atari > Major Havoc Versions > Major Havoc Prototype | no |
 | `alphaone.zip` | Alpha One (Major Havoc Prototype - 3 Lives) | Atari > Major Havoc Versions > Alpha One 3 Lives | no |
 | `alphaona.zip` | Alpha One (Major Havoc Prototype - 5 Lives) | Atari > Major Havoc Versions > Alpha One 5 Lives | no |
-| `starwar1.zip` | Star Wars (Revision 1) | Atari > Star Wars Rev 1 Aae | yes |
+| `starwar1.zip` | Star Wars (Revision 1) | Atari > Star Wars Versions > Star Wars Rev 1 | yes |
 | `starwars.zip` | Star Wars (Revision 2) | Atari > Star Wars (its own program, `swsbt.img`, reads this zip) | yes |
 | `quantum1.zip` | Quantum (Revision 1) | Atari > Quantum Versions > Quantum Rev 1 | no |
 | `quantum.zip` | Quantum (Revision 2) | Atari > Quantum | yes |
@@ -205,7 +207,7 @@ The same games are also in `roms/` in the RpiTeaM image; the menu does not use t
 ARCADE > ALL AAE GAMES is a picker that lists every zip in `roms/aae/` that AAE has a driver for, including
 the ones the menu has no entry for. Button 4 plays, Button 1 goes back.
 
-How well they run (tested on a Pi Zero W, Vectrex with a Buzz-type BIOS, 2026-10-17/18):
+How well they run (tested on one Vectrex with a Pi Zero W, 2026-10-17/18):
 
 | Game | Result |
 |---|---|
@@ -254,13 +256,16 @@ values; the ones on Malban's card carry his own calibration (that is what `--arc
 * Vectrex BIOS text (boot screen, scores) can shimmer or be garbled depending on `ROM_FILE` and `CYCLE_EQUIVALENT` in
   `vectrex.ini`: see [Settings](#settings). `--settings tuned` installs a combination that was steady on the test Vectrex.
 * The AAE picker does not show the caveat marks.
-* `NMLOG.TXT` on the card records the first controls, launches and settings steps; look at it first if something
-  freezes.
+* If the menu freezes: add `NEW_MENU_LOG = 1` to `loader.ini`. The menu then writes `NMLOG.TXT` on the card
+  (the first controls it read, launches, settings steps), complete up to the freeze. It is off by default
+  because it writes to the card at every start.
 
 ## If something goes wrong
 
 1. Menu odd or unusable: delete the `NEW_MENU = 1` line in `loader.ini`; the original menu returns.
-2. PiTrex does not boot, or a game is worse: `install.sh --restore <card folder>` puts the replaced files back.
+2. PiTrex does not boot, or a game is worse: `install.sh --restore <card folder>` (Windows:
+   `install.bat --restore <card folder>`) puts the replaced files back. A card made with `make_card.py` has no
+   backup: build it again, or unpack Malban's zip onto the card.
 3. A Vectrex game misbehaves: Button 2 on it (the other emulator).
 
 ## Credits

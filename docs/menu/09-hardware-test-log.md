@@ -1,6 +1,6 @@
 # Hardware test log (2026-10-17)
 
-Pi Zero W (Zero-1 builds) in a PiTrex V.1 cartridge, Vectrex with a Buzz-type BIOS, new 58.6 GB SD card.
+Pi Zero W (Zero-1 builds) in a PiTrex V.1 cartridge, new 58.6 GB SD card.
 Menu builds are the `candidate-N` sets in the `pitrex-builds` folder next to the repository (not tracked).
 
 | Test | Result |

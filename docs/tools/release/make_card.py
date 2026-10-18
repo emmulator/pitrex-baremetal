@@ -9,7 +9,7 @@
   * then install.sh / install.ps1 from this package lays the new menu over it.
 
 Nothing is mounted and no administrator rights are needed: the image is read directly (MBR + FAT32, standard
-library only). Needs Python 3.6 or newer. OUTPUT_FOLDER must not exist yet; unless --no-zip is given,
+library only). Needs Python 3.7 or newer. OUTPUT_FOLDER must not exist yet; unless --no-zip is given,
 OUTPUT_FOLDER.zip is written next to it. Copy the folder's contents to a FAT32 SD card.
 """
 import os, shutil, struct, subprocess, sys, zipfile
@@ -127,6 +127,7 @@ def main(argv):
         print(__doc__)
         return 2
     zip_path, img_path, out = args
+    out = os.path.normpath(os.path.abspath(out))    # "my_card/" or "my_card\" would put the temporary folder inside it
     for p in (zip_path, img_path):
         if not os.path.isfile(p):
             raise SystemExit('not a file: %s' % p)
@@ -170,7 +171,8 @@ def main(argv):
         cmd += [{'--settings': '-Settings', '--arcade-tweaks': '-ArcadeTweaks'}.get(o, o) for o in opts] + [out]
     else:
         cmd = ['sh', os.path.join(HERE, 'install.sh')] + opts + [out]
-    if subprocess.call(cmd) != 0:
+    env = dict(os.environ, PITREX_FRESH_CARD='1')   # the installer then leaves out its "to undo" hint: the backup is removed below
+    if subprocess.call(cmd, env=env) != 0:
         raise SystemExit('the installer failed; %s is left as it is' % out)
     for d in os.listdir(out):                      # a brand new card needs no way back
         if d.startswith('backup-menu-'):

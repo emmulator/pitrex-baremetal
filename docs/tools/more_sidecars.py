@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Writes the entry files for the games that export_sidecars.py does not cover: the other versions of games
-that AAE can run (one entry file each, AAE game number as param1), Q*bert's Qubes on cine.img, the vecsim
+that AAE can run (one entry file each, AAE game number as param1), QB-3 (Rock-Ola prototype) on cine.img, the vecsim
 Asteroids programs and the small sample programs. Run it after export_sidecars.py and before controls_sidecars.py.
 
 Usage: python3 -I docs/tools/more_sidecars.py <menu folder>
@@ -47,7 +47,7 @@ AAE = [
     (0x32, 'alphaona', 'ALPHA ONE 5 LIVES', 'ARCADE / ATARI / MAJOR HAVOC VERSIONS'),
     (0x35, 'quantum1', 'QUANTUM REV 1', 'ARCADE / ATARI / QUANTUM VERSIONS'),
     (0x37, 'quantump', 'QUANTUM PROTOTYPE', 'ARCADE / ATARI / QUANTUM VERSIONS'),
-    (0x33, 'starwar1', 'STAR WARS REV 1 AAE', 'ARCADE / ATARI'),
+    (0x33, 'starwar1', 'STAR WARS REV 1', 'ARCADE / ATARI / STAR WARS VERSIONS'),
     (0x11, 'bradley', 'BRADLEY TRAINER', 'ARCADE / ATARI'),
     (0x20, 'vbreak', 'VECTOR BREAKOUT', 'ARCADE / OTHER ARCADE'),
     (0x0b, 'deltrace', 'DELTA RACE', 'ARCADE / OTHER ARCADE'),
@@ -79,7 +79,7 @@ write(folder, 'cine.qb3', [
     'title = QB3', 'category = ARCADE / OTHER ARCADE', 'image = cine.img', 'param1 = qb3',
     'needs = roms/qb3.zip', 'skip = 4',
     'text = CINEMATRONICS EMU',
-    'text = Q BERTS QUBES PROTOTYPE. NOT TESTED.',
+    'text = ROCK OLA PROTOTYPE. NOT TESTED.',
 ])
 write(folder, 'asteroids.sim', [  # key must be the image's own name to be found as an entry; see below
 ])
@@ -120,6 +120,24 @@ for key, (old, new) in FIX.items():
         t = open(p).read()
         if 'title = ' + old + '\n' in t:
             open(p, 'w').write(t.replace('title = ' + old + '\n', 'title = ' + new + '\n'))
+
+# note lines: the PiTrex font draws commas, brackets and slashes as blanks
+CLEAN = [('ROMS/AAE', 'THE ROMS AAE FOLDER'), ('RYTHMIC', 'RHYTHMIC'), (', ', '. '), (',', '.'), ('(', ''), (')', '.'), ('/', ' ')]
+for f in sorted(os.listdir(folder)):
+    if not f.endswith('.ini'):
+        continue
+    p = os.path.join(folder, f)
+    lines = open(p).read().split('\n')
+    new = []
+    for l in lines:
+        if l.startswith('text = ') or l.startswith('control = '):
+            k, v = l.split(' = ', 1)
+            for a, b in CLEAN:
+                v = v.replace(a, b)
+            l = k + ' = ' + v
+        new.append(l)
+    if new != lines:
+        open(p, 'w').write('\n'.join(new))
 
 # the AAE picker is only shown while at least one AAE game entry is
 p = os.path.join(folder, 'aae.ini')

@@ -59,6 +59,7 @@ static char cardRoot[PATH_MAX];
 typedef struct dirent dirent;
 
 int newMenuShowMissing = 0;     /* loader.ini NEW_MENU_SHOW_MISSING; the preview card has every file, see scenarios.sh */
+int newMenuLog = 0;             /* loader.ini NEW_MENU_LOG (NMLOG.TXT) */
 void ensureMainPath(void) { if (chdir(cardRoot) != 0) perror("chdir card"); }
 /* the loader waits here for a button to be released; the preview has no live hardware to poll */
 uint8_t v_directReadButtons(void) { return 0; }

@@ -52,7 +52,7 @@ title = MAJOR HAVOC          ; for humans, ignored by the loader
 category = ARCADE / ATARI    ; ignored
 image = aae.img              ; ignored
 param1 = 0x2d                ; ignored
-skip = 4                     ; blank rows before the first line
+skip = 4                     ; blank rows before the first line (old menu; the new menu ignores it)
 text = WORK IN PROGRESS!!    ; one line per "text"; repeat the key
 text = FLICKER, NO SOUND!
 ```
@@ -113,7 +113,7 @@ A sidecar file with an `image` line is an **entry file**: the new menu builds it
 | `category` | `A / B / C` path; created when missing; empty = PROGRAMS |
 | `image` | image in `piZero1/` (or `piZero2/`) that starts it |
 | `param1`, `param2` | parameters passed to the program. `0xNN...` (even number of hex digits) is raw bytes: the AAE game number is one byte |
-| `needs` | a file that must exist; "ROM NOT FOUND!" is shown otherwise |
+| `needs` | a file that must exist; otherwise the entry is hidden (with `NEW_MENU_SHOW_MISSING = 1` in `loader.ini` it is listed with "ROM NOT FOUND!"). A value ending in `/` (the AAE picker's `roms/aae/`) means: shown while any other entry needing a file in that folder is shown |
 | `text`, `skip`, `control`, `hide` | as above |
 
 `docs/tools/export_sidecars.py` writes one entry file for every game of the original compiled menu (plus

@@ -13,6 +13,11 @@ cp "$src/config.txt" "$out/" 2>/dev/null || : > "$out/config.txt"
 : > "$out/piZero1/vectorburner.img"; : > "$out/piZero2/vectorburner.img"
 : > "$out/piZero1/zzprog.img"; : > "$out/piZero2/zzprog.img"    # a program without an entry file: listed under PROGRAMS
 mkdir -p "$out/menu"; cp "$side"/*.ini "$out/menu/"
+# every ROM zip an entry needs, so the tree (and the row counts scenarios.sh navigates by) does not depend on
+# which zips the source card happens to have
+sed -n 's/^needs *= *\([^ ;]*[^/ ;]\).*/\1/p' "$side"/*.ini | tr -d '\r' | sort -u | while IFS= read -r f; do
+  mkdir -p "$out/$(dirname "$f")"; [ -e "$out/$f" ] || : > "$out/$f"
+done
 if [ -n "$extra" ]; then
   for f in "$extra"/*; do
     case "${f,,}" in *.bin) : > "$out/vectrex/$(basename "$f")";; *.vec) : > "$out/vectrex/$(basename "${f%.*}").bin";; esac

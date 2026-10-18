@@ -6,7 +6,7 @@ Installs the new PiTrex menu release over an unpacked Malban "PiTrex_sd_Jul29_25
   .\install.ps1 -Restore <folder>
 
 Replaced files are saved in <folder>\backup-menu-<date>\ with a MANIFEST.tsv that -Restore reads.
-Nothing outside the files listed in payload\ (and, with -ArcadeTweaks, arcade-tweaks\) is touched.
+Nothing outside the files listed in payload\ (and, with -ArcadeTweaks, arcade-tweaks\; with -Settings tuned, settings\) is touched.
 #>
 param(
   [Parameter(Position = 0)][string]$Folder,
@@ -24,7 +24,7 @@ function Same($a, $b) {
   ((Get-FileHash -LiteralPath $a -Algorithm SHA256).Hash -eq (Get-FileHash -LiteralPath $b -Algorithm SHA256).Hash)
 }
 
-if (-not $Folder) { Write-Host "usage: .\install.ps1 [-ArcadeTweaks] [-DryRun] [-Restore] <folder>"; exit 2 }
+if (-not $Folder) { Write-Host "usage: .\install.ps1 [-Settings tuned] [-ArcadeTweaks] [-DryRun] [-Restore] <folder>"; exit 2 }
 if (-not (Test-Path -LiteralPath $Folder -PathType Container)) { Die "not a folder: $Folder" }
 $target = (Resolve-Path -LiteralPath $Folder).ProviderPath.TrimEnd('\')
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -182,6 +182,7 @@ if ($ArcadeTweaks) {
 
 if ($DryRun) { Write-Host "dry run finished: $($script:changed) change(s) would be made." }
 elseif ($script:changed -eq 0) { Write-Host "nothing to do: this folder already has the release installed." }
+elseif ($env:PITREX_FRESH_CARD) { Write-Host "done: $($script:changed) change(s)." }   # make_card.py: a new card, its backup is removed
 else {
   Write-Host "done: $($script:changed) change(s). Originals saved in $bkPath"
   Write-Host "To undo:  .\install.ps1 -Restore `"$target`""

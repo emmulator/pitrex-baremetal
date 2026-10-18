@@ -4,7 +4,7 @@
 // The includer provides before this header: MenuItemNew (only as the launch record that
 // loadAndStart() takes), newMenuLogic.h, menuSidecar.h, menuSidecarIo.h, the PiTrex library calls
 // v_printString, v_directReadButtons, v_SettingsGUI, v_saveIni, v_WaitRecal, v_noSound, the globals
-// currentButtonState, currentJoy1X/Y, the function loadAndStart(), ensureMainPath(),
+// currentButtonState, currentJoy1X/Y, the loader.ini flags newMenuShowMissing and newMenuLog, the function loadAndStart(), ensureMainPath(),
 // opendir/readdir/closedir with DT_DIR, and the macros IMG_FILE_PREFIX and NM_IMG_DIR. NM_CARD is the
 // prefix of paths on the card ("0:/" on the PiTrex, "" on the desktop). Nothing about the menu is compiled
 // in: it is built from menu/*.ini, the image folder and vectrex/. Documentation: docs/menu/07-new-menu.md
@@ -152,6 +152,30 @@ static int nmFileExists(const char *path)
   return 1;
 }
 
+// The Vectrex emulators only load a saved state on Button 1 when vectrex.ini has HANDLE_STATES = 1
+// (section VECTREX_EXACT; a missing key means 1). The menu only promises a saved state then.
+static int nmStatesOn = 1;
+static int nmStatesHandler(void *user, const char *section, const char *name, const char *value)
+{
+  (void) user;
+  if (strcmp(section, "VECTREX_EXACT") == 0 && strcmp(name, "HANDLE_STATES") == 0) nmStatesOn = atoi(value) == 1;
+  return 1;
+}
+
+static void nmReadStatesFlag(void)
+{
+  nmStatesOn = 1;
+  ensureMainPath();
+  FILE *f = fopen("vectrex.ini", "rb");
+  if (f == 0) return;
+  int len = (int) fread(sidecarFile, 1, sizeof(sidecarFile) - 1, f);   // the sidecar buffer is free during start-up
+  fclose(f);
+  if (len <= 0) return;
+  for (int i = 0; i < len; i++) if (sidecarFile[i] == '\r') sidecarFile[i] = '\n';
+  sidecarFile[len] = 0;
+  ini_parse_string(sidecarFile, nmStatesHandler, 0);
+}
+
 static int newMenuInitStep(void)
 {
   switch (nmInitStage)
@@ -159,6 +183,7 @@ static int newMenuInitStep(void)
     case 0:
       memset(&nmTree, 0, sizeof nmTree);
       nmListSidecars();
+      nmReadStatesFlag();
       break;
     case 1:                                    // the images in the image folder
     {
@@ -208,6 +233,7 @@ static int newMenuInitStep(void)
 static char nmLogText[700];
 static void nmLog(const char *step)
 {
+  if (!newMenuLog) return;                     // loader.ini NEW_MENU_LOG = 1: off by default, it writes to the card
   if (strlen(nmLogText) + strlen(step) + 2 < sizeof nmLogText)
   {
     strcat(nmLogText, step);
@@ -244,7 +270,7 @@ static void nmLaunch(NmNode *n, int button, int useOtherEmulator)
   if (n->altImg != 0)                          // a ROM: name the emulator
   {
     strcpy(how, strstr(img, "speedy") != 0 ? "WITH SPEEDY" : "WITH EXACT");
-    if (button == 1) strcat(how, " AND SAVED STATE");
+    if (button == 1 && nmStatesOn) strcat(how, " AND SAVED STATE");
   }
   char shown[36];
   nmCopy(shown, n->title, (int) sizeof shown);
@@ -380,7 +406,8 @@ static void nmDrawNotes(NmNode *n)
     memset(&sidecar, 0, sizeof sidecar);
     nmNeedsMissing = 0;
     if (n->key[0] != 0 && nmHasSidecar(n->key)) sidecarReadKey(n->key, &sidecar);
-    if (n->needs[0] != 0)
+    size_t nl = strlen(n->needs);
+    if (nl > 0 && n->needs[nl - 1] != '/')     // a folder ("roms/aae/", the AAE picker) cannot be opened as a file
     {
       ensureMainPath();
       FILE *f = fopen(n->needs, "rb");
