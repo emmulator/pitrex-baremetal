@@ -42,8 +42,32 @@ on it), the baremetal FAQ (`PiTrexBM_FAQ.txt`, 34 questions), the PiTrex project
 **Conclusion:** the project is described as open source by everyone involved, and changing the menu is
 encouraged, but no licence is stated anywhere. That is not the same as permission to redistribute
 modified builds. Asking him (done 2026-10-18 on the download page) is still the right step.
-Not read: the pitrex-dev group archive, the Vectrex blog's older posts, the wiki pages other than
-Software_Ports, and the separate arcade-emulator authors' terms.
+Not read: the Vectrex blog's older posts, the wiki pages other than Software_Ports, and the separate
+arcade-emulator authors' terms.
+
+### The pitrex-dev group archive (read 2026-10-18)
+
+`groups.io/g/pitrex-dev` has a public archive: 130 topics, 2020 to May 2026 (about 735 KB of text).
+All 130 were downloaded and searched for licence, GPL, open source, copyright, redistribution,
+permission, fork and contribution wording, and the menu-related threads were read.
+
+* **No licence for the baremetal code is stated or discussed.** The only hits were unrelated: a MAME
+  copyright disclaimer screen, a request for open-source GUI software, Open Source Hardware
+  certification for the PCB (Graham Toal), a 3D printer.
+* **Kevin Koster** (hardware, PiTrexCore on Linux) says developers are expected to contribute to the
+  baremetal repo or build their own images. In March 2026 he wrote that adding games to the menu
+  without editing it "wouldn't be hard to do ... for Bare-Metal executables too, but for free games,
+  maybe developers would be happy to just keep adding new games to the base Bare-Metal ZIP with
+  hard-coded menu entries".
+* **Brandon Yates** (author of the Tensor Valley game, March 2026) asked how to add a game to the
+  baremetal menu without forking, and wished the menu "just scanned a folder for .img and listed
+  them" with icons. It got no answer on the list. This is the feature the new menu provides.
+* **Roger Boesch** (March 2026) suggested a download store for PiTrex games; see
+  `docs/menu/10-other-work.md` for his later post.
+* **Graham Toal** (March 2026) on a free game with paid carts: free download is preferred, and "no-one
+  has ever objected" to voluntary-donation downloads. Shows a relaxed community attitude, nothing more.
+* Malban posts in the group mostly about builds and bugs (the toolchain VM, save-state settings). I
+  found nothing from him about others reusing or redistributing his code.
 
 ## Bundled components that do have licences
 
