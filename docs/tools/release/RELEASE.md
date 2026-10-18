@@ -35,7 +35,8 @@ or build a whole card, arcade ROMs included, from Malban's zip and the RpiTeaM E
 | | |
 |---|---|
 | Pi Zero W in a PiTrex V.1 R.3 | the menu, Vectrex ROMs (Speedy and Exact), settings saving, video and audio players, Star Wars, Tempest, Asteroids, Black Widow, Red Baron, Gravitar, Space Duel, Lunar Lander |
-| Hiding games whose ROM is missing, and the entry files for the other arcade versions, QB3 and the sample programs | tested on a PC (unit tests and the desktop preview), **not yet on the PiTrex** |
+| A card built by `make_card.py` from the 2025 zip and the RpiTeaM image | boots and shows the menu (Pi Zero W, 2026-10-18) |
+| Hiding games whose ROM is missing, the entry files for the other arcade versions, QB3 and the sample programs | tested on a PC (unit tests and the desktop preview); the menu starts on the PiTrex, the rest is **not yet tried there** |
 | Pi Zero 2 | built, **not tested on hardware** |
 | `install.sh` | tested against a fresh unzip of the 2025 card: install, repeat, `--settings tuned`, empty settings file, restore |
 | `make_card.py` | tested on Linux against the real 2025 zip and RpiTeaM image |
