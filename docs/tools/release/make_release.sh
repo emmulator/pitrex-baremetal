@@ -22,12 +22,21 @@ mkdir -p "$root/payload/menu"
 cp "$fork/docs/menu/sidecar/menu/"*.ini "$root/payload/menu/"
 cp "$fork/NEW_MENU_README.md" "$root/payload/NEW_MENU_README.md"
 cp "$fork/NEW_MENU_README.md" "$root/NEW_MENU_README.md"
+# the plug-and-play guide is the front page of the package; its links to the repository's docs/ become plain text
+python3 -I - "$fork/docs/README.md" "$root/README.md" <<'PY'
+import sys
+s = open(sys.argv[1]).read()
+s = s.replace("](../NEW_MENU_README.md)", "](NEW_MENU_README.md)")
+s = s.replace("Licensing notes: [LICENSING.md](LICENSING.md).\nDeveloper notes for this fork: [DEVELOPMENT.md](DEVELOPMENT.md).",
+              "Licensing notes and developer notes: `docs/` in the source repository.")
+open(sys.argv[2], "w").write(s)
+PY
 
 # arcade tweaks: files exactly as tested on the card
 cp "$here/arcade-tweaks/blackwidow.ini" "$here/arcade-tweaks/battlezone.ini" "$root/arcade-tweaks/"
 
 cp "$here/settings/vectrexInterface.ini" "$root/settings/"
-cp "$here/install.sh" "$here/install.ps1" "$here/install.bat" "$root/"
+cp "$here/install.sh" "$here/install.ps1" "$here/install.bat" "$here/make_card.py" "$root/"
 chmod +x "$root/install.sh"
 sed "s/@VERSION@/$ver/g" "$here/RELEASE.md" > "$root/RELEASE.md"
 
