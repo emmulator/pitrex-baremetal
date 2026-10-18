@@ -36,6 +36,9 @@ this for you and keeps a backup of everything it replaced (`card.sh restore` und
 
 ## Controls
 
+The menu always opens at the top (the category list) when the PiTrex boots, and ignores the stick
+until it has been centred once. After a game returns to the loader it remembers where you were.
+
 | You press | What happens |
 |---|---|
 | Stick **up / down** | Move the `>` marker. Hold to repeat. |
@@ -183,10 +186,13 @@ PiTrex starts, so they only need setting once per Vectrex.
   (which game and which emulator is not known). The menu now names the program and emulator
   before starting. If it happens: note the name on the "STARTING" screen, then try Button 2 (the
   other emulator), and tell the maintainer.
-* Settings did not persist on the first hardware test: `vectrexInterface.ini` was left empty.
-  Two causes are fixed (the save went to the wrong ini after returning from a program, and a card
-  with no `vectrexInterface.ini` was never written), and the menu now reports whether the write
-  worked. If it still says NOT SAVED, the write itself is failing: please report it.
+* Settings did not persist on the first hardware test and leaving SETTINGS froze the PiTrex.
+  Likely cause, found in upstream code: the ini writer printed a `uint8_t` with `%f`, so printf read
+  a garbage number (`pitrex/vectrex/vectrexInterface_settings.c`, now `%i`). That left an empty
+  `vectrexInterface.ini`, and an unreadable ini makes later saves silently do nothing. Also fixed: the
+  save went to the wrong ini after returning from a program. The menu now reports SAVED / NOT SAVED,
+  and writes `NMLOG.TXT` on the card with the last step reached, so a freeze can be located.
+  Not yet confirmed on hardware.
 * After you leave a game the list may start at the top again (not yet checked on hardware).
 * Caveat marks are not shown in the AAE picker.
 * The menu reads `.bin` files two folder levels deep only.

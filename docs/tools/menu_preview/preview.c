@@ -66,7 +66,8 @@ typedef struct dirent dirent;
 void ensureMainPath(void) { if (chdir(cardRoot) != 0) perror("chdir card"); }
 /* the loader waits here for a button to be released; the preview has no live hardware to poll */
 uint8_t v_directReadButtons(void) { return 0; }
-void v_SettingsGUI(int own) { (void) own; printf("SETTINGS GUI opened\n"); fflush(stdout); }
+void v_saveIni();
+void v_SettingsGUI(int own) { (void) own; printf("SETTINGS GUI opened\n"); fflush(stdout); v_saveIni(); /* the real one saves when left with Button 4 */ }
 void v_saveIni() { printf("save ini %s\n", lastAccessedIni); fflush(stdout); }
 void v_message(char *m) { printf("MESSAGE %s\n", m); fflush(stdout); }
 int testRom(MenuItemNew *m) { (void) m; return 1; }

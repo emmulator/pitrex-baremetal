@@ -1611,7 +1611,7 @@ int v_saveIniTo(char *filename)
   
   fprintf(iniOut,"ANGLE_OPTIMIZATION = %i\n", doAngleOptimization); 
   fprintf(iniOut,"ANGLE_MIN_VALUE = %i\n", angleValue); 
-  fprintf(iniOut,"OVERLAPPING_OPTIMIZATION = %f\n", doOverlappingOptimization); 
+  fprintf(iniOut,"OVERLAPPING_OPTIMIZATION = %i\n", (int) doOverlappingOptimization);   // was %f with a uint8_t: printf read a garbage double 
   fprintf(iniOut,"INI_OVERWRITE_ALLOWED = %i\n", iniOverwrite); 
   
   fprintf(iniOut,"\n"); 

@@ -45,9 +45,9 @@ static char nmSideNames[320][36];               // names of the files in menu/ (
 static int nmSideCount = 0;
 static MenuItemNew nmLaunchItem;               // stand-in for a program found on the card
 static NmNode *nmNotesOwner = 0;
-static int nmHeld = 0;                         // frames the stick has been held up/down
-static int nmSideLatch = 0;                    // stick left/right already acted on
-static uint8_t nmLastButtons = 0;
+static int nmHeld = -100000;                    // frames the stick has been held up/down (starts "held": ignore the stick until it is centred once)
+static int nmSideLatch = 1;                    // stick left/right already acted on (starts set, same reason)
+static uint8_t nmLastButtons = 0x0f;           // a button held at start does not count as a press
 
 // Remember which sidecar files exist, so a missing one is never opened: every failed open
 // writes a line to the serial console and costs time.
@@ -249,6 +249,22 @@ static void nmLaunch(NmNode *n, int button, int useOtherEmulator)
   }
 }
 
+// A breadcrumb file for problems that freeze the PiTrex: NMLOG.TXT on the card lists the last steps
+// that were reached. Rewritten on every call, so it is complete up to the freeze.
+static char nmLogText[200];
+static void nmLog(const char *step)
+{
+  if (strlen(nmLogText) + strlen(step) + 2 < sizeof nmLogText)
+  {
+    strcat(nmLogText, step);
+    strcat(nmLogText, "\n");
+  }
+  FILE *f = fopen("NMLOG.TXT", "wb");
+  if (f == 0) return;
+  fwrite(nmLogText, 1, strlen(nmLogText), f);
+  fclose(f);
+}
+
 // After the settings screen: look at vectrexInterface.ini and tell the user whether it was written.
 static void nmCheckSettingsFile(void)
 {
@@ -290,9 +306,11 @@ static void nmActivate(int button)
     // v_saveIni() writes to the ini that was parsed last. After a program returned to the
     // loader that is loader.ini, so name the target explicitly.
     strcpy(lastAccessedIni, "vectrexInterface.ini");
-    v_SettingsGUI(1);
-    v_saveIni();
+    nmLog("settings gui opened");
+    v_SettingsGUI(1);                          // saves the ini itself when left with Button 4
+    nmLog("settings gui left");
     nmCheckSettingsFile();
+    nmLog("checked");
     return;
   }
   if (n->id == 9999)                           // PICK A GAME: the old file browser takes over
