@@ -47,6 +47,9 @@ static MenuItemNew nmLaunchItem;               // stand-in for a program found o
 static NmNode *nmNotesOwner = 0;
 static int nmHeld = -100000;                    // frames the stick has been held up/down (starts "held": ignore the stick until it is centred once)
 static int nmSideLatch = 1;                    // stick left/right already acted on (starts set, same reason)
+static int nmNeutral = 0;                      // consecutive frames with the stick centred and no button down
+static int nmFrames = 0;
+static int nmArmed = 0;                        // input is ignored until the controls have been at rest for a moment
 static uint8_t nmLastButtons = 0x0f;           // a button held at start does not count as a press
 
 // Remember which sidecar files exist, so a missing one is never opened: every failed open
@@ -203,6 +206,22 @@ static void newMenuInit(void)
   printf("New menu: %i nodes, %i programs, %i ROMs found\n\r", nmTree.used, nfound, nroms);
 }
 
+// A breadcrumb file for problems that freeze the PiTrex: NMLOG.TXT on the card lists the last steps
+// that were reached. Rewritten on every call, so it is complete up to the freeze.
+static char nmLogText[700];
+static void nmLog(const char *step)
+{
+  if (strlen(nmLogText) + strlen(step) + 2 < sizeof nmLogText)
+  {
+    strcat(nmLogText, step);
+    strcat(nmLogText, "\n");
+  }
+  FILE *f = fopen("NMLOG.TXT", "wb");
+  if (f == 0) return;
+  fwrite(nmLogText, 1, strlen(nmLogText), f);
+  fclose(f);
+}
+
 // Says what is about to start, for a moment. If the screen then goes blank, the program
 // itself is what failed and not the menu.
 static void nmSplash(const char *what, const char *how)
@@ -233,6 +252,11 @@ static void nmLaunch(NmNode *n, int button, int useOtherEmulator)
   nmCopy(shown, n->title, (int) sizeof shown);
   if (shown[0] == 0) nmCopy(shown, "PROGRAM", (int) sizeof shown);
   shown[17] = 0;                               // size 7 text: 17 characters fit the screen
+  {
+    char b[120];
+    sprintf(b, "launch %s %s %s btn=%i", n->title, img, n->param1 != 0 ? n->param1 : "-", button);
+    nmLog(b);
+  }
   nmSplash(shown, how);
 
   if (n->src != 0)
@@ -247,22 +271,6 @@ static void nmLaunch(NmNode *n, int button, int useOtherEmulator)
     nmLaunchItem.param2 = (char *) n->param2;
     loadAndStart(&nmLaunchItem, button);
   }
-}
-
-// A breadcrumb file for problems that freeze the PiTrex: NMLOG.TXT on the card lists the last steps
-// that were reached. Rewritten on every call, so it is complete up to the freeze.
-static char nmLogText[200];
-static void nmLog(const char *step)
-{
-  if (strlen(nmLogText) + strlen(step) + 2 < sizeof nmLogText)
-  {
-    strcat(nmLogText, step);
-    strcat(nmLogText, "\n");
-  }
-  FILE *f = fopen("NMLOG.TXT", "wb");
-  if (f == 0) return;
-  fwrite(nmLogText, 1, strlen(nmLogText), f);
-  fclose(f);
 }
 
 // After the settings screen: look at vectrexInterface.ini and tell the user whether it was written.
@@ -459,6 +467,24 @@ void newMenuFrame(void)
   NmNode *cur = nmCurrent(&nmNav);
   nmDrawNotes(cur);
   nmDrawHint(cur);
+
+  // Controls are ignored until they have rested for 15 frames (a stick that reads off-centre or a
+  // button seen as down at power-on must not open VECTREX by itself). Gives up waiting after 600 frames.
+  {
+    int jxs = currentJoy1X, jys = currentJoy1Y;
+    int rest = (jxs > -40 && jxs < 40 && jys > -30 && jys < 30 && (currentButtonState & 0x0f) == 0);
+    nmFrames++;
+    nmNeutral = rest ? nmNeutral + 1 : 0;
+    if (nmFrames == 1 || (!nmArmed && (nmNeutral == 15 || nmFrames == 600)))
+    {
+      char b[90];
+      sprintf(b, "%s frame %i btn=%x jx=%i jy=%i depth=%i", nmArmed ? "-" : (nmFrames == 1 ? "first" : "armed"), nmFrames,
+              currentButtonState & 0x0f, jxs, jys, nmNav.depth);
+      nmLog(b);
+    }
+    if (!nmArmed && (nmNeutral >= 15 || nmFrames >= 600)) { nmArmed = 1; nmLastButtons = currentButtonState & 0x0f; }
+    if (!nmArmed) return;
+  }
 
   // input: stick up/down moves (hold to repeat), right/button 4 enters or starts, left goes back
   uint8_t buttons = currentButtonState & 0x0f;
