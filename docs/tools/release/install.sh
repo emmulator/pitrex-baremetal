@@ -166,6 +166,8 @@ if [ "$settings" = tuned ] || [ "$size" -lt 100 ]; then
   elif [ "$size" -ge 0 ]; then echo "settings: your vectrexInterface.ini is empty; installing the tuned one"
   else echo "settings: no vectrexInterface.ini; installing the tuned one"; fi
   put_file "$here/settings/vectrexInterface.ini" vectrexInterface.ini
+  # vectrex.ini (which BIOS Exact loads): only replaced on request; the tuned one uses the original BIOS 7ADB.bin
+  if [ "$settings" = tuned ]; then put_file "$here/settings/vectrex.ini" vectrex.ini; fi
 else
   echo "  keep     vectrexInterface.ini (your settings; use --settings tuned to replace them)"
 fi

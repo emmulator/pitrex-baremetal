@@ -39,7 +39,7 @@ PY
 # arcade tweaks: files exactly as tested on the card
 cp "$here/arcade-tweaks/blackwidow.ini" "$here/arcade-tweaks/battlezone.ini" "$root/arcade-tweaks/"
 
-cp "$here/settings/vectrexInterface.ini" "$root/settings/"
+cp "$here/settings/vectrexInterface.ini" "$here/settings/vectrex.ini" "$root/settings/"
 cp "$here/install.sh" "$here/install.ps1" "$here/install.bat" "$here/make_card.py" "$root/"
 chmod +x "$root/install.sh"
 sed "s/@VERSION@/$ver/g" "$here/RELEASE.md" > "$root/RELEASE.md"

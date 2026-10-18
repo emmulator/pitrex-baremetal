@@ -154,6 +154,8 @@ if ($Settings -eq 'tuned' -or $size -lt 100) {
   elseif ($size -ge 0) { Write-Host "settings: your vectrexInterface.ini is empty; installing the tuned one" }
   else { Write-Host "settings: no vectrexInterface.ini; installing the tuned one" }
   PutFile (Join-Path $sdir 'vectrexInterface.ini') 'vectrexInterface.ini'
+  # vectrex.ini (which BIOS Exact loads): only replaced on request; the tuned one uses the original BIOS 7ADB.bin
+  if ($Settings -eq 'tuned') { PutFile (Join-Path $sdir 'vectrex.ini') 'vectrex.ini' }
 } else {
   Write-Host "  keep     vectrexInterface.ini (your settings; use -Settings tuned to replace them)"
 }
