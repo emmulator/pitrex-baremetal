@@ -322,9 +322,13 @@ problem.
   screen shows the Vectrex start screen, then WAVPLAYER, and nothing for a while (several seconds) before the
   music starts. It is not frozen. The sound is **very quiet** (the Vectrex volume has to go all the way up) and
   Queen is scratchy. The FAQ says digitized sound is very soft on the Vectrex, a hardware limit; the scratchiness
-  is not understood. The video player is the "Extreme multicart" movie player (the Vectrex version of Bad Apple
-  by Sprite_TM uses the same 8-bit DAC for sound, so the volume has to be turned up there too); the video
-  entries gave no audible sound on the test PiTrex, even so.
+  is not understood. The video player is the "Extreme multicart" movie player. Yes, the videos are
+meant to have music: a video of the PiTrex player ([Video Player on VECTREX (with Pitrex)](https://www.youtube.com/watch?v=DqgDFml1LVY),
+Bla Bla, La Linea, Bad Apple) mentions improving the music in post production, and the original design by Sprite_TM
+([Hackaday](https://hackaday.com/2015/04/24/extreme-vectrex-multicart-plays-bad-apple),
+[his write-up](https://spritesmods.com?art=veccart&page=4)) plays the sound through the same 8-bit DAC that draws the
+picture. That only works between vectors, so the sound is quiet and noisy, and **the Vectrex volume must be turned all
+the way up**. No video sound was heard on the test PiTrex yet (try the volume at maximum).
 * The menu music is paced by the clock (one 50 Hz step per 20 ms, skipped rather than delayed when a refresh is
   slow). Before, it ran slower the more lines were drawn. Not yet confirmed on hardware.
 * The BIOS text in Vectrex games is readable with the 2025 emulators but can shimmer: it flickers
