@@ -247,6 +247,23 @@ static const char *nmFallbackTitle(int id)
   }
 }
 
+// Upper case, brackets dropped, any other character the PiTrex font cannot draw becomes a space,
+// double spaces collapse: "Star Wars (SBT)" -> "STAR WARS SBT".
+static void nmCleanTitle(char *t)
+{
+  int o = 0;
+  for (int i = 0; t[i] != 0; i++)
+  {
+    char c = nmUpper(t[i]);
+    if (c == '(' || c == ')' || c == '[' || c == ']') continue;
+    if (!((c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '.' || c == '!')) c = ' ';
+    if (c == ' ' && (o == 0 || t[o - 1] == ' ')) continue;
+    t[o++] = c;
+  }
+  while (o > 0 && t[o - 1] == ' ') o--;
+  t[o] = 0;
+}
+
 static NmNode *nmNewNode(NmTree *t)
 {
   if (t->used >= NM_MAX_NODES) return 0;
@@ -266,6 +283,7 @@ static NmNode *nmCloneNode(NmTree *t, MenuItemNew *m, NmNode *parent, int depth)
     nmCopyTrimmed(n->title, m->DISPLAYNAME, (int) sizeof n->title);
   else
     nmCopy(n->title, nmFallbackTitle(m->id), (int) sizeof n->title);
+  nmCleanTitle(n->title);
   if (m->img != 0 && m->img[0] != 0)
   {
     n->img = m->img;
@@ -667,6 +685,21 @@ static NmNode *nmFindById(NmNode *n, int id)
     if (f != 0) return f;
   }
   return 0;
+}
+
+// Sorts the children of every category below the top level by title, except inside ALL ROMS
+// (its folders come first, then the loose files).
+static void nmSortAll(NmNode *n)
+{
+  for (; n != 0; n = n->right)
+  {
+    if (n->id == NM_ID_ALL_ROMS) continue;
+    if (n->child != 0)
+    {
+      nmSortChildren(n);
+      nmSortAll(n->child);
+    }
+  }
 }
 
 // Button 2 on a ROM: start it with the other emulator. Returns the image to use.

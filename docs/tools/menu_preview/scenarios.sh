@@ -33,15 +33,15 @@ runnot() {  # name frames script text-that-must-not-appear [card]
   else pass=$((pass+1)); echo "ok    $name"; fi
 }
 
-# ARCADE (1 down) > ATARI > MAJOR HAVOC (9 down) > Button 4
-run "Major Havoc starts aae.img with game byte 0x2d" 170 "down@10,right@20,right@30,$(downs 9 40),b4@130" 'image=piZero1/aae.img param1="-" param2=- button=4 id=2009'
-run "Button 1 starts it with button=1" 170 "down@10,right@20,right@30,$(downs 9 40),b1@130" 'button=1 id=2009'
+# ARCADE (1 down) > ATARI (2nd after ALL AAE GAMES) > MAJOR HAVOC (7th) > Button 4
+run "Major Havoc starts aae.img with game byte 0x2d" 170 "down@10,right@20,down@30,right@40,$(downs 6 50),b4@110" 'image=piZero1/aae.img param1="-" param2=- button=4 id=2009'
+run "Button 1 starts it with button=1" 170 "down@10,right@20,down@30,right@40,$(downs 6 50),b1@110" 'button=1 id=2009'
 
-# VECTREX > SPEEDY VECTREX (down 1) > WEB WARS
-run "SPEEDY group is alphabetical: first game is Berzerk" 90 "right@10,down@20,right@30,b4@50" 'image=piZero1/vectrexspeedy.img param1="original/BERZERK.BIN"'
+# VECTREX > SPEEDY VECTREX (4th: ALL ROMS, DEMOS, EXACT, SPEEDY) > WEB WARS
+run "SPEEDY group is alphabetical: first game is Berzerk" 90 "right@10,$(downs 3 20),right@50,b4@70" 'image=piZero1/vectrexspeedy.img param1="original/BERZERK.BIN"'
 
-# VECTREX > ALL ROMS (4 down) > DEMOS FOLDER (first group) > EPIC (2 down)
-roms="right@10,$(downs 4 20),right@64,right@76,down@88,down@96"
+# VECTREX > ALL ROMS (first) > DEMOS FOLDER (first group) > EPIC (2 down)
+roms="right@10,right@20,right@30,down@40,down@48"
 run "ROM starts the Exact emulator with its path" 150 "$roms,b4@110" 'image=piZero1/vectrexexact.img param1="demos/epic.bin"'
 run "Button 2 starts the same ROM with Speedy" 150 "$roms,b2@110" 'image=piZero1/vectrexspeedy.img param1="demos/epic.bin"'
 
@@ -49,6 +49,10 @@ run "Button 2 starts the same ROM with Speedy" 150 "$roms,b2@110" 'image=piZero1
 run "Discovered program starts its own image, no parameters" 100 "$(downs 5 10),right@60,b4@80" 'image=piZero1/asteroids.img param1=- param2='
 run "SETTINGS opens the calibration screen" 100 "$(downs 6 10),b4@70" 'SETTINGS GUI opened'
 run "SETTINGS saves to vectrexInterface.ini, not the last ini read" 100 "$(downs 6 10),b4@70" 'save ini vectrexInterface.ini'
+
+
+# ARCADE > ATARI > ASTEROIDS: Button 2 opens the CONTROLS page (it starts nothing), a button leaves it, Button 4 then starts the game
+run "Button 2 shows the controls page, then Button 4 still starts the game" 190 "down@10,right@20,down@30,right@40,b2@60,b1@100,b4@130" 'image=piZero1/asteroids_sbt.img'
 
 # sidecars: hide a program, switch a ROM to Speedy
 mkdir -p "$work/card"; cp -r "$base"/. "$work/card"/

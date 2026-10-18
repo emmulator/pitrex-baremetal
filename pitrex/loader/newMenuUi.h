@@ -202,16 +202,12 @@ static void newMenuInit(void)
   }
 
   // the compiled DEMOS group lists 5 demos; add the others found in vectrex/demos, then sort the
-  // compiled game groups (SPEEDY 102, EXACT 107, DEMOS 108) alphabetically
+  // lists alphabetically
   NmNode *demos = nmFindById(nmTree.tops[0], 108);
   if (demos != 0 && nroms > 0)
     nmAddMissingRoms(&nmTree, demos, nmRomPaths, nroms, "demos/", IMG_FILE_PREFIX "vectrexexact.img", IMG_FILE_PREFIX "vectrexspeedy.img");
-  static const int sortedGroups[3] = { 102, 107, 108 };
-  for (int g = 0; g < 3; g++)
-  {
-    NmNode *grp = nmFindById(nmTree.tops[0], sortedGroups[g]);
-    if (grp != 0) nmSortChildren(grp);
-  }
+  for (int i = 0; i < nmTree.ntops; i++)        // every list below the top level is alphabetical
+    if (nmTree.tops[i]->child != 0) { nmSortChildren(nmTree.tops[i]); nmSortAll(nmTree.tops[i]->child); }
   // PICK A GAME (the old file browser) is replaced by ALL ROMS; it also ran a game at once
   // because the button that chose it was still down
   for (int i = 0; i < nmTree.used; i++) if (nmTree.pool[i].id == 9999) nmTree.pool[i].hidden = 1;
@@ -314,6 +310,38 @@ static void nmCheckSettingsFile(void)
   }
 }
 
+// Button 2 on a game that has "control = ..." lines in its sidecar: a page about the controls.
+static void nmShowControls(NmNode *n)
+{
+  while ((v_directReadButtons() & 0x0f) != 0) { }
+  int left = 0;
+  for (int f = 0; f < 100000; f++)
+  {
+    v_WaitRecal();
+    v_readButtons();
+    v_readJoystick1Analog();
+    char shown[36];
+    nmCopy(shown, n->title, (int) sizeof shown);
+    shown[17] = 0;
+    v_printString(-120, 100, "CONTROLS", 5, 0x5f);
+    v_printString(-120, 80, shown, 7, 0x5f);
+    int y = 54;
+    for (int r = 0; r < sidecar.nctl && y > -100; r++)
+    {
+      v_printString(-120, y, sidecar.ctl[r], 5, 0x48);
+      y -= 13;
+    }
+    v_printString(-120, -124, "ANY BUTTON OR STICK LEFT GOES BACK.", 5, 0x40);
+    int jx = currentJoy1X;
+    if (jx < -60) left = 1;
+    if ((currentButtonState & 0x0f) != 0 && f > 10) break;
+    if (left && f > 10) break;
+  }
+  while ((v_directReadButtons() & 0x0f) != 0) { }
+  nmLastButtons = 0x0f;
+  nmSideLatch = 1;
+}
+
 // button: 4 or 1 (the button that was pressed), 2 = start a ROM with the other emulator, 0 = stick
 static void nmActivate(int button)
 {
@@ -321,6 +349,7 @@ static void nmActivate(int button)
   {
     NmNode *c = nmCurrent(&nmNav);
     if (c != 0 && !nmHasVisibleChild(c) && c->altImg != 0) nmLaunch(c, 4, 1);
+    else if (c != 0 && nmNotesOwner == c && sidecar.nctl > 0) nmShowControls(c);
     return;
   }
   NmNode *n = nmEnter(&nmNav);                 // goes into a category, else returns the entry
@@ -437,6 +466,8 @@ static void nmDrawHint(NmNode *cur)
   }
   else if (cur->img != 0 || cur->id == 0)
   {
+    if (nmNotesOwner == cur && sidecar.nctl > 0)
+      v_printString(-120, -112, "2 SHOWS THE CONTROLS", 5, 0x5f);
     v_printString(-120, -124, "4 OR RIGHT STARTS.  LEFT GOES BACK.", 5, 0x40);
   }
 }

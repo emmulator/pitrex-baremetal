@@ -21,6 +21,8 @@ typedef struct
   int hide;                        // 1: leave the entry out of the new menu
   char title[32];                  // display name of a program found on the card (new menu)
   char emulator;                   // 's' or 'e': which Vectrex emulator starts a ROM (new menu)
+  int nctl;                        // number of control lines ("control = ..."), shown by Button 2 (new menu)
+  char ctl[SC_MAX_ROWS][SC_ROW_LEN];
 } SidecarText;
 
 // A parameter that is exactly one byte (the AAE game number) is written as xNN.
@@ -125,6 +127,20 @@ static void sidecarLine(SidecarText *t, const char *name, const char *value)
     if (len > (int) sizeof(t->title) - 1) len = (int) sizeof(t->title) - 1;
     memcpy(t->title, value, (size_t) len);
     t->title[len] = 0;
+  }
+  else if (strcmp(name, "control") == 0)
+  {
+    if (t->nctl >= SC_MAX_ROWS) return;
+    int len = (int) strlen(value);
+    if (len >= 2 && value[0] == '"' && value[len - 1] == '"')
+    {
+      value++;
+      len -= 2;
+    }
+    if (len > SC_ROW_LEN - 1) len = SC_ROW_LEN - 1;
+    memcpy(t->ctl[t->nctl], value, (size_t) len);
+    t->ctl[t->nctl][len] = 0;
+    t->nctl++;
   }
   else if (strcmp(name, "text") == 0)
   {

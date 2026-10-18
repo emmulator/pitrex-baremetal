@@ -66,6 +66,10 @@ Command vecSimCommandList[] =
 };
 
 
+// Black Widow has two sticks: move, and fire direction. With ONE_STICK = 1 (default, one controller only)
+// Button 4 fires in the direction the stick last pointed; ONE_STICK = 0 reads a second stick on port 2.
+static int bwOneStick = 1;
+
 // for now INI setting just stupidly overwrite other saved settings!
 static int simIniHandler(void* user, const char* section, const char* name, const char* value)
 {
@@ -80,6 +84,7 @@ static int simIniHandler(void* user, const char* section, const char* name, cons
   if (MATCH("BATTLE_ZONE", "YATES_INPUT")) yates_config = atoi(value); 
   if (MATCH("BATTLE_ZONE", "STRAMASH_INPUT_1")) stramash_config1 = atoi(value); 
   if (MATCH("BATTLE_ZONE", "STRAMASH_INPUT_2")) stramash_config2 = atoi(value); 
+  if (MATCH("BLACK_WIDOW", "ONE_STICK")) bwOneStick = atoi(value); 
   
   
 /*
@@ -337,6 +342,23 @@ void handle_input (void) // call once per frame
       switches [1].hyper = (currentButtonState & 0x20)?1:0; // not used
       switches [1].bw_left = currentJoy2X>30;
       switches [1].abort = 0; // no input
+
+      if (bwOneStick)
+      {
+        static int lastUp, lastDown, lastLeft, lastRight;
+        if (switches [0].bw_up || switches [0].bw_down || switches [0].bw_left || switches [0].bw_right)
+        {
+          lastUp = switches [0].bw_up; lastDown = switches [0].bw_down;
+          lastLeft = switches [0].bw_left; lastRight = switches [0].bw_right;
+        }
+        int fireOn = (currentButtonState & 0x08) != 0;      // Button 4
+        switches [1].bw_up = fireOn && lastUp;
+        switches [1].bw_down = fireOn && lastDown;
+        switches [1].bw_left = fireOn && lastLeft;
+        switches [1].bw_right = fireOn && lastRight;
+        switches [1].thrust = 0;
+        switches [1].hyper = 0;
+      }
  
       // also uses 
       //  start1 = currentButtonState & 0x01;  // button 1 on port 1

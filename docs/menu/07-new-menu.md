@@ -137,3 +137,12 @@ the Vectrex intro (F23). Every launch is also logged there.
 * PICK A GAME (id 9999) is hidden. The old browser started the first game at once (the button that chose
   it was still down), and after the game exited the loader showed the old browser instead of the new menu.
   ALL ROMS replaces it. The hand-off code is still in `newMenuUi.h` but nothing reaches it.
+
+## Alphabetical lists, titles, controls page (2026-10-17, arcade test)
+
+* Every list below the top level is sorted (`nmSortAll`), except inside ALL ROMS.
+* Compiled titles are cleaned (`nmCleanTitle`): upper case, brackets dropped, other undrawable characters
+  become spaces: "Star Wars (SBT)" is "STAR WARS SBT".
+* Button 2 on an entry with `control` lines opens the CONTROLS page (`nmShowControls`).
+* sim games read `<game>.ini` after the global ini (F21 context); the author's per-game calibration is
+  wrong for other Vectrex machines. Black Widow gained `ONE_STICK` (`sim/vx_interface.c`).

@@ -95,3 +95,10 @@ instructions to build and run it are at the top of the file.
 
 What is not tested: the SD card path (`fopen("menu/...")` through the loader's FAT layer),
 the current directory at the moment of the call, drawing, and stack use on the Pi.
+
+## `control` lines (new menu)
+
+`control = <text>` adds a line to the CONTROLS page that Button 2 shows for an entry that is not a Vectrex
+game file. Up to 12 lines of 46 characters (A-Z, 0-9, space, `.`, `!` only). They do not replace the notes and
+do not count as notes (`found` stays 0). `docs/tools/controls_sidecars.py <menu folder>` writes the lines for
+the arcade games; the sources of each mapping are listed at the top of that script.

@@ -197,7 +197,7 @@ int main(int argc, char **argv)
       { "LUNAR LANDER", 0 }, { "BLACK WIDOW", NM_TAG_WIP | NM_TAG_NOSOUND }, { "SPEEDFREAK", NM_TAG_NOSOUND },
       { "SPACE WARS", NM_TAG_BROKEN }, { "OMEGA RACE", NM_TAG_WIP | NM_TAG_NOSOUND }, { "TEMPEST", NM_TAG_WIP | NM_TAG_NOSOUND },
       { "GRAVITAR", NM_TAG_WIP | NM_TAG_NOSOUND }, { "BARRIER", 0 }, { "DEMON", 0 }, { "ZBLAST", 0 }, { "REBEL DEFENDER", NM_TAG_NOSOUND },
-      { "BZ2 (BETA)", NM_TAG_NOSOUND }, { "ASTEROIDS", 0 } };
+      { "BZ2 BETA", NM_TAG_NOSOUND }, { "ASTEROIDS", 0 } };
     int tagged = 0, total = 0;
     for (int i = 0; i < tree.used; i++)
     {
@@ -311,6 +311,34 @@ int main(int argc, char **argv)
     NmNode *speedy = nmFindById(tree.tops[0], 102);
     nmSortChildren(speedy);
     CHECK(strcmp(speedy->child->title, "BERZERK") == 0, "SPEEDY starts with BERZERK, got %s", speedy->child->title);
+  }
+
+
+  /* everything below the top level is alphabetical after nmSortAll (ALL ROMS keeps folders first) */
+  {
+    for (int i = 0; i < tree.ntops; i++)
+      if (tree.tops[i]->child != 0) { nmSortChildren(tree.tops[i]); nmSortAll(tree.tops[i]->child); }
+    int unsorted = 0;
+    for (int i = 0; i < tree.used; i++)
+    {
+      NmNode *n = &tree.pool[i];
+      if (n->id == NM_ID_ALL_ROMS || n->child == 0) continue;
+      for (NmNode *c = n->child; c != 0 && c->right != 0; c = c->right)
+        if (nmTitleCmp(c->title, c->right->title) > 0) { unsorted++; printf("   not sorted under %s: %s > %s\n", n->title, c->title, c->right->title); }
+    }
+    CHECK(unsorted == 0, "%d lists not alphabetical", unsorted);
+    if (getenv("NM_DUMP"))
+      for (int i = 0; i < tree.ntops; i++)
+      {
+        printf("TOP %s\n", tree.tops[i]->title);
+        int k = 0;
+        for (NmNode *c = tree.tops[i]->child; c != 0; c = c->right, k++)
+        {
+          printf("  [%d] %s\n", k, c->title);
+          int j = 0;
+          if (strcmp(c->title, "ALL ROMS") != 0) for (NmNode *g = c->child; g != 0; g = g->right, j++) printf("      [%d] %s\n", j, g->title);
+        }
+      }
   }
 
   /* help texts: every category says what it is, using only characters the PiTrex font draws */

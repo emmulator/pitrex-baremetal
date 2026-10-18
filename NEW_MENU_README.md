@@ -46,6 +46,7 @@ have rested for 15 frames. After a game returns to the loader it may remember wh
 | Stick **left** | Go back up one level. |
 | **Button 4** on a Vectrex game file | Start it with the default emulator (Exact). |
 | **Button 2** on a Vectrex game file | Start the same game with the **other** emulator (Speedy). |
+| **Button 2** on an arcade game or program that has a controls page | Show how the controls work (the hint under the list says "2 SHOWS THE CONTROLS"). Any button or stick left comes back. |
 | **Button 1** | Same as Button 4, but tells the emulator to load the last saved state (the original menu's behaviour, see FAQ 34). Only Vectrex emulators use it. |
 
 Buttons 1 and 2 are **not** "emulator one and emulator two". Button 4 is the normal start,
@@ -91,7 +92,8 @@ AUDIO               music players (need files in vectrex/waves)
 PROGRAMS            programs found in piZero1/ that the menu does not know by name
 ```
 
-Highlight a category and the lines under the list explain it.
+Highlight a category and the lines under the list explain it. All lists below the top level are in
+alphabetical order (inside ALL ROMS the folders come first, then the loose files).
 
 ### The Vectrex games: preset groups and ALL ROMS
 
@@ -146,6 +148,45 @@ those notes and a `!`.
 That is all. The list is built every time the menu starts, so a long list makes the menu take a
 moment longer to appear.
 
+## Arcade games on this PiTrex
+
+What was seen working or not on the test PiTrex (Pi Zero W, 2026-10-17):
+
+| Game | Result |
+|---|---|
+| Asteroids (SBT) | works; explosion sounds missing (other sounds work, cause not found) |
+| Asteroids Deluxe, Major Havoc, Quantum (AAE) | work, no sound (as the notes say) |
+| Black Widow | works, some sound. Needs two sticks: see CONTROLS. One-stick mode added. |
+| Red Baron | works, some sound |
+| Gravitar, Space Duel | work, with sound |
+| Lunar Lander | works; the code plays samples (`samples/lunar/*.raw`), whether they play was not confirmed |
+| Star Wars (SBT), Tempest | **went blank** with the shipped images. Rebuilt from source and the author's `starwars.ini` calibration moved aside; result not yet known. |
+
+SBT = *static binary translation*: the original game code was translated to C ahead of time instead of
+being emulated, which is why these run fast.
+
+**Black Widow** is a two-stick game (one moves, one fires in a direction). With one controller the
+original port 2 stick reads as pushed fully up, so it fired straight up all the time. `blackwidow.ini`
+in the card root now has `ONE_STICK = 1` (the default): move with the stick, hold Button 4 to fire the
+way the stick last pointed. Set `ONE_STICK = 0` if a second stick is plugged into port 2.
+
+**Per-game ini files and calibration.** Games read `<game>.ini` from the card root *after*
+`vectrexInterface.ini`, and it overrides the global values. The files that came on the July 2025 card
+(`lunar.ini`, `starwars.ini`) carry the *author's own* screen calibration (offsets, sizes, calibration
+numbers for his Vectrex) and can put the picture off-screen or slanted on another Vectrex. They were renamed
+`*.ini.author-calibration` on the test card. `battlezone.ini` was set for the author's special
+two-controller board; it now has `ONE_STICK`-style single stick settings (`ONLY_ONE_JOYSTICK = 1`,
+`STRAMASH_INPUT_2 = 0`), the original is `battlezone.ini.author`.
+
+**Slanted pictures.** The SETTINGS pages have six CALIBRATION values (5, 10, 15, 20, 50, 100): the
+correction for vectors of that length, and the on-screen help says "if vectors are displayed skewed, try
+use calibration to improve the look; Button 3 displays different vector lists". The global values on the test
+card were left near zero. Vectrex monitors differ, so these are per-machine. Also `XCAL_VALUE` and
+`YCAL_VALUE` apply a small correction proportional to the distance from the centre, and X SIZE / Y SIZE
+scale. General background for real Vectrex alignment (aged integrator capacitors, DAC offset) is in the
+[AtariAge calibration guide thread](https://forums.atariage.com/topic/339338-vectrex-complete-screen-calibration-and-more-definitive-guide/);
+nothing PiTrex-specific was found online.
+
 ## Notes, hiding and the default emulator: sidecar files
 
 For each entry the menu looks for a small text file in `menu/` on the card. If it exists, it
@@ -171,6 +212,7 @@ text = "  KEEPS LEADING SPACES" ; quote a line to keep spaces
 skip = 2                       ; blank lines before the first note line
 hide = 1                       ; leave this entry out of the menu
 title = MY GAME                ; rename a game found on the card (ROMs and programs)
+control = FIRE  BUTTON 4       ; a line of the CONTROLS page (Button 2), repeat for more lines
 emulator = speedy              ; which emulator Button 4 uses for a ROM: speedy or exact
 ```
 
