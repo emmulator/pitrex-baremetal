@@ -24,9 +24,9 @@ HEAD = """; menu.default.ini: the PiTrex menu as it comes with the package. DO N
 ;                          [MAJOR HAVOC]
 ;                          text = WORKS GREAT NOW.
 ;   move it              [TEMPEST]
-;                          category = FAVOURITES
+;                          category = FAVORITES
 ;   list it in more      [MAJOR HAVOC]
-;   places too             also = FAVOURITES, TWO PLAYERS
+;   places too             also = FAVORITES, TWO PLAYERS
 ;   hide it, show it     [MAZE]                  [HELLO WORLD]
 ;                          hide = 1                hide = 0
 ;   add your own         [MY GAME]

@@ -96,6 +96,12 @@ fi
 nw="$work/nowebwars"; mkdir -p "$nw"; cp -r "$base"/. "$nw"/; rm -f "$nw"/vectrex/original/WEBWARS.BIN
 run "an entry whose game file is missing is not listed (needs = vectrex/original/WEBWARS.BIN)" 300 "$(downs 3 10),right@40,$(downs 3 50),right@80,$(downs 20 90),b4@260" 'param1="original/CASTLE.BIN"' "$nw"
 
+# the shipped favorites.ini: FAVORITES is the 3rd category (ARCADE, AUDIO, FAVORITES); Vectorblade first, the Vectrex
+# Armor Attack third
+fv="$work/favorites"; mkdir -p "$fv"; cp -r "$base"/. "$fv"/; cp "$here/../../menu/sidecar/favorites.ini" "$fv/menu/"
+run "favorites.ini: FAVORITES starts with Vectorblade" 100 "$(downs 2 10),right@40,b4@60" 'image=piZero1/vectorblade.img' "$fv"
+run "...and its third game is the Vectrex Armor Attack cartridge" 120 "$(downs 2 10),right@40,$(downs 2 50),b4@80" 'image=piZero1/vectrexexact.img param1="original/ARMOR.BIN"' "$fv"
+
 # no metadata at all: no menu files. Top level: AUDIO, VECTREX, VIDEO (from the built-in folder rules), PROGRAMS, SETTINGS
 nm="$work/nometa"; mkdir -p "$nm"; cp -r "$base"/. "$nm"/; rm -f "$nm"/menu/*.ini
 run "no menu files: VIDEO lists vectrex/movies and starts the video player with the file" 120 "$(downs 2 10),right@40,b4@60" 'image=piZero1/vectrexvideo.img param1="vectrex/movies" param2="BadApple.bin"' "$nm"

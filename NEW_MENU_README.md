@@ -30,8 +30,8 @@ said:
 
 1. **`menu.default.ini`** comes with the package: every entry, its notes, controls and place in the menu. **Do not
    edit it**: every update replaces it.
-2. Any other `.ini` file in `menu/`, in alphabetical order. A game you add can come with its own small file
-   (`menu/mygame.ini`).
+2. Any other `.ini` file in `menu/`, in alphabetical order: `favorites.ini` (your collection, see below), and a
+   game you add can come with its own small file (`menu/mygame.ini`).
 3. **`menu.ini`: your changes.** It does not exist until you create it, updates never touch it, and it is read
    last, so it always wins. It only needs the lines you want to be different; everything you do not mention
    stays as the default says, and new games in a later update still appear.
@@ -47,38 +47,54 @@ title you see in the menu; open the default file to check) and only the lines to
 |---|---|
 | change the notes | `[MAJOR HAVOC]` / `text = WORKS GREAT NOW.` (your `text` lines replace all of its note lines; `control` lines work the same way) |
 | rename it | `[MAJOR HAVOC]` / `title = HAVOC` |
-| move it somewhere else | `[TEMPEST]` / `category = FAVOURITES` |
-| **also** list it somewhere else | `[TEMPEST]` / `also = FAVOURITES` (it stays where it was) |
+| move it somewhere else | `[TEMPEST]` / `category = FAVORITES` |
+| **also** list it somewhere else | `[TEMPEST]` / `also = FAVORITES` (it stays where it was) |
 | hide it | `[MAZE]` / `hide = 1` |
 | show something the default hides | `[HELLO WORLD]` / `hide = 0` |
-| keep a category in your own order | `[FAVOURITES]` / `order = listed` |
+| keep a category in your own order | `[FAVORITES]` / `order = listed` |
 | add your own entry | a new name: `[MY GAME]` / `category = PITREX` / `image = mygame.img` |
 
-### Collections
+### Collections: favorites.ini
 
-`also` lists an entry in more categories at once, so collections can overlap: a game can be in its usual place, in
-FAVOURITES and in TWO PLAYERS. A category that does not exist yet is created. For example, a `menu.ini` with:
+A collection is a category of your own that lists games which also stay where they always were, so collections
+can overlap: a game can be in its usual place, in FAVORITES and in TWO PLAYERS at the same time.
+
+The package comes with one, **`menu/favorites.ini`**, as a working example and as the place to keep your own
+favorites. The installer puts it on the card only when the card has no `favorites.ini` yet, so once it is
+yours, updates leave it alone. It makes a FAVORITES category in the main menu with three games, one of each kind:
 
 ```
-[FAVOURITES]
-order = listed                      ; in the order of this file, not alphabetical
-text = THE GAMES I PLAY MOST.       ; the help shown when FAVOURITES is highlighted
+[FAVORITES]                         ; 1. the collection: a section named after the category
+order = listed                      ;    games in the order of this file (without it: A to Z)
+text  = THE GAMES I PLAY MOST.      ;    the help shown when FAVORITES is highlighted (up to 6 lines)
 
-[TEMPEST]
-also = FAVOURITES
+[VECTORBLADE]                       ; 2. a game that is already in the menu: its name from menu.default.ini
+also = FAVORITES                    ;    ... listed in FAVORITES too, nothing else changes
 
-[MAJOR HAVOC]
-also = FAVOURITES, TWO PLAYERS
+[ASTEROIDS]
+also = FAVORITES
 
-[BERZERK]                           ; a Vectrex game the menu finds by itself under ALL ROMS
-file = vectrex/original/BERZERK.BIN
-also = FAVOURITES, VECTREX CLASSICS
+[ARMOR ATTACK]                      ; 3. a Vectrex game file the menu finds by itself (ALL ROMS)
+file = vectrex/original/ARMOR.BIN   ;    the original 1982 cartridge, not the arcade game of the same name
+also = FAVORITES                    ;    (the name in brackets also becomes its title in ALL ROMS)
 ```
 
-gives a FAVOURITES category with Tempest, Major Havoc and Berzerk, a TWO PLAYERS category with Major Havoc, and a
-VECTREX CLASSICS category with Berzerk, while all three stay in their usual places too. The copies have the same
-notes and controls, and a change to the entry changes every copy. A game is never listed twice in the same
-category.
+To make it yours:
+
+* **Add a game:** copy one of the small sections and change the name in brackets. For a game in the menu, the name
+  is the one in brackets in `menu.default.ini` (open it and search for the title). For a Vectrex game file, give
+  any name and its path with `file =`.
+* **Remove a game:** delete its section (or put `;` in front of its lines).
+* **Change the order:** move the sections; with `order = listed` the menu follows this file.
+* **More collections:** `also = FAVORITES, TWO PLAYERS` lists a game in both; a collection that does not exist yet
+  is created. `also = VECTREX / FAVORITES` puts a collection inside another category instead of the main menu.
+  Other files work the same way (`menu/kids.ini`, `menu/collections.ini`): every `.ini` in `menu/` is read.
+
+The copies have the same notes and controls as the original, a change to the original changes every copy, and a
+game is never listed twice in the same collection. One thing to know about `order = listed`: it follows the
+**last** place a game is mentioned in the menu files, and `menu.ini` is read after `favorites.ini`. So if your
+`menu.ini` also changes, say, `[ASTEROIDS]`, Asteroids moves to the end of FAVORITES; put its `also = FAVORITES`
+there too if you want to control its place from `menu.ini`.
 
 ### Section format
 

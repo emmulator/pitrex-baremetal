@@ -666,7 +666,25 @@ static void nmSortAll(NmNode *n)
 {
   for (; n != 0; n = n->right)
   {
-    if (n->id == NM_ID_ALL_ROMS) continue;
+    if (n->id == NM_ID_ALL_ROMS)               // folders first, then the loose files; each part by title (again, since
+    {                                          // a menu file may have renamed a game)
+      NmNode *folders = 0, *files = 0, **ft = &folders, **lt = &files;
+      for (NmNode *c = n->child; c != 0;)
+      {
+        NmNode *next = c->right;
+        c->right = 0;
+        if (c->id == NM_ID_ROM_FOLDER) { *ft = c; ft = &c->right; if (c->child) nmSortChildren(c); }
+        else { *lt = c; lt = &c->right; }
+        c = next;
+      }
+      NmNode tmp;
+      tmp.child = files;
+      tmp.keepOrder = 0;
+      nmSortChildren(&tmp);
+      *ft = tmp.child;
+      n->child = folders;
+      continue;
+    }
     if (n->child != 0)
     {
       nmSortChildren(n);

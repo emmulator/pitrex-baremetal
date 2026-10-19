@@ -246,7 +246,7 @@ int main(int argc, char **argv)
     for (int i = 0; i < tree.used; i++)
     {
       NmNode *n = &tree.pool[i];
-      if (n->id == NM_ID_ALL_ROMS || n->child == 0) continue;
+      if (n->id == NM_ID_ALL_ROMS || n->child == 0 || n->keepOrder) continue;   /* order = listed is deliberate */
       for (NmNode *c = n->child; c != 0 && c->right != 0; c = c->right)
         if (nmTitleCmp(c->title, c->right->title) > 0) { unsorted++; printf("   not sorted under %s: %s > %s\n", n->title, c->title, c->right->title); }
     }
@@ -304,6 +304,27 @@ int main(int argc, char **argv)
     nmInit(&nav, &tree);
     CHECK(selectTitle("ARCADE") && !selectTitle("VIDEO") && !selectTitle("AUDIO") && selectTitle("SETTINGS"), "empty categories are hidden, SETTINGS stays");
     build(files, nf);
+  }
+
+  /* ---- the shipped favorites.ini example (when the menu folder has it) ---- */
+  if (nmFindRec(&recs, "cat.favorites") != 0)
+  {
+    NmNode *fav = nmFindTop(&tree, "FAVORITES");
+    const char *want[] = { "VECTORBLADE", "ASTEROIDS", "ARMOR ATTACK" };
+    int k = 0, ok = fav != 0 && !fav->hidden;
+    for (NmNode *c = fav ? fav->child : 0; c; c = c->right, k++) if (k >= 3 || strcmp(c->title, want[k])) ok = 0;
+    CHECK(ok && k == 3, "FAVORITES: Vectorblade, Asteroids, Armor Attack in the order of favorites.ini (%d rows)", k);
+    NmNode *aa = fav ? findTitle(fav, "ARMOR ATTACK") : 0;
+    CHECK(aa && aa->altImg && !strcmp(aa->param1, "original/ARMOR.BIN"), "the Armor Attack there is the Vectrex cartridge");
+    CHECK(findTitle(nmFindTop(&tree, "PITREX"), "VECTORBLADE") && findTitle(findTitle(nmFindTop(&tree, "ARCADE"), "ATARI"), "ASTEROIDS"),
+          "the favourites stay in their usual places");
+    NmNode *cin = findTitle(nmFindTop(&tree, "ARCADE"), "CINEMATRONICS");
+    NmNode *arc = cin ? findTitle(cin, "ARMOR ATTACK") : 0;
+    CHECK(arc && strcmp(arc->img, "piZero1/aae.img") == 0, "the arcade Armor Attack is untouched");
+    NmNode *orig = findTitle(findTitle(nmFindTop(&tree, "VECTREX"), "ALL ROMS"), "ORIGINAL FOLDER");
+    int sortedOrig = orig != 0;
+    for (NmNode *c = orig ? orig->child : 0; c && c->right; c = c->right) if (nmTitleCmp(c->title, c->right->title) > 0) sortedOrig = 0;
+    CHECK(sortedOrig && findTitle(orig, "ARMOR ATTACK"), "the renamed ARMOR ATTACK is sorted in its ALL ROMS folder");
   }
 
   /* ---- caveat tags ---- */
@@ -373,8 +394,11 @@ int main(int argc, char **argv)
       }
     }
     printf("ROM paths read: %d, tree rows: %d (expected %d)\n", nroms, got, nw);
+    int renamed = 0;                            /* a file section with a title renames a game: the expected list predates it */
+    for (int i = 0; i < recs.n; i++) if (recs.rec[i].kind == NM_REC_FILE && !strncmp(recs.rec[i].key, "rom.", 4) && recs.rec[i].title[0]) renamed++;
     CHECK(got == nw, "tree rows %d != %d", got, nw);
-    CHECK(bad == 0, "%d rows differ", bad);
+    CHECK(bad == 0 || renamed > 0, "%d rows differ", bad);
+    if (renamed) printf("   (%d games renamed by the menu files: %d rows differ from the file-name list)\n", renamed, bad);
 
     NmNode *first = 0;
     for (NmNode *c = roms ? roms->child : 0; c != 0 && first == 0; c = c->right) first = c->child ? c->child : c;

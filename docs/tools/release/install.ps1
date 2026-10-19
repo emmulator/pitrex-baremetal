@@ -6,7 +6,8 @@ Installs the new PiTrex menu release over an unpacked Malban "PiTrex_sd_Jul29_25
   .\install.ps1 -Restore <folder>
 
 Replaced files are saved in <folder>\backup-menu-<date>\ with a MANIFEST.tsv that -Restore reads.
-Nothing outside the files listed in payload\ (and, with -ArcadeTweaks, arcade-tweaks\; with -Settings tuned, settings\) is touched.
+Nothing outside the files listed in payload\ and payload-if-missing\ (only added when missing) is touched (and, with
+-ArcadeTweaks, arcade-tweaks\; with -Settings tuned, settings\).
 #>
 param(
   [Parameter(Position = 0)][string]$Folder,
@@ -115,6 +116,17 @@ $payloadRoot = (Resolve-Path -LiteralPath $payload).ProviderPath.TrimEnd('\')
 Get-ChildItem -LiteralPath $payload -Recurse -File | Sort-Object FullName | ForEach-Object {
   $rel = $_.FullName.Substring($payloadRoot.Length + 1) -replace '\\', '/'
   PutFile $_.FullName $rel
+}
+
+# files that become the user's own once installed (menu\favorites.ini): put on the card only if it has none yet
+$keepDir = Join-Path $here 'payload-if-missing'
+if (Test-Path -LiteralPath $keepDir -PathType Container) {
+  $keepRoot = (Resolve-Path -LiteralPath $keepDir).ProviderPath.TrimEnd('\')
+  Get-ChildItem -LiteralPath $keepDir -Recurse -File | Sort-Object FullName | ForEach-Object {
+    $rel = $_.FullName.Substring($keepRoot.Length + 1) -replace '\\', '/'
+    if (Test-Path -LiteralPath (P $target $rel)) { Write-Host "  keep     $rel (yours: never replaced)" }
+    else { PutFile $_.FullName $rel }
+  }
 }
 
 # 0.1.0 had one menu\<name>.ini per entry; 0.2.0 has them all in menu\menu.default.ini. Old files that are exactly

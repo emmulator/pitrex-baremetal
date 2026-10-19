@@ -6,8 +6,9 @@ every game has notes and a controls page. Nothing is compiled in: copy a Vectrex
 card and it is in the menu at the next start, with no file to edit.
 
 This page is for installing it and getting your games running. The arrangement, titles and notes are in one text
-file, `menu/menu.default.ini`. To change them, or to make collections of your own (FAVOURITES and so on), you
-write only your changes in `menu/menu.ini`, which updates never touch: see [NEW_MENU_README.md](../NEW_MENU_README.md).
+file, `menu/menu.default.ini`. To change them you write only your changes in `menu/menu.ini`, which updates never
+touch. The FAVORITES category in the main menu comes from `menu/favorites.ini`, an example collection you can edit
+into your own list (updates never replace it). See [NEW_MENU_README.md](../NEW_MENU_README.md).
 
 No ROMs are included in this package. Below is exactly which ROM files the menu looks for, which of them come
 with the RpiTeaM image, and which you would have to find elsewhere.

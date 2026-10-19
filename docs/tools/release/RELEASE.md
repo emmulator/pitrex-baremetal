@@ -21,13 +21,15 @@ or build a whole card, arcade ROMs included, from Malban's zip and the RpiTeaM E
 ## New in 0.2.0
 
 * **The whole menu is one file**, `menu/menu.default.ini`, and **your changes go in `menu/menu.ini`**, read last:
-  only the lines you want different (rename, move, hide, notes), and `also = FAVOURITES` to list a game in
+  only the lines you want different (rename, move, hide, notes), and `also = FAVORITES` to list a game in
   collections of your own. Updates replace `menu.default.ini` and never touch `menu.ini`, so new games still appear.
 * **Works without any menu file:** every Vectrex game, video, song and program on the card is listed. Videos in
   `vectrex/movies/` and songs in `vectrex/waves/` appear under VIDEO and AUDIO by themselves.
 * Vectrex games may be `.vec` files, and only real cartridges (files starting with `g GCE`) are listed.
 * Folder rules (every file in a folder becomes an entry), categories with their own help text, hiding and a
   custom order, games and programs placed in categories of your own.
+* A FAVORITES collection (Vectorblade, Asteroids, the Vectrex Armor Attack) in `menu/favorites.ini`, written as an
+  example to copy: edit it to keep your own favorites; updates never replace it.
 * Vectorblade is listed under PITREX.
 * Upgrading from 0.1.0: the installer removes the 0.1.0 entry files you did not change (saved in the backup) and
   keeps the ones you did; they are still read.
@@ -42,6 +44,7 @@ or build a whole card, arcade ROMs included, from Malban's zip and the RpiTeaM E
 | `README.md`, `NEW_MENU_README.md` | the plug-and-play guide, and the guide to changing the menu |
 | `install.sh`, `install.ps1`, `install.bat`, `make_card.py` | the installers |
 | `payload/` | bootstrap (`pitrex.img`, `pitrex7.img`), loader, AAE with the game picker, Vectrex emulators and players, Vectorblade, rebuilt Star Wars / Tempest / Black Widow (both Pi models), and the menu file `menu/menu.default.ini` |
+| `payload-if-missing/` | `menu/favorites.ini`, an example FAVORITES collection: installed only if the card has no `favorites.ini` yet, so your own list is never overwritten |
 | `settings/` | the tuned `vectrexInterface.ini` (used with `--settings tuned`, or if yours is missing or empty) and `vectrex.ini` (only with `--settings tuned`) |
 | `arcade-tweaks/` | single-controller `blackwidow.ini` and `battlezone.ini` (only with `--arcade-tweaks`) |
 

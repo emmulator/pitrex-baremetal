@@ -6,7 +6,8 @@
 #   ./install.sh --restore <folder>
 #
 # Replaced files are saved in <folder>/backup-menu-<date>/ with a MANIFEST.tsv that --restore reads.
-# Nothing outside the files listed in payload/ (and, with --arcade-tweaks, arcade-tweaks/; with --settings tuned, settings/) is touched.
+# Nothing outside the files listed in payload/ and payload-if-missing/ (only added when missing) is touched (and, with
+# --arcade-tweaks, arcade-tweaks/; with --settings tuned, settings/).
 set -eu
 
 here=$(cd "$(dirname "$0")" && pwd)
@@ -126,6 +127,17 @@ while IFS= read -r rel; do
   put_file "$payload/$rel" "$rel"
 done < "$list"
 rm -f "$list"
+
+# files that become the user's own once installed (menu/favorites.ini): put on the card only if it has none yet
+if [ -d "$here/payload-if-missing" ]; then
+  list=$(mktemp)
+  (cd "$here/payload-if-missing" && find . -type f | sed 's|^\./||' | sort) > "$list"
+  while IFS= read -r rel; do
+    if [ -e "$target/$rel" ]; then echo "  keep     $rel (yours: never replaced)"
+    else put_file "$here/payload-if-missing/$rel" "$rel"; fi
+  done < "$list"
+  rm -f "$list"
+fi
 
 # 0.1.0 had one menu/<name>.ini per entry; 0.2.0 has them all in menu/menu.default.ini. Old files that are exactly
 # as 0.1.0 shipped them are removed (saved in the backup); files you changed are kept and still read.

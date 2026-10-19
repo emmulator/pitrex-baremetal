@@ -28,6 +28,9 @@ done
 # so the installer can remove the ones an upgraded card still has unchanged
 mkdir -p "$root/payload/menu"
 python3 -I "$fork/docs/tools/entries_to_menu_ini.py" "$fork/docs/menu/sidecar/menu" "$root/payload/menu/menu.default.ini"
+# the example collection: installed only on cards that do not have one, so it becomes the user's own list
+mkdir -p "$root/payload-if-missing/menu"
+cp "$fork/docs/menu/sidecar/favorites.ini" "$root/payload-if-missing/menu/"
 git -C "$fork" ls-tree --name-only v0.1.0 docs/menu/sidecar/menu/ | while IFS= read -r f; do
   printf '%s  %s\n' "$(git -C "$fork" show "v0.1.0:$f" | sha256sum | cut -d' ' -f1)" "$(basename "$f")"
 done > "$root/legacy-menu-files.sha256"
