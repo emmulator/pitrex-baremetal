@@ -1,6 +1,6 @@
 // Choosing which AAE game to run: from a number (the old way), from a name, or from a
 // list of the ROM zips found on the card. No hardware dependencies, so it can be unit
-// tested on a PC (docs/tools/test_aae_select.c). The on-screen picker is in aaemain.c.
+// tested on a PC (new_menu/tools/test_aae_select.c). The on-screen picker is in aaemain.c.
 //
 // Format of the parameter passed by the loader (getLoadParameter(0)):
 //   ""            -> AAE_PICK: show the picker

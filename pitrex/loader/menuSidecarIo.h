@@ -1,15 +1,15 @@
 // Reading menu sidecar files from the SD card and the cached text for the entry on screen.
-// Shared by the loader (loaderMain.c) and the desktop preview (docs/tools/menu_preview).
+// Shared by the loader (loaderMain.c) and the desktop preview (new_menu/tools/menu_preview).
 //
 // The includer provides: MenuItemNew, menuSidecar.h, <vectrex/ini.h> (ini_parse_string),
 // fopen/fread/fclose for the card, ensureMainPath() (go to the card's top folder) and
-// the global scrollReset. See docs/menu/05-sidecar-format.md.
+// the global scrollReset. See new_menu/menu/05-sidecar-format.md.
 #ifndef MENU_SIDECAR_IO_H
 #define MENU_SIDECAR_IO_H
 
 // ---------------------------------------------------------------------------
 // Menu sidecar files: "menu/<key>.ini" replaces the note lines of a menu entry.
-// See menuSidecar.h and docs/menu/05-sidecar-format.md.
+// See menuSidecar.h and new_menu/menu/05-sidecar-format.md.
 // The stock ini_parse() is NOT used: it keeps a 10 KB buffer on the stack and records
 // the file name in lastAccessedIni, which the settings screen uses to decide where to
 // save. A sidecar must never become that file.

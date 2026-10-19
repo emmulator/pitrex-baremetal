@@ -1,8 +1,8 @@
 // Menu sidecar files: menu/<key>.ini on the SD card overrides the note lines
 // that the loader shows for a menu entry. No hardware dependencies, so it can be
-// unit tested on a PC (see docs/tools/test_sidecar_key.c).
+// unit tested on a PC (see new_menu/tools/test_sidecar_key.c).
 //
-// Format and rules: docs/menu/05-sidecar-format.md
+// Format and rules: new_menu/menu/05-sidecar-format.md
 #ifndef MENU_SIDECAR_H
 #define MENU_SIDECAR_H
 

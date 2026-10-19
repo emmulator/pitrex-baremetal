@@ -1,5 +1,5 @@
 // The new list menu: drawing, input, launching, and scanning the card.
-// Shared by the loader (loaderMain.c) and the desktop preview (docs/tools/menu_preview).
+// Shared by the loader (loaderMain.c) and the desktop preview (new_menu/tools/menu_preview).
 //
 // The includer provides before this header: MenuItemNew (only as the launch record that
 // loadAndStart() takes), newMenuLogic.h, menuSidecar.h, menuSidecarIo.h, the PiTrex library calls
@@ -7,7 +7,7 @@
 // currentButtonState, currentJoy1X/Y, the loader.ini flags newMenuShowMissing and newMenuLog, the function loadAndStart(), ensureMainPath(),
 // opendir/readdir/closedir with DT_DIR, and the macros IMG_FILE_PREFIX and NM_IMG_DIR. NM_CARD is the
 // prefix of paths on the card ("0:/" on the PiTrex, "" on the desktop). Nothing about the menu is compiled
-// in: it is built from menu/*.ini, the image folder and vectrex/. Documentation: docs/menu/07-new-menu.md
+// in: it is built from menu/*.ini, the image folder and vectrex/. Documentation: new_menu/menu/07-new-menu.md
 #ifndef NEW_MENU_UI_H
 #define NEW_MENU_UI_H
 
@@ -547,7 +547,7 @@ static void nmDrawHint(NmNode *cur)
   {
     if (nmNotesOwner == cur && sidecar.nctl > 0)
       v_printString(-120, -112, "2 SHOWS THE CONTROLS", 5, 0x5f);
-    v_printString(-120, -124, "4 OR RIGHT STARTS.  LEFT GOES BACK.", 5, 0x40);
+    v_printString(-120, -124, "4 STARTS.  LEFT GOES BACK.", 5, 0x40);
   }
 }
 

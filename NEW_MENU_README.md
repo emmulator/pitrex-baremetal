@@ -1,7 +1,7 @@
 # The new PiTrex menu: changing it and adding to it
 
 This is the guide for people who want to change how the menu looks, add their own games, or arrange things their
-own way. To **install** the menu and find out which ROMs it wants, read [docs/README.md](docs/README.md) first.
+own way. To **install** the menu and find out which ROMs it wants, read [new_menu/README.md](new_menu/README.md) first.
 
 ## How it works
 
@@ -208,8 +208,8 @@ needs    = vectrex/original/WEBWARS.BIN    ; listed only while that file is ther
 ```
 
 **An arcade game on AAE:** `image = aae.img`, `param1 = 0x2d` where the number is the game's position in the AAE
-driver table (`aae/aaemain.c`; listed in [docs/menu/04-arcade-candidates.md](docs/menu/04-arcade-candidates.md)), or
-the MAME name (`param1 = mhavoc2`; see [docs/menu/06-aae-picker.md](docs/menu/06-aae-picker.md)), and
+driver table (`aae/aaemain.c`; listed in [new_menu/menu/04-arcade-candidates.md](new_menu/menu/04-arcade-candidates.md)), or
+the MAME name (`param1 = mhavoc2`; see [new_menu/menu/06-aae-picker.md](new_menu/menu/06-aae-picker.md)), and
 `needs = roms/aae/<name>.zip`. The AAE sections of `menu.default.ini` are a template.
 
 ## The 0.1.0 files
@@ -218,11 +218,11 @@ Version 0.1.0 had one file per entry (`menu/aae.x2d.ini` and so on) with an `[en
 work: they are read after `menu.default.ini`, and a game described both ways is listed once. The installer removes
 the ones that are exactly as 0.1.0 shipped them, since their content is now in `menu.default.ini`, and keeps any you
 changed. Whatever you changed in them is simplest to carry over by hand into `menu.ini`, as the few lines that
-differ. (`docs/tools/entries_to_menu_ini.py <folder> <file>` turns a folder of such files into one file.)
+differ. (`new_menu/tools/entries_to_menu_ini.py <folder> <file>` turns a folder of such files into one file.)
 
 ## Controls
 
-(The user view is in [docs/README.md](docs/README.md).) Stick up/down moves, right or Button 4 enters or starts,
+(The user view is in [new_menu/README.md](new_menu/README.md).) Stick up/down moves, Button 4 enters a category or starts an entry, stick right only enters a category,
 left goes back, Button 2 starts a game under ALL ROMS with the other emulator or, on an entry with `control` lines,
 shows its CONTROLS page, Button 1 is Button 4 plus "load the last saved state" (the Vectrex emulators only do that
 with `HANDLE_STATES = 1` in `vectrex.ini`; the menu reads that line and only then says AND SAVED STATE). The menu
@@ -242,10 +242,10 @@ rows without rebuilding the loader:
 | Sorting | `nmTitleCmp`, `nmSortChildren` in `newMenuLogic.h` |
 | Limits | 700 menu nodes in total (entries, folders and ROMs), 400 sections in all menu files together (64 KB of note and control lines), 128 KB per menu file, 320 files in `menu/`, 160 files in `piZero1/` and in a folder-rule folder, 48 programs found without a section, 400 Vectrex games in at most 23 folders, 16 top-level categories, 4 category levels (a fifth cannot be opened), 128 rows in a list. In `menuFile.h`, `newMenuLogic.h` and `newMenuUi.h` (`NM_MAX_*`) |
 
-Build the loader with `docs/tools/build.sh zero1 pitrex/loader` (or `zero2`) in the `pitrex-dev` container (see
+Build the loader with `new_menu/tools/build.sh zero1 pitrex/loader` (or `zero2`) in the `pitrex-dev` container (see
 the top of that script) and put `loader.pit` in `piZero1/` (or `piZero2/`) on the card. The menu code also runs on a
 PC against Roger Boesch's PiTrex simulator, so a layout change can be looked at without a PiTrex:
-[docs/menu/08-menu-preview.md](docs/menu/08-menu-preview.md). The logic has host tests: `docs/tools/test_new_menu.c`.
+[new_menu/menu/08-menu-preview.md](new_menu/menu/08-menu-preview.md). The logic has host tests: `new_menu/tools/test_new_menu.c`.
 
 ## loader.ini
 
@@ -257,18 +257,18 @@ PC against Roger Boesch's PiTrex simulator, so a layout change can be looked at 
 
 ## Regenerating the shipped menu file
 
-`menu.default.ini` is generated from one file per entry in `docs/menu/sidecar/menu`, so a change to all entries is
+`menu.default.ini` is generated from one file per entry in `new_menu/menu/sidecar/menu`, so a change to all entries is
 one edit in a script:
 
 ```
-python3 -I docs/tools/export_sidecars.py ...        # from the original menu's list (was run once)
-python3 -I docs/tools/more_sidecars.py  docs/menu/sidecar/menu   # the other AAE versions, QB3, sample programs, fixes
-python3 -I docs/tools/controls_sidecars.py docs/menu/sidecar/menu   # the CONTROLS lines
-python3 -I docs/tools/entries_to_menu_ini.py docs/menu/sidecar/menu docs/menu/sidecar/menu.default.ini
+python3 -I new_menu/tools/export_sidecars.py ...        # from the original menu's list (was run once)
+python3 -I new_menu/tools/more_sidecars.py  new_menu/menu/sidecar/menu   # the other AAE versions, QB3, sample programs, fixes
+python3 -I new_menu/tools/controls_sidecars.py new_menu/menu/sidecar/menu   # the CONTROLS lines
+python3 -I new_menu/tools/entries_to_menu_ini.py new_menu/menu/sidecar/menu new_menu/menu/sidecar/menu.default.ini
 ```
 
-`make_release.sh` runs the last step itself. The ROM tables in `docs/README.md` come from
-`docs/tools/gen_rom_tables.py`.
+`make_release.sh` runs the last step itself. The ROM tables in `new_menu/README.md` come from
+`new_menu/tools/gen_rom_tables.py`.
 
 ## Where the code is
 
@@ -280,6 +280,6 @@ python3 -I docs/tools/entries_to_menu_ini.py docs/menu/sidecar/menu docs/menu/si
 | `pitrex/loader/menuSidecar.h`, `menuSidecarIo.h` | the keys of a section; the original menu's notes files |
 | `pitrex/loader/loaderMain.c` | calls the new menu each frame when `NEW_MENU = 1` (the original compiled menu is untouched) |
 | `aae/aaeSelect.h`, `aae/aaemain.c` | the arcade game picker |
-| `docs/` | install guide, findings, format specs, tests, the build script and the desktop preview ([docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)) |
+| `new_menu/` | install guide, findings, format specs, tests, the build script and the desktop preview ([new_menu/DEVELOPMENT.md](new_menu/DEVELOPMENT.md)) |
 
-Licensing of the upstream code: [docs/LICENSING.md](docs/LICENSING.md).
+Licensing of the upstream code: [new_menu/LICENSING.md](new_menu/LICENSING.md).

@@ -6,10 +6,11 @@
 This fork adds an optional list menu that is built from what is on the SD card (nothing is compiled in), plus
 the tools to put it on Malban's card.
 
-* **Just want to use it?** Read [docs/README.md](docs/README.md): what to download, how to install, and which ROM
+* **Just want to use it?** Read [new_menu/README.md](new_menu/README.md): what to download, how to install, and which ROM
   files it looks for and where they go.
 * **Want to change the menu or add your own games?** Read [NEW_MENU_README.md](NEW_MENU_README.md).
-* Development notes, findings and tools: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). Licensing notes: [docs/LICENSING.md](docs/LICENSING.md).
+* What changed in each version: [new_menu/CHANGELOG.md](new_menu/CHANGELOG.md).
+* Development notes, findings and tools: [new_menu/DEVELOPMENT.md](new_menu/DEVELOPMENT.md). Licensing notes: [new_menu/LICENSING.md](new_menu/LICENSING.md).
 
 The rest of this page is the original project's README.
 

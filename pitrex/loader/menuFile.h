@@ -1,7 +1,7 @@
 // The menu files, read in layers: menu/menu.default.ini (shipped), then every other menu/*.ini in alphabetical order,
 // then menu/menu.ini (the user's changes, last so it has the final word). Read into records in memory; the menu
 // asks for a record by key.
-// No hardware dependencies, so it can be unit tested on a PC (docs/tools/test_new_menu.c).
+// No hardware dependencies, so it can be unit tested on a PC (new_menu/tools/test_new_menu.c).
 //
 // One section is one record. The section name is the title shown in the menu, unless "title =" says otherwise.
 // What the section is follows from one key:
@@ -14,7 +14,7 @@
 // A later section with the same section name, file or folder changes the earlier one: what it sets replaces what
 // was there, the rest stays. A later section with only a name and changes (no image, file or folder) changes the
 // earlier section of that name, whatever it was. "also = A, B" lists a copy in further categories.
-// Format and examples: NEW_MENU_README.md, docs/menu/11-menu-ini-plan.md
+// Format and examples: NEW_MENU_README.md, new_menu/menu/11-menu-ini-plan.md
 #ifndef MENU_FILE_H
 #define MENU_FILE_H
 

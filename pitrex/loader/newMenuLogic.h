@@ -1,9 +1,9 @@
 // The "new menu": a plain vertical list of categories that you drill down into.
 // This file is the logic only (building the tree, navigation, finding programs on the
 // card). It has no hardware dependencies, so it can be unit tested on a PC
-// (docs/tools/test_new_menu.c). Drawing and file access are in loaderMain.c.
+// (new_menu/tools/test_new_menu.c). Drawing and file access are in loaderMain.c.
 //
-// Documentation: docs/menu/07-new-menu.md
+// Documentation: new_menu/menu/07-new-menu.md
 //
 // The menu has nothing compiled in: it is built from the entry files in menu/ on the card, the
 // programs found in the image folder and the ROMs found under vectrex/.
@@ -182,7 +182,7 @@ static int nmHelp(const NmNode *n, const char **out, int max)
     "DOES NOT KNOW BY NAME.", 0 };
   static const char *settings[] = {
     "SCREEN SETTINGS AND CALIBRATION.",
-    "4 OR RIGHT OPENS THEM. THEY ARE SAVED IN",
+    "4 OPENS THEM. THEY ARE SAVED IN",
     "VECTREXINTERFACE.INI ON THE CARD.", 0 };
   const char **t = 0;
   switch (n->id)
