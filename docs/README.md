@@ -269,7 +269,8 @@ values; the ones on Malban's card carry his own calibration (that is what `--arc
 
 1. Menu odd or unusable: delete the `NEW_MENU = 1` line in `loader.ini`; the original menu returns.
 2. PiTrex does not boot, or a game is worse: `install.sh --restore <card folder>` (Windows:
-   `install.bat --restore <card folder>`) puts the replaced files back. A card made with `make_card.py` has no
+   `install.bat --restore <card folder>`) puts the replaced files back. Files the installer added and you have
+   changed since (your `favorites.ini`, for example) are kept. A card made with `make_card.py` has no
    backup: build it again, or unpack Malban's zip onto the card.
 3. A Vectrex game misbehaves: Button 2 on it (the other emulator).
 

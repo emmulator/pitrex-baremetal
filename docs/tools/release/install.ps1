@@ -49,7 +49,12 @@ if ($Restore) {
     $f = $line.Split("`t")
     switch ($f[0]) {
       { $_ -in 'R', 'D' } { Copy-Item -LiteralPath (P $bkPath $f[1]) -Destination (P $target $f[1]) -Force; Write-Host "  restored $($f[1])" }
-      'A' { Remove-Item -LiteralPath (P $target $f[1]) -Force -ErrorAction SilentlyContinue; Write-Host "  removed  $($f[1])" }
+      'A' {
+        $t = P $target $f[1]
+        if ($f.Count -gt 2 -and $f[2] -and (Test-Path -LiteralPath $t) -and (Get-FileHash -LiteralPath $t -Algorithm SHA256).Hash -ne $f[2].ToUpper()) {
+          Write-Host "  keep     $($f[1]) (changed since it was installed: yours now)"
+        } else { Remove-Item -LiteralPath $t -Force -ErrorAction SilentlyContinue; Write-Host "  removed  $($f[1])" }
+      }
       'M' {
         if ((Test-Path -LiteralPath (P $target $f[2])) -and -not (Test-Path -LiteralPath (P $target $f[1]))) {
           Move-Item -LiteralPath (P $target $f[2]) -Destination (P $target $f[1]); Write-Host "  renamed back $($f[1])"
@@ -100,7 +105,7 @@ function PutFile($src, $rel) {
     }
   } else {
     Write-Host "  add      $rel"
-    if (-not $DryRun) { StartBackup; Note 'A' $rel '' }
+    if (-not $DryRun) { StartBackup; Note 'A' $rel (Get-FileHash -LiteralPath $src -Algorithm SHA256).Hash.ToLower() }   # restore keeps it if changed since
   }
   if (-not $DryRun) {
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $dest) | Out-Null

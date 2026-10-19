@@ -41,6 +41,7 @@ done
 target=$(cd "$target" && pwd)
 
 die() { echo "ERROR: $*" >&2; exit 1; }
+hashf() { if command -v sha256sum >/dev/null 2>&1; then sha256sum "$1" | cut -d' ' -f1; else shasum -a 256 "$1" | cut -d' ' -f1; fi; }
 
 # ---------------------------------------------------------------- restore
 if [ "$mode" = restore ]; then
@@ -57,7 +58,9 @@ if [ "$mode" = restore ]; then
   while IFS="$tab" read -r kind a b; do
     case $kind in
       R|D) cp "$bk/$a" "$target/$a" && echo "  restored $a" ;;
-      A) rm -f "$target/$a" && echo "  removed  $a" ;;
+      A) if [ -n "$b" ] && [ -f "$target/$a" ] && [ "$(hashf "$target/$a")" != "$b" ]; then
+           echo "  keep     $a (changed since it was installed: yours now)"
+         else rm -f "$target/$a" && echo "  removed  $a"; fi ;;
       M) if [ -e "$target/$b" ] && [ ! -e "$target/$a" ]; then mv "$target/$b" "$target/$a" && echo "  renamed back $a"; fi ;;
     esac
   done < "$tac_file"
@@ -109,7 +112,7 @@ put_file() {
     fi
   else
     echo "  add      $rel"
-    [ "$dry" = 1 ] || { start_backup; note A "$rel"; }
+    [ "$dry" = 1 ] || { start_backup; note A "$rel" "$(hashf "$src")"; }   # restore keeps it if it was changed since
   fi
   if [ "$dry" = 0 ]; then
     mkdir -p "$(dirname "$dest")"
@@ -141,7 +144,6 @@ fi
 
 # 0.1.0 had one menu/<name>.ini per entry; 0.2.0 has them all in menu/menu.default.ini. Old files that are exactly
 # as 0.1.0 shipped them are removed (saved in the backup); files you changed are kept and still read.
-hashf() { if command -v sha256sum >/dev/null 2>&1; then sha256sum "$1" | cut -d' ' -f1; else shasum -a 256 "$1" | cut -d' ' -f1; fi; }
 legacy="$here/legacy-menu-files.sha256"
 if [ -f "$legacy" ] && [ -d "$target/menu" ]; then
   kept=0
