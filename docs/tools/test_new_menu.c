@@ -573,20 +573,29 @@ int main(int argc, char **argv)
 
     /* build a small tree with these records (recRead reads the global recs: point them here for this block) */
     static char rp[3][NM_ROM_PATH] = { "original/BERZERK.BIN", "original/WEBWARS.BIN", "solo.vec" };
-    const char *fl[] = { "aae.img", "vectrexvideo.img", "vectrexexact.img", "vectrexspeedy.img", "voom.img", "old.img" };
+    const char *fl[] = { "aae.img", "vectrexvideo.img", "vectrexexact.img", "vectrexspeedy.img", "voom.img", "old.img" };   /* no nosuch.img */
     const char *mv[] = { "BadApple.bin", "LaLinea.bin", "notes.txt", ".hidden.bin" };
     static NmRecs keep;
     keep = recs;
     recs = mr;
+    /* sections that point at files which are not on the card */
+    char missing[] =
+      "[GONE]\nfile = vectrex/original/GONE.BIN\ncategory = LOST AND FOUND\n"
+      "[EMPTY FOLDER]\nfolder = vectrex/nothing\ncategory = NOTHING HERE\nimage = vectrexvideo.img\nparam1 = {dir}\nparam2 = {file}\n"
+      "[NO SUCH PROGRAM]\ncategory = PITREX\nimage = nosuch.img\n"
+      "[GONE GAME]\ncategory = VECTREX / SPEEDY VECTREX\nimage = vectrexspeedy.img\nparam1 = original/GONE.BIN\n";
+    nmParseMenuText(&recs, missing, "missing");
     memset(&mt, 0, sizeof mt);
     int ne = nmAddRecEntries(&mt, &recs, "piZero1/");
-    CHECK(ne == 3, "three entries (got %d)", ne);
+    CHECK(ne == 5, "five entries (got %d)", ne);
     SidecarText dup;
     nmRecToSidecar(&recs, "e.major_havoc", &dup);
     CHECK(nmAddEntry(&mt, "again", &dup, "piZero1/") == 0, "a second Major Havoc in ATARI is dropped");
     int nfold;
     nfold = nmAddFolderFiles(&mt, &recs, nmFindRec(&recs, "f.vectrex_movies"), "piZero1/", mv, 4, recRead);
     CHECK(nfold == 2, "folder rule: the two .bin files (got %d)", nfold);
+    CHECK(nmAddFolderFiles(&mt, &recs, nmFindRec(&recs, "f.vectrex_nothing"), "piZero1/", mv, 0, recRead) == 0,
+          "a folder rule whose folder is empty or missing adds nothing");
     static NmRec def[2];
     CHECK(nmDefaultFolderRules(&recs, def, 2) == 1 && !strcmp(def[0].path, "vectrex/waves"), "only waves gets the built-in rule (movies has one)");
     NmNode *set = nmAssembleRest(&mt, &ms, recRead, "piZero1/", fl, 6, rp, 3, "piZero1/vectrexexact.img", "piZero1/vectrexspeedy.img", 0, &nfound);
@@ -606,6 +615,14 @@ int main(int argc, char **argv)
     CHECK(pd && findTitle(pd, "MY PROGRAM") && (pg == 0 || pg->hidden), "a program with a category moves out of PROGRAMS, titled by its section");
     NmNode *atari = findTitle(nmFindTop(&mt, "ARCADE"), "ATARI");
     CHECK(atari && atari->hidden, "a hidden category");
+    NmNode *lost = nmFindTop(&mt, "LOST AND FOUND");
+    CHECK(lost == 0 || lost->hidden, "a file section for a file that is not on the card shows nothing");
+    NmNode *nothing = nmFindTop(&mt, "NOTHING HERE");
+    CHECK(nothing == 0 || nothing->hidden, "the empty folder rule's category is hidden");
+    NmNode *nsp = findTitle(nmFindTop(&mt, "PITREX"), "NO SUCH PROGRAM");
+    CHECK(nsp && nsp->hidden, "an entry whose program is not in piZero1 is hidden");
+    NmNode *gg = findTitle(findTitle(nmFindTop(&mt, "VECTREX"), "SPEEDY VECTREX"), "GONE GAME");
+    CHECK(gg && !gg->hidden, "KNOWN GAP: an entry whose program exists but whose game file does not is still listed (it has no needs line)");
     recs = keep;
   }
 
