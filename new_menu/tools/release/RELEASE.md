@@ -4,8 +4,8 @@ A replacement menu for Malban's July 2025 PiTrex SD card, plus the rebuilt emula
 needs.
 
 * **Start with `README.md`** (plug and play): what to download, how to install, which ROM files go where.
-* `NEW_MENU_README.md` is for people who want to change how the menu looks, add their own games or edit the
-  entry files.
+* `NEW_MENU_README.md` is for people who want to change how the menu looks, add their own games or make collections
+  (FAVORITES and the like) in the menu file.
 
 Quick start: unzip Malban's `PiTrex_sd_Jul29_25.zip`, then
 
