@@ -2,10 +2,12 @@
 
 A replacement menu for the PiTrex bare-metal SD card: a plain list (category, game, start) that is built from
 what is actually on the card. A game appears when its files are there and is left out when they are not, and
-every game has notes and a controls page. Nothing is compiled in.
+every game has notes and a controls page. Nothing is compiled in: copy a Vectrex game, a video or a song onto the
+card and it is in the menu at the next start, with no file to edit.
 
-This page is for installing it and getting your games running. If you want to change how the menu looks, add
-your own games or edit the entry files, read [NEW_MENU_README.md](../NEW_MENU_README.md) instead.
+This page is for installing it and getting your games running. The arrangement, titles and notes are in one text
+file, `menu/menu.default.ini`; to change them (copy it to `menu/menu.ini` and edit that), or to add your own
+games, read [NEW_MENU_README.md](../NEW_MENU_README.md).
 
 No ROMs are included in this package. Below is exactly which ROM files the menu looks for, which of them come
 with the RpiTeaM image, and which you would have to find elsewhere.
@@ -57,8 +59,10 @@ leaves your settings and game `.ini` files alone unless you ask (`--settings tun
 run twice safely. It replaces the boot files `pitrex.img` and `pitrex7.img` (they must match the loader), the
 loader, AAE (with its game picker), the Vectrex emulators, the video, audio and line-art players and Vectorblade
 (the July 2025 images show a blank screen on a Pi Zero W), three rebuilt arcade programs (Star Wars, Tempest,
-Black Widow), the entry files in `menu/`, and adds `NEW_MENU = 1` to `loader.ini`. To go back to the original
-menu, delete that line.
+Black Widow) and the menu file `menu/menu.default.ini`, and adds `NEW_MENU = 1` to `loader.ini`. To go back to
+the original menu, delete that line. On a card that has version 0.1.0, it also removes the 0.1.0 entry files
+(`menu/aae.x2d.ini` and so on) that are unchanged, since their content is now in `menu.default.ini`; files you
+changed, and your own `menu/menu.ini`, are kept.
 
 ## Using the menu
 
@@ -92,9 +96,9 @@ version starts but misbehaves. MAME-named zips work.
 
 | What | Where |
 |---|---|
-| Vectrex games | `vectrex/*.bin`, or in sub-folders such as `vectrex/original/` or `vectrex/homebrew/` (two levels). Anything ending in `.bin` shows up under VECTREX > ALL ROMS. Rename `.vec` files to `.bin`. |
+| Vectrex games | `vectrex/*.bin` or `*.vec`, or in sub-folders such as `vectrex/original/` or `vectrex/homebrew/` (two levels). Every game file shows up under VECTREX > ALL ROMS; the menu checks that the file really is a Vectrex cartridge (it starts with `g GCE`). |
 | Vectrex BIOS | `vectrex/bios/` (Malban's card has four; `ROM_FILE` in `vectrex.ini` picks the one Exact uses) |
-| Music and video | `vectrex/waves/`, `vectrex/movies/` and the players: already on Malban's card. **Turn the Vectrex volume all the way up**, the sound goes through the video DAC and is quiet. |
+| Music and video | `vectrex/waves/` (AUDIO) and `vectrex/movies/` (VIDEO): every file there is listed and played by the audio or video player, both already on Malban's card. **Turn the Vectrex volume all the way up**, the sound goes through the video DAC and is quiet. |
 
 ### Arcade games
 

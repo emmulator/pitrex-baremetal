@@ -1,133 +1,182 @@
 # The new PiTrex menu: changing it and adding to it
 
-This is the guide for people who want to change how the menu looks, add their own games, or edit the entry
-files. To **install** the menu and find out which ROMs it wants, read [docs/README.md](docs/README.md) first.
+This is the guide for people who want to change how the menu looks, add their own games, or arrange things their
+own way. To **install** the menu and find out which ROMs it wants, read [docs/README.md](docs/README.md) first.
 
 ## How it works
 
 The new menu is a list built by the loader every time the PiTrex starts. **Nothing is compiled in.** It is
-assembled from four things on the SD card:
+assembled from what is on the SD card:
 
 | On the card | Becomes |
 |---|---|
-| `menu/*.ini` (entry files) | one game each: title, category, which program starts it, notes, controls |
-| `piZero1/*.img` (program images) | the programs those entries start; an image with no entry file is listed under PROGRAMS |
-| `vectrex/**/*.bin` | every Vectrex game, under VECTREX > ALL ROMS |
+| `vectrex/**/*.bin`, `*.vec` | every Vectrex game, under VECTREX > ALL ROMS (only files that start like a real cartridge, with `g GCE`) |
+| `vectrex/movies/*`, `vectrex/waves/*` | the videos and songs, under VIDEO and AUDIO, played by the video and audio players |
+| `piZero1/*.img` (program images) | programs; one the menu file does not mention is listed under PROGRAMS |
+| `menu/menu.ini` (or `menu/menu.default.ini`) | titles, notes, controls and categories: how everything is arranged |
 | `roms/*.zip`, `roms/aae/*.zip` | decide whether an arcade entry is shown (its `needs` line) |
 
-The screen says READING SD CARD while it reads them. Everything is sorted and rebuilt at every start, so
-changing the menu means editing text files on the card; the loader is never recompiled. To go back to the
-original menu, remove `NEW_MENU = 1` from `loader.ini`.
+**Without any menu file** the menu still lists every Vectrex game, video, song and program on the card, and the
+arcade games through the AAE game picker under PROGRAMS. The menu file adds the arrangement, the notes and the
+arcade entries.
 
-What decides whether an entry is shown:
+The screen says READING SD CARD while it reads all this. To go back to the original menu, remove `NEW_MENU = 1`
+from `loader.ini`.
 
-* its image must exist in `piZero1/` (otherwise the entry is left out);
-* if it has a `needs` file, that file must exist (otherwise the entry is left out; `NEW_MENU_SHOW_MISSING = 1`
-  in `loader.ini` shows such entries anyway, with "ROM NOT FOUND!" under them);
-* a `needs` ending in `/` (the AAE picker has `roms/aae/`) means "show me while any other entry needing a file
-  in that folder is showing";
-* `hide = 1` in the entry hides it;
-* a category with nothing visible in it disappears.
+## The menu file
+
+The whole menu is described in one text file in `menu/`:
+
+* `menu.default.ini` comes with the package and is replaced by every update.
+* **To make your own changes, copy it to `menu.ini`** (same folder) and edit the copy. When `menu.ini` exists, the
+  PiTrex reads it instead of `menu.default.ini`, and updates never touch it.
+* Any other `.ini` file in `menu/` is read after it, in alphabetical order, and can add entries or change them.
+  A game you add can come with its own small file (`menu/mygame.ini`); you do not have to edit the big one.
+
+The file is plain text in the same style as `loader.ini`: `key = value` lines, and `;` starts a comment.
+
+```
+[MAJOR HAVOC]                       ; the name in brackets is the title shown in the menu
+category = ARCADE / ATARI           ; where it is listed. A new path makes new folders
+image    = aae.img                  ; the program that starts it (in piZero1/)
+param1   = 0x2d                     ; what the program is given: 0x2d is the single byte 0x2d, anything else is text
+needs    = roms/aae/mhavoc.zip      ; only listed while this file is on the card
+text     = WORK IN PROGRESS!!       ; a note line under the list (up to 12)
+control  = FIRE  BUTTON 4           ; a line of the CONTROLS page (Button 2), up to 12
+```
+
+Each section in `[brackets]` is one thing in the menu. One line says what it is:
+
+| The section has | It is | Example |
+|---|---|---|
+| `image = ...` | an entry that starts a program | `[MAJOR HAVOC]` above |
+| `file = ...` | a file the menu finds by itself (a Vectrex game, a video, a program); the section gives it a title, notes, a category | `[BERZERK]` / `file = vectrex/original/BERZERK.BIN` |
+| `folder = ...` and `image = ...` | a rule: every file in that folder becomes an entry | `[VIDEOS]` / `folder = vectrex/movies` |
+| `folder = ...` without `image` | a Vectrex ROM folder: its name in ALL ROMS, or `hide = 1` | `[MY HOMEBREW]` / `folder = vectrex/homebrew` |
+| none of these | a category, or an entry of the same name changed by a later file | `[ARCADE / ATARI]` / `order = listed` |
+
+All the keys:
+
+| Key | Meaning |
+|---|---|
+| `title = ...` | the title, when it should differ from the section name (two entries can have the same title: `[SOLAR QUEST ARCADE]` with `title = SOLAR QUEST`) |
+| `category = A / B` | where it is listed. Empty: PROGRAMS. For a found Vectrex game: also listed there (it stays in ALL ROMS). For a found program: moved there |
+| `image`, `param1`, `param2` | the program and what it is given. In a folder rule `{dir}` is the folder and `{file}` the file name |
+| `files = bin vec` | folder rule: only files with these extensions (default: all) |
+| `needs = path` | only listed while that file is on the card. A path ending in `/` (the AAE picker's `roms/aae/`): listed while any other entry needing a file in that folder is |
+| `text = ...` | a note line (up to 12). For a category: replaces its help text |
+| `control = ...` | a line of the CONTROLS page that Button 2 opens (up to 12) |
+| `hide = 1` | leave it out |
+| `emulator = speedy` or `exact` | for a Vectrex game: which emulator Button 4 uses |
+| `order = listed` | for a category: keep the order of the file instead of sorting alphabetically |
+
+When two sections describe the same thing (the same section name, the same `file`, the same `folder`), the later
+one changes the earlier one: what it sets replaces what was there, everything else stays. That is how a small
+`menu/my-changes.ini` can retitle or hide an entry of `menu.default.ini` without copying the whole file:
+
+```
+[MAZE]
+hide = 1
+```
+
+A note containing NO SOUND, WORK IN PROGRESS, NOT WORKING or CRASH (any case, also inside a longer word such as
+CRASHES) makes the entry show a `!` in the list.
+
+**Text rules.** The PiTrex's vector font only draws `A-Z`, `0-9`, `.`, `!` and the arrows `<` `>` (`$` is the
+folder symbol); lower case is drawn as capitals. Brackets, slashes, dashes, colons and commas print as blanks, so
+write text with only those characters. Note lines longer than about 46 characters run off the screen; titles are
+cut at 31 characters and about 28 fit in the list.
+
+## What decides whether something is shown
+
+* an entry's program must be in `piZero1/` (otherwise it is left out);
+* if it has a `needs` file, that file must be there (`NEW_MENU_SHOW_MISSING = 1` in `loader.ini` lists such entries
+  anyway, with "ROM NOT FOUND!" under them);
+* `hide = 1` hides it;
+* a category with nothing visible in it disappears;
+* the same program with the same parameters twice in one category is listed once.
 
 Categories are sorted alphabetically, then PROGRAMS, then SETTINGS. Everything below the top level is
-alphabetical too (inside ALL ROMS the folders come first).
+alphabetical too (inside ALL ROMS the folders come first), unless the category says `order = listed`.
+
+## Adding things
+
+**A Vectrex game:** copy the `.bin` or `.vec` into `vectrex/` or a sub-folder (two levels). It shows up under
+VECTREX > ALL ROMS with a title made from its file name: upper case, `_` and `-` become spaces, the extension
+dropped (`E-SRG.bin` is `E SRG`). Sub-folders become groups named `<FOLDER> FOLDER`. A loose file whose name also
+exists in a folder is treated as a copy and left out. `bios`, `movies` and `waves` are not game folders. Button 4
+starts a game with Exact and Button 2 with Speedy. To give it a title, notes or a place of its own:
+
+```
+[E SRG]
+file     = vectrex/homebrew/E-SRG.bin
+category = VECTREX / HOMEBREW
+text     = A GAME BY JJ.
+```
+
+**A video or song:** copy it into `vectrex/movies/` or `vectrex/waves/`. It is listed under VIDEO or AUDIO by its
+file name. For any other folder of files that one program plays, write a folder rule:
+
+```
+[MY VIDEOS]
+folder   = vectrex/myvideos
+category = VIDEO
+image    = vectrexvideo.img
+param1   = {dir}
+param2   = {file}
+```
+
+**A program image** (`something.img` built for the Pi): copy it into `piZero1/` (and `piZero2/` for a Pi Zero 2).
+It is listed under PROGRAMS, named after the file. To put it elsewhere:
+
+```
+[MY GAME]
+category = PITREX
+image    = mygame.img
+```
+
+**An arcade game on AAE:** `image = aae.img`, `param1 = 0x2d` where the number is the game's position in the AAE
+driver table (`aae/aaemain.c`; listed in [docs/menu/04-arcade-candidates.md](docs/menu/04-arcade-candidates.md)), or
+the MAME name (`param1 = mhavoc2`; see [docs/menu/06-aae-picker.md](docs/menu/06-aae-picker.md)), and
+`needs = roms/aae/<name>.zip`. The AAE sections of `menu.default.ini` are a template.
+
+## The 0.1.0 files
+
+Version 0.1.0 had one file per entry (`menu/aae.x2d.ini` and so on) with an `[entry]` section. Those files still
+work: they are read after the menu file, and a game described both ways is listed once. The installer removes the
+ones that are exactly as 0.1.0 shipped them, since their content is now in `menu.default.ini`, and keeps any you
+changed. To turn your own 0.1.0 files into one `menu.ini`:
+
+```
+python3 docs/tools/entries_to_menu_ini.py <folder with your .ini files> menu.ini
+```
 
 ## Controls
 
 (The user view is in [docs/README.md](docs/README.md).) Stick up/down moves, right or Button 4 enters or starts,
 left goes back, Button 2 starts a game under ALL ROMS with the other emulator or, on an entry with `control` lines,
 shows its CONTROLS page, Button 1 is Button 4 plus "load the last saved state" (the Vectrex emulators only do that
-with `HANDLE_STATES = 1` in `vectrex.ini`; the menu reads that line and only then says AND SAVED STATE). The menu ignores the controls until they have
-rested for 15 frames, so a Button 4 held at power-on does not open anything.
-
-## Adding a game
-
-**A Vectrex ROM:** copy the `.bin` into `vectrex/` or a sub-folder (two levels). It shows up under
-VECTREX > ALL ROMS with a title made from its file name: upper case, `_` and `-` become spaces, `.bin` dropped
-(`E-SRG.bin` is `E SRG`). Sub-folders become groups named `<FOLDER> FOLDER`; rename one with
-`menu/dir.<folder>.ini` containing `title = ...`. A loose file whose name also exists in a folder is treated as a
-copy and left out. `bios`, `movies` and `waves` are ignored. Button 4 starts it with Exact and Button 2 with
-Speedy; `emulator = speedy` in its notes file swaps that.
-
-**A program image** (`something.img` built for the Pi): copy it into `piZero1/` (and `piZero2/` for a Pi Zero 2).
-It is listed under PROGRAMS, named after the file. To put it elsewhere, give it an entry file:
-
-```
-[entry]
-title = MY GAME
-category = PITREX
-image = mygame.img
-```
-
-`category = ARCADE / ATARI` puts it in a sub-folder, and a category that does not exist yet is created.
-
-**An arcade game on AAE:** `image = aae.img`, `param1 = 0x2d` where the number is the game's position in the AAE
-driver table (`aae/aaemain.c`; the table is listed in [docs/menu/04-arcade-candidates.md](docs/menu/04-arcade-candidates.md)),
-or the MAME name (`param1 = mhavoc2`; the picker docs are in [docs/menu/06-aae-picker.md](docs/menu/06-aae-picker.md)), and
-`needs = roms/aae/<name>.zip`. The shipped files `menu/aae.*.ini` are a template.
-
-## Entry file format
-
-Every file `menu/<name>.ini` is plain text, read when the menu starts. The file name does not matter for entry
-files (the shipped ones are named after the image and parameter).
-
-```
-[entry]
-title = MAJOR HAVOC            ; shown in the list (capitals; brackets are dropped)
-category = ARCADE / ATARI      ; where it is listed. Empty or missing: under PROGRAMS
-image = aae.img                ; the program image in piZero1/ that starts it
-param1 = 0x2d                  ; first parameter. 0x2d means the single byte 0x2d; anything else is text
-param2 = original/X.BIN        ; second parameter, if the program takes one
-needs = roms/aae/mhavoc.zip    ; the entry is only shown while this file exists
-skip = 4                       ; old menu only: blank rows before the first note line (the new menu ignores it)
-text = WORK IN PROGRESS!!      ; note lines under the list (max 12). NO SOUND, WORK IN PROGRESS... add a ! to the list
-control = FIRE  BUTTON 4       ; lines of the CONTROLS page (Button 2), max 12
-hide = 1                       ; leave it out
-```
-
-A **notes file** has no `image` line and changes something that was *found* on the card:
-
-| For | File name | Example |
-|---|---|---|
-| A Vectrex game file | `rom.` + the path under `vectrex/` with every run of other characters as `_`, lower case | `vectrex/homebrew/E-SRG.bin` is `menu/rom.homebrew_e_srg_bin.ini` |
-| A program (`piZero1/foo.img`) | image name, lower case | `menu/foo.ini` |
-| A ROM folder group | `dir.` + folder name | `menu/dir.original.ini` |
-
-```
-[entry]
-title = MY GAME                ; rename it
-text = WORKS GREAT.            ; note lines
-hide = 1                       ; leave it out
-emulator = speedy              ; for a ROM: which emulator Button 4 uses, speedy or exact
-control = ...                  ; CONTROLS page lines
-```
-
-`;` starts a comment. A note containing NO SOUND, WORK IN PROGRESS, NOT WORKING or CRASH (any case, also inside
-a longer word such as CRASHES) makes the entry show a `!` in the list. Full format: [docs/menu/05-sidecar-format.md](docs/menu/05-sidecar-format.md).
-
-**Text rules.** The PiTrex's vector font only draws `A-Z`, `0-9`, `.`, `!` and the arrows `<` `>`
-(`$` is the folder symbol); lower case is drawn as capitals. Brackets, slashes, dashes, colons and commas print as
-blanks, so write text with only those characters. Note lines longer than about 46 characters run off the screen;
-titles are cut at 31 characters and about 28 fit in the list.
+with `HANDLE_STATES = 1` in `vectrex.ini`; the menu reads that line and only then says AND SAVED STATE). The menu
+ignores the controls until they have rested for 15 frames, so a Button 4 held at power-on does not open anything.
 
 ## Changing how it looks
 
-Through files only you can change every title, category, note, controls line, what is hidden, where things are
-listed and which emulator a ROM prefers. You cannot change the text size, the number of rows or the
-sort order without rebuilding the loader. Those live in `pitrex/loader/newMenuUi.h`:
+Through the menu file you can change every title, category, note, controls line, what is hidden, where things are
+listed, their order and which emulator a Vectrex game prefers. You cannot change the text size or the number of
+rows without rebuilding the loader:
 
 | What | Where |
 |---|---|
 | Rows shown (7), list position and spacing, notes position, button hints | `NM_ROWS` in `newMenuLogic.h`; `NM_LIST_Y`, `NM_LIST_STEP`, `NM_NOTE_Y`, `NM_NOTE_STEP` and the `v_printString` calls in `newMenuUi.h` (size 7 is the large text, 5 the small) |
-| Help texts for the categories | `nmHelp()` in `newMenuLogic.h` |
+| Built-in help texts for the categories | `nmHelp()` in `newMenuLogic.h` (a category's `text` lines replace them) |
+| Built-in folder rules (videos, songs) | `nmDefaultFolderRules()` in `newMenuLogic.h` |
 | Sorting | `nmTitleCmp`, `nmSortChildren` in `newMenuLogic.h` |
-| Limits | 700 menu nodes in total (entries, folders and ROMs), 320 files in `menu/` (2 KB each), 160 files in `piZero1/`, 48 programs without an entry file, 400 ROM files in at most 23 folders, 16 top-level categories, 4 category levels (a fifth cannot be opened), 128 rows in a list. All in `newMenuLogic.h` and `newMenuUi.h` (`NM_MAX_*`) |
+| Limits | 700 menu nodes in total (entries, folders and ROMs), 400 sections in all menu files together (64 KB of note and control lines), 128 KB per menu file, 320 files in `menu/`, 160 files in `piZero1/` and in a folder-rule folder, 48 programs found without a section, 400 Vectrex games in at most 23 folders, 16 top-level categories, 4 category levels (a fifth cannot be opened), 128 rows in a list. In `menuFile.h`, `newMenuLogic.h` and `newMenuUi.h` (`NM_MAX_*`) |
 
 Build the loader with `docs/tools/build.sh zero1 pitrex/loader` (or `zero2`) in the `pitrex-dev` container (see
 the top of that script) and put `loader.pit` in `piZero1/` (or `piZero2/`) on the card. The menu code also runs on a
 PC against Roger Boesch's PiTrex simulator, so a layout change can be looked at without a PiTrex:
-[docs/menu/08-menu-preview.md](docs/menu/08-menu-preview.md). The logic (building and sorting the tree) has host
-tests: `docs/tools/test_new_menu.c`.
+[docs/menu/08-menu-preview.md](docs/menu/08-menu-preview.md). The logic has host tests: `docs/tools/test_new_menu.c`.
 
 ## loader.ini
 
@@ -135,28 +184,31 @@ tests: `docs/tools/test_new_menu.c`.
 |---|---|
 | `NEW_MENU = 1` | use the new menu (remove it for the original menu) |
 | `NEW_MENU_SHOW_MISSING = 1` | also list arcade games whose ROM is not on the card |
-| `NEW_MENU_LOG = 1` | write `NMLOG.TXT` on the card: the first controls read, launches, settings steps (for tracking down a freeze; off by default because it writes to the card at every start) |
+| `NEW_MENU_LOG = 1` | write `NMLOG.TXT` on the card: the first controls read, launches, settings steps, menu sections that did not fit (for tracking down a problem; off by default because it writes to the card at every start) |
 
-## Regenerating the shipped entry files
+## Regenerating the shipped menu file
 
-The files in `menu/` that come with the package are generated, so a change to all of them is one edit:
+`menu.default.ini` is generated from one file per entry in `docs/menu/sidecar/menu`, so a change to all entries is
+one edit in a script:
 
 ```
-python3 -I docs/tools/export_sidecars.py ...        # from the original menu's list (docs/menu/sidecar/menu)
-python3 -I docs/tools/more_sidecars.py  docs/menu/sidecar/menu   # the other AAE versions, QB3, sample programs
+python3 -I docs/tools/export_sidecars.py ...        # from the original menu's list (was run once)
+python3 -I docs/tools/more_sidecars.py  docs/menu/sidecar/menu   # the other AAE versions, QB3, sample programs, fixes
 python3 -I docs/tools/controls_sidecars.py docs/menu/sidecar/menu   # the CONTROLS lines
+python3 -I docs/tools/entries_to_menu_ini.py docs/menu/sidecar/menu docs/menu/sidecar/menu.default.ini
 ```
 
-(`export_sidecars.py` was run once on the original menu's list; the other two only edit the folder. Run them in this order.) The ROM tables in
-`docs/README.md` come from `docs/tools/gen_rom_tables.py`.
+`make_release.sh` runs the last step itself. The ROM tables in `docs/README.md` come from
+`docs/tools/gen_rom_tables.py`.
 
 ## Where the code is
 
 | File | What it does |
 |---|---|
-| `pitrex/loader/newMenuLogic.h` | building the tree from the entry files, program and ROM discovery, hiding, sorting, navigation, help texts. No hardware calls, tested on a PC. |
-| `pitrex/loader/newMenuUi.h` | drawing, buttons, launching, scanning the card, the staged start-up |
-| `pitrex/loader/menuSidecar.h`, `menuSidecarIo.h` | the entry file format and file reading |
+| `pitrex/loader/menuFile.h` | reading the menu files into records, keys, folder-rule helpers. No hardware calls, tested on a PC. |
+| `pitrex/loader/newMenuLogic.h` | building the tree: entries, folder rules, program and ROM discovery, hiding, sorting, navigation, help texts. No hardware calls, tested on a PC. |
+| `pitrex/loader/newMenuUi.h` | drawing, buttons, launching, reading the card, the staged start-up |
+| `pitrex/loader/menuSidecar.h`, `menuSidecarIo.h` | the keys of a section; the original menu's notes files |
 | `pitrex/loader/loaderMain.c` | calls the new menu each frame when `NEW_MENU = 1` (the original compiled menu is untouched) |
 | `aae/aaeSelect.h`, `aae/aaemain.c` | the arcade game picker |
 | `docs/` | install guide, findings, format specs, tests, the build script and the desktop preview ([docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)) |

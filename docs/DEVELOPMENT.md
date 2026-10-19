@@ -23,7 +23,7 @@ Nothing here is part of upstream.
 
 Release packaging: `docs/tools/release/` (`install.sh`, `install.ps1`, `install.bat` copy the rebuilt files over Malban's unpacked card with backup and `--restore`; `make_release.sh` assembles the zip from the saved build sets).
 
-Tools in `docs/tools/`: `menu_tables.py` (tables in file 01), `export_sidecars.py` (entry files from the original menu), `controls_sidecars.py` (controls lines), `test_sidecar_key.c` and `test_aae_select.c` and `test_new_menu.c` (host tests), `gen_aae_table.py`, `gen_menu_tree.py` (writes the original compiled menu as C data; no longer used by the tests or the preview), `make_rom_test_data.py`, `build.sh` (ARM build in the container), `emulator-debug-breadcrumbs.patch` (adds an `EMUDBG.TXT` log to `vectrexBase/main.c` for finding where an emulator hangs).
+Tools in `docs/tools/`: `menu_tables.py` (tables in file 01), `export_sidecars.py` (entry files from the original menu), `controls_sidecars.py` (controls lines), `entries_to_menu_ini.py` (one menu file from the entry files: the shipped `menu.default.ini`, and the converter for edited 0.1.0 files), `test_sidecar_key.c` and `test_aae_select.c` and `test_new_menu.c` (host tests), `gen_aae_table.py`, `gen_menu_tree.py` (writes the original compiled menu as C data; no longer used by the tests or the preview), `make_rom_test_data.py`, `build.sh` (ARM build in the container), `emulator-debug-breadcrumbs.patch` (adds an `EMUDBG.TXT` log to `vectrexBase/main.c` for finding where an emulator hangs).
 
 Status markers used in these docs: **Verified** = read directly in the source;
 **Unverified** = inferred or not yet tested on real PiTrex hardware.

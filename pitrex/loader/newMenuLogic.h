@@ -12,6 +12,7 @@
 
 #include <string.h>
 #include "menuSidecar.h"
+#include "menuFile.h"
 
 #define NM_MAX_NODES 700
 #define NM_MAX_IMAGES 200
@@ -23,7 +24,9 @@
 #define NM_ROWS 7
 #define NM_MAX_PROGS 48
 #define NM_NAME_LEN 40
+#ifndef NM_KEY_LEN
 #define NM_KEY_LEN 64
+#endif
 #define NM_MAX_ENTRIES 160
 
 typedef struct NmNode
@@ -40,10 +43,11 @@ typedef struct NmNode
   int tags;                     // NM_TAG_* found in the notes
   int hidden;                   // hide = 1 in a sidecar, or the entry's image is not on the card
   int discovered;               // found on the card (a ROM or a program), not described by an entry file
+  int keepOrder;                // a category with "order = listed": its entries are not sorted
   char key[NM_KEY_LEN];         // name of the sidecar file (without .ini): notes, controls and the entry itself
   char imgBuf[48];              // the entry's image path, e.g. piZero1/swsbt.img
   char p1[40];                  // the entry's parameters (a parameter can be one raw byte)
-  char p2[24];
+  char p2[48];
   char needs[56];               // a file the game needs; "ROM NOT FOUND!" is shown when it is missing
 } NmNode;
 
@@ -275,6 +279,7 @@ static NmNode *nmAddTop(NmTree *t, const char *title, int id)
   NmNode *n = nmNewNode(t);
   if (n == 0) return 0;
   nmCopy(n->title, title, (int) sizeof n->title);
+  nmSlugKey("cat.", title, n->key, NM_KEY_LEN);
   n->id = id;
   t->tops[t->ntops++] = n;
   return n;
@@ -391,13 +396,19 @@ static int nmSegIs(const char *seg, int len, const char *word)
   return 1;
 }
 
-// A relative path such as "original/BERZERK.BIN" is listed when it is a .bin file and no
+// A Vectrex game file: .bin, or .vec (the same raw cartridge image under another name)
+static int nmIsRomName(const char *name, int len)
+{
+  return len > 4 && (nmEqNoCase(name + len - 4, ".bin") || nmEqNoCase(name + len - 4, ".vec"));
+}
+
+// A relative path such as "original/BERZERK.BIN" is listed when it is a .bin or .vec file and no
 // folder on the way is one the loader keeps out of the list (bios, movies, waves) or hidden.
 static int nmRomPathOk(const char *path)
 {
   int len = (int) strlen(path);
   if (len <= 4 || len >= NM_ROM_PATH) return 0;
-  if (!nmEqNoCase(path + len - 4, ".bin")) return 0;
+  if (!nmIsRomName(path, len)) return 0;
   const char *seg = path;
   for (const char *p = path;; p++)
   {
@@ -427,13 +438,14 @@ static void nmRomDir(const char *path, char *out, int max)
   out[n] = 0;
 }
 
-// "original/MR_BOSTON.BIN" -> "MR BOSTON": file name without ".bin", upper case, '_' and '-' as spaces.
+// "original/MR_BOSTON.BIN" -> "MR BOSTON": file name without its extension, upper case, '_' and '-' as spaces.
 static void nmRomTitle(const char *path, char *out, int max)
 {
   const char *name = path;
   for (const char *p = path; *p != 0; p++) if (*p == '/') name = p + 1;
   int len = (int) strlen(name);
-  if (len > 4 && nmEqNoCase(name + len - 4, ".bin")) len -= 4;
+  const char *dot = strrchr(name, '.');
+  if (dot != 0 && dot > name) len = (int) (dot - name);
   int n = 0;
   for (int i = 0; i < len && n < max - 1; i++)
   {
@@ -461,6 +473,16 @@ static void nmRomKey(const char *path, char *out, int max)
   out[n] = 0;
 }
 
+// "E-SRG.bin" and "e-srg.VEC" are the same game: names equal without their extensions, ignoring case
+static int nmSameBase(const char *a, const char *b)
+{
+  const char *da = strrchr(a, '.'), *db = strrchr(b, '.');
+  int la = da ? (int) (da - a) : (int) strlen(a), lb = db ? (int) (db - b) : (int) strlen(b);
+  if (la != lb) return 0;
+  for (int i = 0; i < la; i++) if (nmLower(a[i]) != nmLower(b[i])) return 0;
+  return 1;
+}
+
 static int nmTitleCmp(const char *a, const char *b)
 {
   while (*a != 0 && *b != 0 && nmLower(*a) == nmLower(*b)) { a++; b++; }
@@ -485,7 +507,7 @@ static int nmAddRoms(NmTree *t, NmNode *into, char (*paths)[NM_ROM_PATH], int np
       for (int k = 0; k < npaths && !copy; k++)
       {
         const char *slash = strrchr(paths[k], '/');
-        if (slash != 0 && nmRomPathOk(paths[k]) && nmEqNoCase(slash + 1, paths[i])) copy = 1;
+        if (slash != 0 && nmRomPathOk(paths[k]) && nmSameBase(slash + 1, paths[i])) copy = 1;
       }
       if (copy) continue;
     }
@@ -640,7 +662,7 @@ static void nmSortAll(NmNode *n)
     if (n->id == NM_ID_ALL_ROMS) continue;
     if (n->child != 0)
     {
-      nmSortChildren(n);
+      if (!n->keepOrder) nmSortChildren(n);
       nmSortAll(n->child);
     }
   }
@@ -717,6 +739,8 @@ static NmNode *nmCategory(NmTree *t, const char *path)
 {
   NmNode *cur = 0;
   const char *p = path;
+  char sofar[NM_KEY_LEN];                     // "ARCADE / ATARI": the key of the category is cat.arcade_atari
+  sofar[0] = 0;
   while (*p != 0)
   {
     char seg[36];
@@ -726,6 +750,8 @@ static NmNode *nmCategory(NmTree *t, const char *path)
     seg[n] = 0;
     nmCleanTitle(seg);
     if (seg[0] == 0) continue;
+    if (sofar[0] != 0) strncat(sofar, " ", sizeof sofar - strlen(sofar) - 1);
+    strncat(sofar, seg, sizeof sofar - strlen(sofar) - 1);
     NmNode *next = cur != 0 ? nmFindChildByTitle(cur, seg) : nmFindTop(t, seg);
     if (next == 0)
     {
@@ -733,6 +759,7 @@ static NmNode *nmCategory(NmTree *t, const char *path)
       next = nmNewNode(t);
       if (next == 0) return cur;
       nmCopy(next->title, seg, (int) sizeof next->title);
+      nmSlugKey("cat.", sofar, next->key, NM_KEY_LEN);
       if (cur != 0) nmAppendChild(cur, next);
       else t->tops[t->ntops++] = next;
     }
@@ -749,6 +776,25 @@ static NmNode *nmProgramsNode(NmTree *t)
   return nmAddTop(t, "PROGRAMS", NM_ID_PROGRAMS);
 }
 
+static int nmParamEq(const char *a, const char *b)
+{
+  if (a == 0 || a[0] == 0) return b == 0 || b[0] == 0;
+  return b != 0 && nmEqNoCase(a, b);
+}
+
+// A child of parent that starts the same image (prefix + image) with the same parameters, or 0. Two files that
+// describe the same game (an upgraded card with old entry files, a folder rule and an entry) give one entry.
+static NmNode *nmFindSame(NmNode *parent, const char *prefix, const char *image, const char *p1, const char *p2)
+{
+  char img[48];
+  nmCopy(img, prefix, (int) sizeof img);
+  int pl = (int) strlen(img);
+  nmCopy(img + pl, image, (int) sizeof img - pl);
+  for (NmNode *c = parent->child; c != 0; c = c->right)
+    if (c->img != 0 && nmEqNoCase(c->img, img) && nmParamEq(c->param1, p1) && nmParamEq(c->param2, p2)) return c;
+  return 0;
+}
+
 // Adds the game that an entry file describes. key = file name without ".ini", prefix = image folder
 // ("piZero1/"). Returns the node, or 0 if the file has no image.
 static NmNode *nmAddEntry(NmTree *t, const char *key, const SidecarText *s, const char *prefix)
@@ -757,6 +803,7 @@ static NmNode *nmAddEntry(NmTree *t, const char *key, const SidecarText *s, cons
   NmNode *parent = s->category[0] != 0 ? nmCategory(t, s->category) : 0;
   if (parent == 0) parent = nmProgramsNode(t);
   if (parent == 0) return 0;
+  if (nmFindSame(parent, prefix, s->image, s->p1, s->p2) != 0) return 0;   // the same game twice in one category
   NmNode *n = nmNewNode(t);
   if (n == 0) return 0;
   if (s->title[0] != 0) nmCopy(n->title, s->title, (int) sizeof n->title);
@@ -939,12 +986,25 @@ static void nmPath(NmNav *n, char *out, int max)
   }
 }
 
-// Notes, title, hide and emulator choice for what was found on the card (ROMs, programs, ROM folders).
-// Entry files were applied when they were read.
+static void nmUnlink(NmNode *n)
+{
+  NmNode *p = n->parent;
+  if (p == 0) return;
+  if (p->child == n) p->child = n->right;
+  else for (NmNode *c = p->child; c != 0; c = c->right) if (c->right == n) { c->right = n->right; break; }
+  n->right = 0;
+  n->parent = 0;
+}
+
+// What the menu file says about what was found on the card (ROMs, programs, ROM folders, folder-rule files) and
+// about categories. Entries were applied when they were read.
+//   ROM with "category": also listed there (it stays in ALL ROMS)    program with "category": moved there
+//   category: hide, order = listed
 static void nmApplySidecars(NmTree *t, NmReadFn rd)
 {
   SidecarText st;
-  for (int i = 0; i < t->used; i++)
+  int end = t->used;                          // copies made below are not looked at again
+  for (int i = 0; i < end; i++)
   {
     NmNode *n = &t->pool[i];
     if (!n->discovered && n->id != NM_ID_ROM_FOLDER) continue;
@@ -952,6 +1012,7 @@ static void nmApplySidecars(NmTree *t, NmReadFn rd)
     if (n->id == NM_ID_ROM_FOLDER)
     {
       if (st.title[0] != 0) { nmCopy(n->title, st.title, (int) sizeof n->title); nmCleanTitle(n->title); }
+      if (st.hide) n->hidden = 1;
       continue;
     }
     if (st.hide) n->hidden = 1;
@@ -962,7 +1023,117 @@ static void nmApplySidecars(NmTree *t, NmReadFn rd)
     }
     if (st.title[0] != 0) { nmCopy(n->title, st.title, (int) sizeof n->title); nmCleanTitle(n->title); }
     if (st.emulator != 0) nmChooseEmulator(n, st.emulator);
+    if (st.category[0] == 0) continue;
+    NmNode *to = nmCategory(t, st.category);
+    if (to == 0 || to == n->parent) continue;
+    if (n->altImg != 0)                         // a ROM: a copy in the category
+    {
+      if (nmFindSame(to, "", n->img, n->param1, n->param2) != 0) continue;
+      NmNode *c = nmNewNode(t);
+      if (c == 0) continue;
+      *c = *n;
+      c->child = 0;
+      nmAppendChild(to, c);
+    }
+    else if (n->parent != 0 && n->parent->id == NM_ID_PROGRAMS)
+    {
+      nmUnlink(n);
+      nmAppendChild(to, n);
+    }
   }
+  for (int i = 0; i < t->used; i++)           // categories, including those made just above
+  {
+    NmNode *n = &t->pool[i];
+    if (n->img != 0 || strncmp(n->key, "cat.", 4) != 0 || !rd(n->key, &st)) continue;
+    if (st.hide) n->hidden = 1;
+    if (st.order) n->keepOrder = 1;
+  }
+}
+
+// A folder rule (menu file section with folder = and image =): every file in the folder becomes an entry.
+// files: the names in that folder (no sub-folders). A file that an entry already starts is not added twice.
+// Returns how many entries were added.
+static int nmAddFolderFiles(NmTree *t, NmRecs *recs, const NmRec *rule, const char *prefix,
+                            const char *const *files, int nfiles, NmReadFn rd)
+{
+  int added = 0;
+  NmNode *parent = rule->category[0] != 0 ? nmCategory(t, rule->category) : 0;
+  if (parent == 0) parent = nmProgramsNode(t);
+  if (parent == 0) return 0;
+  SidecarText st;
+  for (int f = 0; f < nfiles; f++)
+  {
+    const char *name = files[f];
+    if (name[0] == '.' || !nmExtOk(name, rule->files)) continue;
+    char p1[48], p2[48], path[NM_REC_PATH + 40], key[NM_KEY_LEN];
+    nmSubst(p1, (int) sizeof p1, rule->p1, rule->path, name);
+    nmSubst(p2, (int) sizeof p2, rule->p2, rule->path, name);
+    if (nmFindSame(parent, prefix, rule->image, p1, p2) != 0) continue;
+    nmCopy(path, rule->path, (int) sizeof path);
+    strncat(path, "/", sizeof path - strlen(path) - 1);
+    strncat(path, name, sizeof path - strlen(path) - 1);
+    nmPathKey(path, key, NM_KEY_LEN);
+    int have = rd(key, &st);
+    NmNode *n = nmNewNode(t);
+    if (n == 0) break;
+    if (have && st.title[0] != 0) nmCopy(n->title, st.title, (int) sizeof n->title);
+    else nmRomTitle(name, n->title, (int) sizeof n->title);
+    nmCleanTitle(n->title);
+    nmCopy(n->key, key, (int) sizeof n->key);
+    nmCopy(n->imgBuf, prefix, (int) sizeof n->imgBuf);
+    int pl = (int) strlen(n->imgBuf);
+    nmCopy(n->imgBuf + pl, rule->image, (int) sizeof n->imgBuf - pl);
+    n->img = n->imgBuf;
+    if (p1[0] != 0) { nmCopy(n->p1, p1, (int) sizeof n->p1); n->param1 = n->p1; }
+    if (p2[0] != 0) { nmCopy(n->p2, p2, (int) sizeof n->p2); n->param2 = n->p2; }
+    if (have)
+    {
+      for (int r = 0; r < st.rows; r++) n->tags |= nmTagsOfLine(st.row[r]);
+      n->hidden = st.hide;
+    }
+    nmAppendChild(parent, n);
+    added++;
+  }
+  (void) recs;
+  return added;
+}
+
+// The entries of the menu file(s), in the order they were read. Returns how many were added.
+static int nmAddRecEntries(NmTree *t, NmRecs *recs, const char *prefix)
+{
+  int added = 0;
+  SidecarText st;
+  for (int i = 0; i < recs->n; i++)
+  {
+    if (recs->rec[i].kind != NM_REC_ENTRY) continue;
+    nmRecToSidecar(recs, recs->rec[i].key, &st);
+    if (nmAddEntry(t, recs->rec[i].key, &st, prefix) != 0) added++;
+  }
+  return added;
+}
+
+// The built-in folder rules: videos and songs on Malban's card, used when the menu file has no rule for the folder.
+static int nmDefaultFolderRules(const NmRecs *recs, NmRec *out, int max)
+{
+  static const char *def[2][3] = { { "vectrex/movies", "VIDEO", "vectrexvideo.img" },
+                                   { "vectrex/waves", "AUDIO", "vectrexaudio.img" } };
+  int n = 0;
+  for (int d = 0; d < 2 && n < max; d++)
+  {
+    int have = 0;
+    for (int i = 0; i < recs->n; i++)
+      if (recs->rec[i].kind == NM_REC_FOLDER && nmEqNoCase(recs->rec[i].path, def[d][0])) have = 1;
+    if (have) continue;
+    NmRec *r = &out[n++];
+    memset(r, 0, sizeof *r);
+    r->kind = NM_REC_FOLDER;
+    nmCopy(r->path, def[d][0], (int) sizeof r->path);
+    nmCopy(r->category, def[d][1], (int) sizeof r->category);
+    nmCopy(r->image, def[d][2], (int) sizeof r->image);
+    nmCopy(r->p1, "{dir}", (int) sizeof r->p1);
+    nmCopy(r->p2, "{file}", (int) sizeof r->p2);
+  }
+  return n;
 }
 
 typedef struct
@@ -1006,7 +1177,7 @@ static NmNode *nmAssembleRest(NmTree *t, NmScratch *sc, NmReadFn rd, const char 
 
   nmApplySidecars(t, rd);
   for (int i = 0; i < t->ntops; i++)             // every list below the top level is alphabetical
-    if (t->tops[i]->child != 0) { nmSortChildren(t->tops[i]); nmSortAll(t->tops[i]->child); }
+    if (t->tops[i]->child != 0) { if (!t->tops[i]->keepOrder) nmSortChildren(t->tops[i]); nmSortAll(t->tops[i]->child); }
   NmNode *settings = nmAddTop(t, "SETTINGS", NM_ID_SETTINGS);
   for (int i = 0; i < t->ntops; i++) nmHideEmpty(t->tops[i]);
   nmSortTops(t);

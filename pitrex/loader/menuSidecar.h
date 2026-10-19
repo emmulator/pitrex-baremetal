@@ -24,8 +24,9 @@ typedef struct
   char image[40];                  // entry files: the image to start (without the piZero1/ folder)
   char category[56];               // entry files: where it is listed, "ARCADE / ATARI"
   char p1[40];                     // entry files: parameter 1 ("0x2d" is one byte)
-  char p2[24];                     // entry files: parameter 2
+  char p2[48];                     // entry files: parameter 2
   char needs[56];                  // entry files: a file that must exist (roms/aae/mhavoc.zip)
+  int order;                       // a category: 1 = keep the order the entries were read in (order = listed)
   int nctl;                        // number of control lines ("control = ..."), shown by Button 2 (new menu)
   char ctl[SC_MAX_ROWS][SC_ROW_LEN];
 } SidecarText;
@@ -166,6 +167,7 @@ static void sidecarLine(SidecarText *t, const char *name, const char *value)
   else if (strcmp(name, "param1") == 0) sidecarParam(t->p1, (int) sizeof t->p1, value);
   else if (strcmp(name, "param2") == 0) sidecarParam(t->p2, (int) sizeof t->p2, value);
   else if (strcmp(name, "needs") == 0) sidecarCopy(t->needs, (int) sizeof t->needs, value);
+  else if (strcmp(name, "order") == 0) t->order = (value[0] == 'l' || value[0] == 'L');
   else if (strcmp(name, "title") == 0)
   {
     int len = (int) strlen(value);

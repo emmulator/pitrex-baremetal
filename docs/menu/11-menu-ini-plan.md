@@ -1,6 +1,22 @@
 # Plan for 0.2.0: one menu file, folder rules, a menu that works without metadata
 
-Status: **plan**, agreed in outline on 2026-10-18; nothing below is implemented yet.
+Status: **implemented** on 2026-10-18 for 0.2.0 (not yet tried on the PiTrex). Decisions taken while implementing:
+
+* `menu.default.ini` is read when there is no `menu.ini` (not only a reference copy). The installer always replaces
+  `menu.default.ini` and never creates or touches `menu.ini`, so an untouched card follows every update and an
+  edited one keeps its edits.
+* The `g GCE` check is added to the ROM scan, and `bios/`, `movies/` and `waves/` are still skipped by name too (the
+  host tests work from file names alone, and those folders never hold games).
+* A section with no `image`, `file` or `folder` changes the entry of the same name if there is one, otherwise it is
+  a category (that is how `[MAZE]` / `hide = 1` in an extra file works).
+* The same program with the same parameters twice in one category is listed once (old files plus the menu file on
+  an upgraded card; a folder rule plus an entry).
+* Records are kept compact (400 sections, note lines in a 64 KB pool): the loader's static data already reaches the
+  start of its heap, so nothing is allocated.
+* Code: `pitrex/loader/menuFile.h` (reader), `nmAddRecEntries`, `nmAddFolderFiles`, `nmDefaultFolderRules`,
+  `nmApplySidecars` in `newMenuLogic.h`; converter `docs/tools/entries_to_menu_ini.py`.
+
+The plan as written before implementation follows.
 
 ## Goals
 

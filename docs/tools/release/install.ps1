@@ -47,7 +47,7 @@ if ($Restore) {
     if (-not $line) { continue }
     $f = $line.Split("`t")
     switch ($f[0]) {
-      'R' { Copy-Item -LiteralPath (P $bkPath $f[1]) -Destination (P $target $f[1]) -Force; Write-Host "  restored $($f[1])" }
+      { $_ -in 'R', 'D' } { Copy-Item -LiteralPath (P $bkPath $f[1]) -Destination (P $target $f[1]) -Force; Write-Host "  restored $($f[1])" }
       'A' { Remove-Item -LiteralPath (P $target $f[1]) -Force -ErrorAction SilentlyContinue; Write-Host "  removed  $($f[1])" }
       'M' {
         if ((Test-Path -LiteralPath (P $target $f[2])) -and -not (Test-Path -LiteralPath (P $target $f[1]))) {
@@ -115,6 +115,35 @@ $payloadRoot = (Resolve-Path -LiteralPath $payload).ProviderPath.TrimEnd('\')
 Get-ChildItem -LiteralPath $payload -Recurse -File | Sort-Object FullName | ForEach-Object {
   $rel = $_.FullName.Substring($payloadRoot.Length + 1) -replace '\\', '/'
   PutFile $_.FullName $rel
+}
+
+# 0.1.0 had one menu\<name>.ini per entry; 0.2.0 has them all in menu\menu.default.ini. Old files that are exactly
+# as 0.1.0 shipped them are removed (saved in the backup); files you changed are kept and still read.
+$legacy = Join-Path $here 'legacy-menu-files.sha256'
+$menuDir = P $target 'menu'
+if ((Test-Path -LiteralPath $legacy) -and (Test-Path -LiteralPath $menuDir -PathType Container)) {
+  foreach ($line in Get-Content -LiteralPath $legacy) {
+    $parts = $line -split '\s+', 2
+    if ($parts.Count -lt 2) { continue }
+    $f = Join-Path $menuDir $parts[1]
+    if (-not (Test-Path -LiteralPath $f -PathType Leaf)) { continue }
+    if ((Get-FileHash -LiteralPath $f -Algorithm SHA256).Hash -eq $parts[0].ToUpper()) {
+      $script:changed++
+      Write-Host "  remove   menu/$($parts[1]) (now in menu.default.ini)"
+      if (-not $DryRun) {
+        StartBackup
+        New-Item -ItemType Directory -Force -Path (Join-Path $bkPath 'menu') | Out-Null
+        Copy-Item -LiteralPath $f -Destination (Join-Path (Join-Path $bkPath 'menu') $parts[1])
+        Note 'D' "menu/$($parts[1])" ''
+        Remove-Item -LiteralPath $f -Force
+      }
+    } else {
+      Write-Host "  keep     menu/$($parts[1]) (you changed it; it is still read after the menu file)"
+    }
+  }
+}
+if (Test-Path -LiteralPath (Join-Path $menuDir 'menu.ini')) {
+  Write-Host "  keep     menu/menu.ini (your own menu; the new default is menu/menu.default.ini)"
 }
 
 # loader.ini: NEW_MENU = 1 (keeps the file's own line endings)

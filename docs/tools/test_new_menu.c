@@ -6,7 +6,8 @@
  *   python3 -I docs/tools/make_rom_test_data.py <card>/vectrex <homebrew dir> /tmp/data <menu folder> <card>/piZero1
  *   /tmp/t <menu folder> /tmp/data/img_listing.txt /tmp/data/expected_programs.txt /tmp/data/rom_paths.txt /tmp/data/rom_expected.txt
  *
- * <menu folder> is docs/menu/sidecar/menu (the exporter's output) or the card's menu/.
+ * <menu folder> is docs/menu/sidecar/menu (0.1.0: one file per entry), a folder with menu.default.ini (0.2.0), or the
+ * card's menu/. The folder is read the way the loader reads it (menu.ini or menu.default.ini first, then the rest).
  * Set NM_DUMP=1 to print the tree.
  */
 #include <stdio.h>
@@ -27,31 +28,15 @@ static int fails = 0;
 
 static const char *menuDir;
 
-static int handler(void *user, const char *section, const char *name, const char *value)
-{
-  (void) section;
-  sidecarLine((SidecarText *) user, name, value);
-  return 1;
-}
-
-static int hostRead(const char *key, SidecarText *t)
-{
-  char path[512];
-  snprintf(path, sizeof path, "%s/%s.ini", menuDir, key);
-  FILE *f = fopen(path, "rb");
-  if (!f) return 0;
-  static char buf[4096];
-  int len = (int) fread(buf, 1, sizeof buf - 1, f);
-  fclose(f);
-  buf[len] = 0;
-  memset(t, 0, sizeof *t);
-  ini_parse_string(buf, handler, t);
-  return 1;
-}
+static NmRecs recs;
+static int recRead(const char *key, SidecarText *t) { return nmRecToSidecar(&recs, key, t); }
 
 static char sideNames[320][NM_KEY_LEN];
 static int nside = 0;
 
+static int cmpName(const void *a, const void *b) { return strcmp((const char *) a, (const char *) b); }
+
+/* the files of the menu folder in the loader's reading order: menu (or menu.default), then the others sorted */
 static void listSidecars(void)
 {
   DIR *d = opendir(menuDir);
@@ -61,11 +46,42 @@ static void listSidecars(void)
     int len = (int) strlen(e->d_name);
     if (len <= 4 || strcmp(e->d_name + len - 4, ".ini") != 0) continue;
     memset(sideNames[nside], 0, NM_KEY_LEN);
-    strncpy(sideNames[nside], e->d_name, (size_t) len - 4);
+    for (int i = 0; i < len - 4 && i < NM_KEY_LEN - 1; i++) sideNames[nside][i] = nmLower(e->d_name[i]);
     nside++;
   }
   if (d) closedir(d);
+  qsort(sideNames, (size_t) nside, NM_KEY_LEN, cmpName);
+  int main = -1, def = -1;
+  for (int i = 0; i < nside; i++) { if (!strcmp(sideNames[i], "menu")) main = i; if (!strcmp(sideNames[i], "menu.default")) def = i; }
+  char first[NM_KEY_LEN] = "";
+  if (main >= 0) strcpy(first, "menu"); else if (def >= 0) strcpy(first, "menu.default");
+  int o = 0;
+  for (int i = 0; i < nside; i++)
+    if (strcmp(sideNames[i], "menu") && strcmp(sideNames[i], "menu.default")) memmove(sideNames[o++], sideNames[i], NM_KEY_LEN);
+  nside = o;
+  if (first[0]) { memmove(sideNames[1], sideNames[0], (size_t) nside * NM_KEY_LEN); strcpy(sideNames[0], first); nside++; }
 }
+
+static void loadRecs(void)
+{
+  static char buf[131072];
+  memset(&recs, 0, sizeof recs);
+  for (int i = 0; i < nside; i++)
+  {
+    char path[512];
+    snprintf(path, sizeof path, "%s/%s.ini", menuDir, sideNames[i]);
+    FILE *f = fopen(path, "rb");
+    if (!f) continue;
+    int len = (int) fread(buf, 1, sizeof buf - 1, f);
+    fclose(f);
+    buf[len] = 0;
+    nmParseMenuText(&recs, buf, sideNames[i]);
+  }
+}
+
+/* what the folder-rule folders hold on Malban's card */
+static const char *movies[] = { "BadApple.bin", "BadAppleDE.bin", "BlaBla.bin", "LaLinea.bin" };
+static const char *waves[] = { "Bohemian.bin", "PurpleRain.bin" };
 
 static NmTree tree;
 static NmNav nav;
@@ -85,11 +101,22 @@ static int fakeExists(const char *p)
   return 0;
 }
 
+/* the loader's steps: entries of the menu files, folder rules (and the built-in ones), then the rest */
 static NmNode *build(const char *const *fl, int nfl)
 {
   memset(&tree, 0, sizeof tree);
-  return nmAssemble(&tree, &scratch, sideNames, nside, hostRead, "piZero1/", fl, nfl, romPaths, nroms,
-                    "piZero1/vectrexexact.img", "piZero1/vectrexspeedy.img", npresent >= 0 ? fakeExists : 0, &nentries, &nfound);
+  nentries = nmAddRecEntries(&tree, &recs, "piZero1/");
+  static NmRec def[2];
+  int ndef = nmDefaultFolderRules(&recs, def, 2);
+  for (int i = 0; i < recs.n + ndef; i++)
+  {
+    const NmRec *rule = i < recs.n ? &recs.rec[i] : &def[i - recs.n];
+    if (rule->kind != NM_REC_FOLDER) continue;
+    if (nmEqNoCase(rule->path, "vectrex/movies")) nmAddFolderFiles(&tree, &recs, rule, "piZero1/", movies, 4, recRead);
+    if (nmEqNoCase(rule->path, "vectrex/waves")) nmAddFolderFiles(&tree, &recs, rule, "piZero1/", waves, 2, recRead);
+  }
+  return nmAssembleRest(&tree, &scratch, recRead, "piZero1/", fl, nfl, romPaths, nroms,
+                        "piZero1/vectrexexact.img", "piZero1/vectrexspeedy.img", npresent >= 0 ? fakeExists : 0, &nfound);
 }
 
 static int selectTitle(const char *title)
@@ -109,6 +136,7 @@ int main(int argc, char **argv)
   if (argc < 3) { fprintf(stderr, "usage: %s <menu folder> <image listing> [expected programs] [rom paths] [rom expected]\n", argv[0]); return 2; }
   menuDir = argv[1];
   listSidecars();
+  loadRecs();
 
   /* ---- sidecar parameter decoding ---- */
   {
@@ -150,10 +178,11 @@ int main(int argc, char **argv)
 
   NmNode *settings = build(files, nf);
   int entryFiles = 0;
-  for (int i = 0; i < nside; i++) { SidecarText st; if (hostRead(sideNames[i], &st) && st.image[0]) entryFiles++; }
-  printf("sidecar files: %d, entry files: %d, nodes: %d, programs: %d, ROMs: %d\n", nside, entryFiles, tree.used, nfound, nroms);
+  for (int i = 0; i < recs.n; i++) if (recs.rec[i].kind == NM_REC_ENTRY) entryFiles++;
+  printf("menu files: %d, records: %d, entries: %d, nodes: %d, programs: %d, ROMs: %d\n", nside, recs.n, entryFiles, tree.used, nfound, nroms);
+  CHECK(recs.dropped == 0, "%d sections did not fit", recs.dropped);
   CHECK(settings != 0 && settings->id == NM_ID_SETTINGS, "settings node");
-  CHECK(nentries == entryFiles, "every entry file became an entry: %d of %d", nentries, entryFiles);
+  CHECK(nentries >= 60 && nentries <= entryFiles, "entries %d of %d (fewer only when two files describe the same game)", nentries, entryFiles);
   CHECK(entryFiles >= 60, "entry files found: %d", entryFiles);
 
   /* ---- top level: categories alphabetically, then PROGRAMS, then SETTINGS ---- */
@@ -366,7 +395,7 @@ int main(int argc, char **argv)
     char k[40];
     nmRomKey("original/MR_BOSTON.BIN", k, sizeof k);
     CHECK(strcmp(k, "rom.original_mr_boston_bin") == 0, "key for original/MR_BOSTON.BIN is '%s'", k);
-    CHECK(nmRomPathOk("A.BIN") && nmRomPathOk("sub/dir/deep.bin") && nmRomPathOk("x.Bin"), "paths that are listed");
+    CHECK(nmRomPathOk("A.BIN") && nmRomPathOk("sub/dir/deep.bin") && nmRomPathOk("x.Bin") && nmRomPathOk("y.VEC"), "paths that are listed");
     CHECK(!nmRomPathOk(".hidden.bin") && !nmRomPathOk("sub/.hidden.bin") && !nmRomPathOk("readme.txt") &&
           !nmRomPathOk("bios/x.bin") && !nmRomPathOk("movies/m.bin") && !nmRomPathOk("a/waves/w.bin") && !nmRomPathOk(".bin") && !nmRomPathOk("x.bi"), "paths that are not listed");
 
@@ -450,6 +479,134 @@ int main(int argc, char **argv)
     CHECK(picker == 0, "a dedicated emulator's ROM does not bring the AAE picker back");
     npresent = -1;
     build(files, nf);                           /* later checks use the unfiltered tree */
+  }
+
+  /* ---- the 0.2.0 menu file: kinds of sections, keys, overrides, folder rules ---- */
+  {
+    static NmRecs mr;
+    static NmTree mt;
+    static NmScratch ms;
+    memset(&mr, 0, sizeof mr);
+    char text[] =
+      "; a comment\n"
+      "stray = before any section\n"
+      "[MAJOR HAVOC]\r\n"
+      "category = ARCADE / ATARI\n"
+      "image    = aae.img\n"
+      "param1   = mhavoc     ; a comment after a value\n"
+      "text     = WORK IN PROGRESS!!\n"
+      "control  = FIRE  BUTTON 4\n"
+      "[SOLAR QUEST ARCADE]\n"
+      "title = SOLAR QUEST\n"
+      "category = ARCADE\n"
+      "image = aae.img\n"
+      "param1 = solarq\n"
+      "[broken line without a bracket\n"
+      "no equals sign here\n"
+      "[BERZERK]\n"
+      "file = vectrex/original/BERZERK.BIN\n"
+      "category = FAVOURITES\n"
+      "emulator = speedy\n"
+      "[MY PROGRAM]\n"
+      "file = piZero1/voom.img\n"
+      "category = PITREX / DEMOS\n"
+      "[VIDEOS]\n"
+      "folder = vectrex/movies/\n"
+      "category = VIDEO\n"
+      "image = vectrexvideo.img\n"
+      "param1 = {dir}\n"
+      "param2 = {file}\n"
+      "files = bin\n"
+      "[BAD APPLE]\n"
+      "file = vectrex/movies/BadApple.bin\n"
+      "text = THE CLIP\n"
+      "[ORIGINAL GAMES]\n"
+      "folder = vectrex/original\n"
+      "[FAVOURITES]\n"
+      "order = listed\n"
+      "text = MY FAVOURITE GAMES.\n"
+      "[ARCADE / ATARI]\n"
+      "hide = 1\n";
+    nmParseMenuText(&mr, text, "menu");
+    NmRec *r = nmFindRec(&mr, "e.major_havoc");
+    CHECK(r && r->kind == NM_REC_ENTRY && !strcmp(r->title, "MAJOR HAVOC") && !strcmp(r->p1, "mhavoc") && r->nrows == 1 && r->nctl == 1,
+          "an image section is an entry titled by its name, comment after a value removed");
+    r = nmFindRec(&mr, "e.solar_quest_arcade");
+    CHECK(r && !strcmp(r->title, "SOLAR QUEST"), "title = overrides the section name");
+    r = nmFindRec(&mr, "rom.original_berzerk_bin");
+    CHECK(r && r->kind == NM_REC_FILE && r->emulator == 's', "a file section has the 0.1.0 key of its file");
+    CHECK(nmFindRec(&mr, "voom") && nmFindRec(&mr, "voom")->kind == NM_REC_FILE, "a program file's key is its image name");
+    r = nmFindRec(&mr, "f.vectrex_movies");
+    CHECK(r && r->kind == NM_REC_FOLDER && !strcmp(r->path, "vectrex/movies"), "folder rule, trailing / dropped");
+    r = nmFindRec(&mr, "dir.original");
+    CHECK(r && r->kind == NM_REC_NOTES && !strcmp(r->title, "ORIGINAL GAMES"), "a folder without image names a ROM folder group");
+    r = nmFindRec(&mr, "cat.favourites");
+    CHECK(r && r->kind == NM_REC_CATEGORY && r->order == 1 && r->nrows == 1, "a category section: order and text");
+    CHECK(nmFindRec(&mr, "cat.arcade_atari") && nmFindRec(&mr, "cat.arcade_atari")->hide, "a category can be hidden");
+    CHECK(mr.n == 9, "9 records, broken lines skipped (got %d)", mr.n);
+
+    /* a later file changes an earlier record key by key; [entry] is the 0.1.0 format, keyed by the file name */
+    char more[] = "[MAJOR HAVOC]\ntext = WORKS NOW.\n[entry]\ntitle = OLD STYLE\nimage = old.img\n";
+    nmParseMenuText(&mr, more, "old.entry");
+    r = nmFindRec(&mr, "e.major_havoc");
+    CHECK(r && r->nrows == 1 && !strcmp(mr.pool + r->rows, "WORKS NOW.") && !strcmp(r->p1, "mhavoc") && r->nctl == 1,
+          "a later section replaces the notes and keeps the rest");
+    CHECK(nmFindRec(&mr, "old.entry") && !strcmp(nmFindRec(&mr, "old.entry")->title, "OLD STYLE"), "[entry] keyed by its file name");
+
+    char k[64];
+    nmPathKey("vectrex/demos/Epic.bin", k, sizeof k);
+    CHECK(!strcmp(k, "rom.demos_epic_bin"), "path key %s", k);
+    nmPathKey("piZero2/VOOM.img", k, sizeof k);
+    CHECK(!strcmp(k, "voom"), "path key %s", k);
+    nmPathKey("roms/aae/mhavoc.zip", k, sizeof k);
+    CHECK(!strcmp(k, "file.roms_aae_mhavoc_zip"), "path key %s", k);
+    char o[48];
+    nmSubst(o, sizeof o, "{dir}/x/{file}", "vectrex/movies", "A.bin");
+    CHECK(!strcmp(o, "vectrex/movies/x/A.bin"), "subst %s", o);
+    CHECK(nmExtOk("a.BIN", "bin vec") && nmExtOk("a.vec", "bin, vec") && !nmExtOk("a.txt", "bin vec") && nmExtOk("a.txt", ""), "extension lists");
+    const unsigned char cart[] = "g GCE 1982", data[] = "ZZZZZZZZ";
+    CHECK(nmIsCartridge(cart, 10) && !nmIsCartridge(data, 8) && !nmIsCartridge(cart, 3), "cartridge marker");
+    CHECK(nmSameBase("E-SRG.bin", "e-srg.VEC") && !nmSameBase("E-SRG.bin", "E-SRG2.bin"), "same game, other extension");
+    char t[40];
+    nmRomTitle("homebrew/E-SRG.vec", t, sizeof t);
+    CHECK(!strcmp(t, "E SRG"), ".vec dropped from the title: %s", t);
+
+    /* build a small tree with these records (recRead reads the global recs: point them here for this block) */
+    static char rp[3][NM_ROM_PATH] = { "original/BERZERK.BIN", "original/WEBWARS.BIN", "solo.vec" };
+    const char *fl[] = { "aae.img", "vectrexvideo.img", "vectrexexact.img", "vectrexspeedy.img", "voom.img", "old.img" };
+    const char *mv[] = { "BadApple.bin", "LaLinea.bin", "notes.txt", ".hidden.bin" };
+    static NmRecs keep;
+    keep = recs;
+    recs = mr;
+    memset(&mt, 0, sizeof mt);
+    int ne = nmAddRecEntries(&mt, &recs, "piZero1/");
+    CHECK(ne == 3, "three entries (got %d)", ne);
+    SidecarText dup;
+    nmRecToSidecar(&recs, "e.major_havoc", &dup);
+    CHECK(nmAddEntry(&mt, "again", &dup, "piZero1/") == 0, "a second Major Havoc in ATARI is dropped");
+    int nfold;
+    nfold = nmAddFolderFiles(&mt, &recs, nmFindRec(&recs, "f.vectrex_movies"), "piZero1/", mv, 4, recRead);
+    CHECK(nfold == 2, "folder rule: the two .bin files (got %d)", nfold);
+    static NmRec def[2];
+    CHECK(nmDefaultFolderRules(&recs, def, 2) == 1 && !strcmp(def[0].path, "vectrex/waves"), "only waves gets the built-in rule (movies has one)");
+    NmNode *set = nmAssembleRest(&mt, &ms, recRead, "piZero1/", fl, 6, rp, 3, "piZero1/vectrexexact.img", "piZero1/vectrexspeedy.img", 0, &nfound);
+    CHECK(set != 0, "assembled");
+    NmNode *vid = nmFindTop(&mt, "VIDEO");
+    NmNode *ba = vid ? findTitle(vid, "BAD APPLE") : 0;
+    CHECK(ba && !strcmp(ba->param1, "vectrex/movies") && !strcmp(ba->param2, "BadApple.bin") && !strcmp(ba->img, "piZero1/vectrexvideo.img"),
+          "folder rule entry with its file section's title and the parameters filled in");
+    CHECK(vid && findTitle(vid, "LALINEA"), "a file without a section is titled by its name");
+    NmNode *fav = nmFindTop(&mt, "FAVOURITES");
+    NmNode *bz = fav ? findTitle(fav, "BERZERK") : 0;
+    CHECK(bz && strstr(bz->img, "speedy") && fav->keepOrder, "a ROM with a category is copied there (with its emulator); order = listed");
+    NmNode *all = findTitle(nmFindTop(&mt, "VECTREX"), "ALL ROMS");
+    CHECK(all && findTitle(all, "SOLO") && findTitle(all, "ORIGINAL GAMES"), "the ROM stays in ALL ROMS; .vec listed; the group renamed");
+    NmNode *pd = findTitle(nmFindTop(&mt, "PITREX"), "DEMOS");
+    NmNode *pg = nmFindTop(&mt, "PROGRAMS");
+    CHECK(pd && findTitle(pd, "MY PROGRAM") && (pg == 0 || pg->hidden), "a program with a category moves out of PROGRAMS, titled by its section");
+    NmNode *atari = findTitle(nmFindTop(&mt, "ARCADE"), "ATARI");
+    CHECK(atari && atari->hidden, "a hidden category");
+    recs = keep;
   }
 
   if (getenv("NM_DUMP"))

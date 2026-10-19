@@ -57,7 +57,9 @@ run "Button 2 shows the controls page, then Button 4 still starts the game" 190 
 # sidecars: hide a program, switch a ROM to Speedy
 mkdir -p "$work/card"; cp -r "$base"/. "$work/card"/
 run "PITREX > SAMPLE PROGRAMS starts MAZE first (HELLO WORLD is hidden)" 170 "$(downs 2 10),right@40,$(downs 6 50),right@110,b4@130" 'image=piZero1/maze.img'
-printf '[entry]\nhide = 1\n' > "$work/card/menu/maze.ini"
+# 0.1.0 card: the entry file itself says hide; 0.2.0 card: a later file changes the [MAZE] section of the menu file
+if [ -f "$work/card/menu/maze.ini" ]; then printf '[entry]\nhide = 1\n' > "$work/card/menu/maze.ini"
+else printf '[MAZE]\nhide = 1\n' > "$work/card/menu/zz-my-changes.ini"; fi
 run "hide = 1 removes MAZE (the first program is now PACMAN)" 170 "$(downs 2 10),right@40,$(downs 6 50),right@110,b4@130" 'image=piZero1/pacman.img' "$work/card"
 printf '[entry]\nemulator = speedy\n' > "$work/card/menu/rom.demos_epic_bin.ini"
 run "sidecar emulator = speedy: Button 4 starts Speedy" 150 "$roms,b4@110" 'image=piZero1/vectrexspeedy.img param1="demos/epic.bin"' "$work/card"
@@ -78,6 +80,12 @@ run "...and the AAE picker is listed (first row of ARCADE)" 100 "right@10,b4@40"
 # back navigation: enter ARCADE, go back with the stick, the next Button 4 enters VECTREX again (first row)
 runnot "entering and leaving a category starts nothing" 80 "down@10,right@20,left@30" 'LAUNCH'
 runnot "category rows are not started by Button 4 on a category" 60 "b4@10" 'LAUNCH'
+
+# no metadata at all: no menu files. Top level: AUDIO, VECTREX, VIDEO (from the built-in folder rules), PROGRAMS, SETTINGS
+nm="$work/nometa"; mkdir -p "$nm"; cp -r "$base"/. "$nm"/; rm -f "$nm"/menu/*.ini
+run "no menu files: VIDEO lists vectrex/movies and starts the video player with the file" 120 "$(downs 2 10),right@40,b4@60" 'image=piZero1/vectrexvideo.img param1="vectrex/movies" param2="BadApple.bin"' "$nm"
+printf 'g GCE 2026\200' > "$nm/vectrex/000_FIRST.vec"
+run "a .vec file is listed under ALL ROMS (loose files come after the folders)" 160 "$(downs 1 10),right@30,right@40,$(downs 2 50),b4@90" 'image=piZero1/vectrexexact.img param1="000_FIRST.vec"' "$nm"
 
 echo; echo "$pass passed, $fail failed"
 [ "$fail" -eq 0 ]

@@ -49,8 +49,23 @@ static int nmFrames = 0;
 static int nmArmed = 0;                        // input is ignored until the controls have been at rest for a moment
 static uint8_t nmLastButtons = 0x0f;           // a button held at start does not count as a press
 
-// Remember which sidecar files exist, so a missing one is never opened: every failed open
-// writes a line to the serial console and costs time.
+static void nmLog(const char *step);
+
+// The menu files: menu.ini (or menu.default.ini), then the other *.ini in menu/, read into records at start-up.
+static NmRecs nmRecs;
+static char nmMenuBuf[131072];                 // one menu file at a time
+static int nmMenuTruncated = 0;
+static NmRec nmDefRules[2];                    // built-in folder rules (videos, songs)
+static char nmDirNames[NM_MAX_FILES][40];      // the files of one folder-rule folder
+static const char *nmDirPtr[NM_MAX_FILES];
+
+static int nmRecRead(const char *key, SidecarText *t)
+{
+  return nmRecToSidecar(&nmRecs, key, t);
+}
+
+// The names of the files in menu/ (without .ini), sorted, so the order in which they are read does not depend on
+// the card's directory order.
 static void nmListSidecars(void)
 {
   nmSideCount = 0;
@@ -67,19 +82,53 @@ static void nmListSidecars(void)
     nmSideCount++;
   }
   closedir(dp);
-}
-
-static int nmHasSidecar(const char *key)
-{
+  for (int a = 1; a < nmSideCount; a++)        // insertion sort
+  {
+    char v[NM_KEY_LEN];
+    nmCopy(v, nmSideNames[a], NM_KEY_LEN);
+    int b = a - 1;
+    while (b >= 0 && strcmp(nmSideNames[b], v) > 0) { nmCopy(nmSideNames[b + 1], nmSideNames[b], NM_KEY_LEN); b--; }
+    nmCopy(nmSideNames[b + 1], v, NM_KEY_LEN);
+  }
+  // reading order: menu.ini first (or, without it, menu.default.ini), then the others; the unused one is dropped
+  int haveMain = 0;
+  for (int i = 0; i < nmSideCount; i++) if (strcmp(nmSideNames[i], "menu") == 0) haveMain = 1;
+  const char *first = haveMain ? "menu" : "menu.default";
+  int o = 0;
+  char keep[NM_KEY_LEN];
+  keep[0] = 0;
   for (int i = 0; i < nmSideCount; i++)
-    if (strcmp(nmSideNames[i], key) == 0) return 1;
-  return 0;
+  {
+    if (strcmp(nmSideNames[i], first) == 0) { nmCopy(keep, nmSideNames[i], NM_KEY_LEN); continue; }
+    if (strcmp(nmSideNames[i], "menu") == 0 || strcmp(nmSideNames[i], "menu.default") == 0) continue;
+    if (o != i) nmCopy(nmSideNames[o], nmSideNames[i], NM_KEY_LEN);
+    o++;
+  }
+  nmSideCount = o;
+  if (keep[0] != 0)
+  {
+    for (int i = nmSideCount; i > 0; i--) nmCopy(nmSideNames[i], nmSideNames[i - 1], NM_KEY_LEN);
+    nmCopy(nmSideNames[0], keep, NM_KEY_LEN);
+    nmSideCount++;
+  }
 }
 
-// Reads a sidecar only if it is in the list of files in menu/ (a missing file is never opened).
-static int nmReadListed(const char *key, SidecarText *t)
+// Reads menu/<stem>.ini into the records.
+static void nmReadMenuFile(const char *stem)
 {
-  return nmHasSidecar(key) && sidecarReadKey(key, t);
+  char path[96];
+  nmCopy(path, "menu/", (int) sizeof path);
+  strncat(path, stem, sizeof path - strlen(path) - 5);
+  strcat(path, ".ini");
+  ensureMainPath();
+  FILE *f = fopen(path, "rb");
+  if (f == 0) return;
+  int len = (int) fread(nmMenuBuf, 1, sizeof(nmMenuBuf) - 1, f);
+  if (len == (int) sizeof(nmMenuBuf) - 1) nmMenuTruncated = 1;
+  fclose(f);
+  if (len <= 0) return;
+  nmMenuBuf[len] = 0;
+  nmParseMenuText(&nmRecs, nmMenuBuf, stem);
 }
 
 // All .bin files under vectrex/ (two folder levels), as paths relative to vectrex/.
@@ -126,7 +175,15 @@ static int nmScanRoms(void)
         }
         else if (nroms < NM_MAX_ROMS && nmRomPathOk(path))
         {
-          nmCopy(nmRomPaths[nroms++], path, NM_ROM_PATH);
+          char full[NM_ROM_PATH + 16];                     // only real cartridges: they start with "g GCE"
+          unsigned char head[8];
+          int got = 0;
+          nmCopy(full, "vectrex/", (int) sizeof full);
+          strncat(full, path, sizeof full - strlen(full) - 1);
+          ensureMainPath();
+          FILE *rf = fopen(full, "rb");
+          if (rf != 0) { got = (int) fread(head, 1, sizeof head, rf); fclose(rf); }
+          if (nmIsCartridge(head, got)) nmCopy(nmRomPaths[nroms++], path, NM_ROM_PATH);
         }
       }
       closedir(dp);
@@ -182,6 +239,7 @@ static int newMenuInitStep(void)
   {
     case 0:
       memset(&nmTree, 0, sizeof nmTree);
+      memset(&nmRecs, 0, sizeof nmRecs);
       nmListSidecars();
       nmReadStatesFlag();
       break;
@@ -205,23 +263,55 @@ static int newMenuInitStep(void)
     case 2:
       nmInitRoms = nmScanRoms();
       break;
-    case 3:                                    // the entry files, a few per refresh
+    case 3:                                    // the menu files, a few per refresh (menu.ini alone in the first)
     {
-      int n = nmSideCount - nmInitDone;
+      int n = nmInitDone == 0 ? 1 : nmSideCount - nmInitDone;
       if (n > 6) n = 6;
-      if (n > 0) nmInitEntries += nmAddEntries(&nmTree, &nmSideNames[nmInitDone], n, nmReadListed, IMG_FILE_PREFIX);
-      nmInitDone += n;
+      for (int i = 0; i < n && nmInitDone < nmSideCount; i++) nmReadMenuFile(nmSideNames[nmInitDone++]);
       if (nmInitDone < nmSideCount) return 0;  // stay in this stage
       break;
     }
+    case 4:                                    // the entries, then every folder rule's files
+    {
+      nmInitEntries = nmAddRecEntries(&nmTree, &nmRecs, IMG_FILE_PREFIX);
+      int ndef = nmDefaultFolderRules(&nmRecs, nmDefRules, 2);
+      for (int i = 0; i < nmRecs.n + ndef; i++)
+      {
+        const NmRec *rule = i < nmRecs.n ? &nmRecs.rec[i] : &nmDefRules[i - nmRecs.n];
+        if (rule->kind != NM_REC_FOLDER) continue;
+        char dir[NM_REC_PATH + 4];
+        nmCopy(dir, NM_CARD, (int) sizeof dir);
+        strncat(dir, rule->path, sizeof dir - strlen(dir) - 1);
+        int nf = 0;
+        DIR *dp = opendir(dir);
+        if (dp == 0) continue;
+        dirent *fi;
+        while ((fi = readdir(dp)) != 0 && nf < NM_MAX_FILES)
+        {
+          if (fi->d_type == DT_DIR) continue;
+          nmCopy(nmDirNames[nf], fi->d_name, (int) sizeof nmDirNames[0]);
+          nmDirPtr[nf] = nmDirNames[nf];
+          nf++;
+        }
+        closedir(dp);
+        nmInitEntries += nmAddFolderFiles(&nmTree, &nmRecs, rule, IMG_FILE_PREFIX, nmDirPtr, nf, nmRecRead);
+      }
+      break;
+    }
     default:
-      nmSettingsNode = nmAssembleRest(&nmTree, &nmScratch, nmReadListed, IMG_FILE_PREFIX, nmFilePtr, nmInitFiles,
+      nmSettingsNode = nmAssembleRest(&nmTree, &nmScratch, nmRecRead, IMG_FILE_PREFIX, nmFilePtr, nmInitFiles,
                                       nmRomPaths, nmInitRoms, IMG_FILE_PREFIX "vectrexexact.img",
                                       IMG_FILE_PREFIX "vectrexspeedy.img",
                                       newMenuShowMissing ? 0 : nmFileExists, &nmFound);
       nmInit(&nmNav, &nmTree);
       nmNotesOwner = 0;
-      printf("New menu: %i nodes, %i entry files, %i programs, %i ROMs found\n\r", nmTree.used, nmInitEntries, nmFound, nmInitRoms);
+      printf("New menu: %i nodes, %i entries, %i records, %i programs, %i ROMs found\n\r", nmTree.used, nmInitEntries, nmRecs.n, nmFound, nmInitRoms);
+      if (nmRecs.dropped || nmMenuTruncated)
+      {
+        char b[80];
+        sprintf(b, "menu files: %i sections did not fit, truncated=%i", nmRecs.dropped, nmMenuTruncated);
+        nmLog(b);
+      }
       return 1;
   }
   nmInitStage++;
@@ -389,7 +479,16 @@ static void nmDrawNotes(NmNode *n)
   if (n == 0) return;
   int y = NM_NOTE_Y;
   const char *help[6];
-  int nh = nmHelp(n, help, 6);
+  int nh = 0;
+  if (n->img == 0)                             // a category: its text in the menu file, else the built-in help
+  {
+    static SidecarText cat;
+    if (nmRecRead(n->key, &cat) && cat.rows > 0)
+    {
+      for (int r = 0; r < cat.rows && r < 6; r++) help[nh++] = cat.row[r];
+    }
+    else nh = nmHelp(n, help, 6);
+  }
   if (nh > 0)                                  // a category (or SETTINGS): say what it is
   {
     for (int r = 0; r < nh; r++)
@@ -405,7 +504,7 @@ static void nmDrawNotes(NmNode *n)
     nmNotesOwner = n;
     memset(&sidecar, 0, sizeof sidecar);
     nmNeedsMissing = 0;
-    if (n->key[0] != 0 && nmHasSidecar(n->key)) sidecarReadKey(n->key, &sidecar);
+    if (n->key[0] != 0) nmRecRead(n->key, &sidecar);
     size_t nl = strlen(n->needs);
     if (nl > 0 && n->needs[nl - 1] != '/')     // a folder ("roms/aae/", the AAE picker) cannot be opened as a file
     {

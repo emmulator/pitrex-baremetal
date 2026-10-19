@@ -24,8 +24,13 @@ for pi in piZero1 piZero2; do
   cp "$builds/vectrex-players-fork-source/$pi/"*.img "$root/payload/$pi/"
   cp "$builds/arcade-fixes-20261017/$pi/"*.img "$root/payload/$pi/"
 done
+# the menu: one file made from the entry files (docs/menu/sidecar/menu), and the checksums of the 0.1.0 entry files
+# so the installer can remove the ones an upgraded card still has unchanged
 mkdir -p "$root/payload/menu"
-cp "$fork/docs/menu/sidecar/menu/"*.ini "$root/payload/menu/"
+python3 -I "$fork/docs/tools/entries_to_menu_ini.py" "$fork/docs/menu/sidecar/menu" "$root/payload/menu/menu.default.ini"
+git -C "$fork" ls-tree --name-only v0.1.0 docs/menu/sidecar/menu/ | while IFS= read -r f; do
+  printf '%s  %s\n' "$(git -C "$fork" show "v0.1.0:$f" | sha256sum | cut -d' ' -f1)" "$(basename "$f")"
+done > "$root/legacy-menu-files.sha256"
 
 # the guides: README.md (from docs/README.md) is the front page. Links into the repository's other docs point at the
 # source repository, which is public before a release goes out.

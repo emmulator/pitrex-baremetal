@@ -23,4 +23,8 @@ if [ -n "$extra" ]; then
     case "${f,,}" in *.bin) : > "$out/vectrex/$(basename "$f")";; *.vec) : > "$out/vectrex/$(basename "${f%.*}").bin";; esac
   done
 fi
+# the menu only lists Vectrex files that start like a cartridge: give the game placeholders the "g GCE" marker
+# (BIOS, video and sound files stay empty, as their real contents do not start with it)
+find "$out/vectrex" -type f \( -iname '*.bin' -o -iname '*.vec' \) 2>/dev/null | grep -viE '/vectrex/(bios|movies|waves)/' |
+  while IFS= read -r f; do printf 'g GCE 1982\200' > "$f"; done
 echo "preview card: $(find "$out" -type f | wc -l) files in $out"

@@ -55,7 +55,7 @@ if [ "$mode" = restore ]; then
   awk '{ l[NR] = $0 } END { for (i = NR; i >= 1; i--) print l[i] }' "$bk/MANIFEST.tsv" > "$tac_file"
   while IFS="$tab" read -r kind a b; do
     case $kind in
-      R) cp "$bk/$a" "$target/$a" && echo "  restored $a" ;;
+      R|D) cp "$bk/$a" "$target/$a" && echo "  restored $a" ;;
       A) rm -f "$target/$a" && echo "  removed  $a" ;;
       M) if [ -e "$target/$b" ] && [ ! -e "$target/$a" ]; then mv "$target/$b" "$target/$a" && echo "  renamed back $a"; fi ;;
     esac
@@ -126,6 +126,35 @@ while IFS= read -r rel; do
   put_file "$payload/$rel" "$rel"
 done < "$list"
 rm -f "$list"
+
+# 0.1.0 had one menu/<name>.ini per entry; 0.2.0 has them all in menu/menu.default.ini. Old files that are exactly
+# as 0.1.0 shipped them are removed (saved in the backup); files you changed are kept and still read.
+hashf() { if command -v sha256sum >/dev/null 2>&1; then sha256sum "$1" | cut -d' ' -f1; else shasum -a 256 "$1" | cut -d' ' -f1; fi; }
+legacy="$here/legacy-menu-files.sha256"
+if [ -f "$legacy" ] && [ -d "$target/menu" ]; then
+  kept=0
+  while read -r sum name; do
+    f="$target/menu/$name"
+    [ -f "$f" ] || continue
+    if [ "$(hashf "$f")" = "$sum" ]; then
+      changed=$((changed + 1))
+      echo "  remove   menu/$name (now in menu.default.ini)"
+      if [ "$dry" = 0 ]; then
+        start_backup
+        mkdir -p "$bk/menu"
+        cp "$f" "$bk/menu/$name"
+        note D "menu/$name"
+        rm -f "$f"
+      fi
+    else
+      kept=$((kept + 1))
+      echo "  keep     menu/$name (you changed it; it is still read after the menu file)"
+    fi
+  done < "$legacy"
+fi
+if [ -f "$target/menu/menu.ini" ]; then
+  echo "  keep     menu/menu.ini (your own menu; the new default is menu/menu.default.ini)"
+fi
 
 # loader.ini: NEW_MENU = 1 (keeps the file's own line endings)
 ini="$target/loader.ini"
