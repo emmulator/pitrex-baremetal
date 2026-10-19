@@ -63,9 +63,9 @@ printf '[entry]\nemulator = speedy\n' > "$work/card/menu/rom.demos_epic_bin.ini"
 run "sidecar emulator = speedy: Button 4 starts Speedy" 150 "$roms,b4@110" 'image=piZero1/vectrexspeedy.img param1="demos/epic.bin"' "$work/card"
 run "...and Button 2 then starts Exact" 150 "$roms,b2@110" 'image=piZero1/vectrexexact.img param1="demos/epic.bin"' "$work/card"
 
-# a brand new entry file: no recompiling. PITREX is the 3rd category; the new game sorts last in it
+# a brand new entry file: no recompiling. PITREX is the 3rd category; the new game sorts last in it (25 downs: the list stops at its end)
 printf '[entry]\ntitle = ZZ NEW GAME\ncategory = PITREX\nimage = hello.img\nparam1 = my/param\n' > "$work/card/menu/zznew.ini"
-run "a new entry file appears in its category, sorted, with its parameter" 200 "$(downs 2 10),right@40,$(downs 12 50),b4@170" 'image=piZero1/hello.img param1="my/param"' "$work/card"
+run "a new entry file appears in its category, sorted, with its parameter" 280 "$(downs 2 10),right@40,$(downs 25 50),b4@260" 'image=piZero1/hello.img param1="my/param"' "$work/card"
 rm -f "$work/card/menu/zznew.ini"
 
 # entries whose ROM is not on the card are hidden; they come back with the file

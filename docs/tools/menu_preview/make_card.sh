@@ -15,7 +15,7 @@ cp "$src/config.txt" "$out/" 2>/dev/null || : > "$out/config.txt"
 mkdir -p "$out/menu"; cp "$side"/*.ini "$out/menu/"
 # every ROM zip an entry needs, so the tree (and the row counts scenarios.sh navigates by) does not depend on
 # which zips the source card happens to have
-sed -n 's/^needs *= *\([^ ;]*[^/ ;]\).*/\1/p' "$side"/*.ini | tr -d '\r' | sort -u | while IFS= read -r f; do
+sed -n 's/^needs *= *\([^ ;]*\).*/\1/p' "$side"/*.ini | tr -d '\r' | grep -v '/$' | sort -u | while IFS= read -r f; do
   mkdir -p "$out/$(dirname "$f")"; [ -e "$out/$f" ] || : > "$out/$f"
 done
 if [ -n "$extra" ]; then

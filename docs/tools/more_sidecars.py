@@ -121,6 +121,16 @@ for key, (old, new) in FIX.items():
         if 'title = ' + old + '\n' in t:
             open(p, 'w').write(t.replace('title = ' + old + '\n', 'title = ' + new + '\n'))
 
+# entries the original menu filed elsewhere. Vectorblade: the Vectrex game built into its own PiTrex program
+# (vecx.vectorblade, with card high scores and its own fonts), which only runs on a PiTrex (issue #1)
+MOVE = {'vectorblade': ('VECTREX', 'PITREX')}
+for key, (old, new) in MOVE.items():
+    p = os.path.join(folder, key + '.ini')
+    if os.path.exists(p):
+        t = open(p).read()
+        if 'category = ' + old + '\n' in t:
+            open(p, 'w').write(t.replace('category = ' + old + '\n', 'category = ' + new + '\n'))
+
 # note lines: the PiTrex font draws commas, brackets and slashes as blanks
 CLEAN = [('ROMS/AAE', 'THE ROMS AAE FOLDER'), ('RYTHMIC', 'RHYTHMIC'), (', ', '. '), (',', '.'), ('(', ''), (')', '.'), ('/', ' ')]
 for f in sorted(os.listdir(folder)):

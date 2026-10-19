@@ -19,6 +19,7 @@ Nothing here is part of upstream.
 | [09-hardware-test-log.md](menu/09-hardware-test-log.md) | What was tried on a real PiTrex on 2026-10-17 and what happened |
 | [10-other-work.md](menu/10-other-work.md) | Other published menu work (forks, posts) found on 2026-10-18 |
 | [08-menu-preview.md](menu/08-menu-preview.md) | Running the real menu code on a PC with the PiTrex simulator, scripted checks |
+| [11-menu-ini-plan.md](menu/11-menu-ini-plan.md) | Plan for 0.2.0: one `menu/menu.ini`, folder rules, a menu that works with no metadata |
 
 Release packaging: `docs/tools/release/` (`install.sh`, `install.ps1`, `install.bat` copy the rebuilt files over Malban's unpacked card with backup and `--restore`; `make_release.sh` assembles the zip from the saved build sets).
 
