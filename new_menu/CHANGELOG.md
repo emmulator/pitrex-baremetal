@@ -42,7 +42,10 @@ the menu: [NEW_MENU_README.md](../NEW_MENU_README.md).
 * The package has `BUILDINFO.txt` (which source each program was built from) and this changelog.
 
 ### Repository
-* The fork's documentation and tools moved from `docs/` to `new_menu/`.
+* The fork's documentation and tools moved from `docs/` to `new_menu/`. **Known issue:** the 0.1.0 release page and
+  the guides inside the 0.1.0 zip link to files under `docs/` on the `menu-redesign` branch; those links now show
+  "page not found". The same files are still there at the `v0.1.0` tag:
+  <https://github.com/emmulator/pitrex-baremetal/tree/v0.1.0/docs>.
 
 ## 0.1.0 (2026-10-18)
 
