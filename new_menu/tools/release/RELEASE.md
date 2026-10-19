@@ -59,6 +59,7 @@ or build a whole card, arcade ROMs included, from Malban's zip and the RpiTeaM E
 | A card built by `make_card.py` from the 2025 zip and the RpiTeaM image | boots and shows the menu (Pi Zero W, 2026-10-18) |
 | Hiding games whose ROM is missing, the entries for the other arcade versions, QB3 and the sample programs | tested on a PC (unit tests and the desktop preview); the menu starts on the PiTrex, the rest is **not yet tried there** |
 | A 0.2.0 card built by `make_card.py` (menu file, FAVORITES, VIDEO and AUDIO from folder rules) | boots and the menu shows as expected (Pi Zero W, 2026-10-19) |
+| The original menu (`NEW_MENU = 0` in `loader.ini`) with the 0.2.0 loader | boots and shows the original menu (Pi Zero W, 2026-10-19) |
 | Changing the menu with `menu.ini`, collections, the no-metadata mode, `.vec` files | tested on a PC (unit tests and the desktop preview); **not yet tried on the PiTrex** |
 | Upgrading a 0.1.0 card with `install.sh` | tested on a PC copy of a 0.1.0 card: unchanged entry files removed, changed ones and `menu.ini` kept, `--restore` gives the 0.1.0 card back byte for byte |
 | Pi Zero 2 | built, **not tested on hardware** |
