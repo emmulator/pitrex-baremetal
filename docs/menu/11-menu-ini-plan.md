@@ -2,9 +2,12 @@
 
 Status: **implemented** on 2026-10-18 for 0.2.0 (not yet tried on the PiTrex). Decisions taken while implementing:
 
-* `menu.default.ini` is read when there is no `menu.ini` (not only a reference copy). The installer always replaces
-  `menu.default.ini` and never creates or touches `menu.ini`, so an untouched card follows every update and an
-  edited one keeps its edits.
+* Layers (changed from "menu.ini replaces the default" after review): `menu.default.ini` is read first, then the
+  other `menu/*.ini` alphabetically, then the user's `menu.ini`, which holds only changes and has the last word. The
+  installer always replaces `menu.default.ini` and never creates or touches `menu.ini`, so updates still bring new
+  entries to a customised card. A section with only a name changes the earlier section of that name (any kind);
+  `hide = 0` undoes a hide; `also = A, B` lists copies in more categories (overlapping collections);
+  `order = listed` sorts by the last mention in the files.
 * The `g GCE` check is added to the ROM scan, and `bios/`, `movies/` and `waves/` are still skipped by name too (the
   host tests work from file names alone, and those folders never hold games).
 * A section with no `image`, `file` or `folder` changes the entry of the same name if there is one, otherwise it is

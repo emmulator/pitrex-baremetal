@@ -153,7 +153,7 @@ if [ -f "$legacy" ] && [ -d "$target/menu" ]; then
   done < "$legacy"
 fi
 if [ -f "$target/menu/menu.ini" ]; then
-  echo "  keep     menu/menu.ini (your own menu; the new default is menu/menu.default.ini)"
+  echo "  keep     menu/menu.ini (your changes; they are read after the new menu.default.ini)"
 fi
 
 # loader.ini: NEW_MENU = 1 (keeps the file's own line endings)

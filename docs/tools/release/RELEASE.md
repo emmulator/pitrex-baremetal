@@ -20,9 +20,9 @@ or build a whole card, arcade ROMs included, from Malban's zip and the RpiTeaM E
 
 ## New in 0.2.0
 
-* **The whole menu is one file**, `menu/menu.default.ini`. To change it, copy it to `menu/menu.ini` and edit the
-  copy: updates replace `menu.default.ini` and never touch your `menu.ini`. Other `.ini` files in `menu/` can add
-  or change entries.
+* **The whole menu is one file**, `menu/menu.default.ini`, and **your changes go in `menu/menu.ini`**, read last:
+  only the lines you want different (rename, move, hide, notes), and `also = FAVOURITES` to list a game in
+  collections of your own. Updates replace `menu.default.ini` and never touch `menu.ini`, so new games still appear.
 * **Works without any menu file:** every Vectrex game, video, song and program on the card is listed. Videos in
   `vectrex/movies/` and songs in `vectrex/waves/` appear under VIDEO and AUDIO by themselves.
 * Vectrex games may be `.vec` files, and only real cartridges (files starting with `g GCE`) are listed.

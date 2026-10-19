@@ -51,7 +51,7 @@ static uint8_t nmLastButtons = 0x0f;           // a button held at start does no
 
 static void nmLog(const char *step);
 
-// The menu files: menu.ini (or menu.default.ini), then the other *.ini in menu/, read into records at start-up.
+// The menu files: menu.default.ini, the other *.ini in menu/, then menu.ini, read into records at start-up.
 static NmRecs nmRecs;
 static char nmMenuBuf[131072];                 // one menu file at a time
 static int nmMenuTruncated = 0;
@@ -90,27 +90,23 @@ static void nmListSidecars(void)
     while (b >= 0 && strcmp(nmSideNames[b], v) > 0) { nmCopy(nmSideNames[b + 1], nmSideNames[b], NM_KEY_LEN); b--; }
     nmCopy(nmSideNames[b + 1], v, NM_KEY_LEN);
   }
-  // reading order: menu.ini first (or, without it, menu.default.ini), then the others; the unused one is dropped
-  int haveMain = 0;
-  for (int i = 0; i < nmSideCount; i++) if (strcmp(nmSideNames[i], "menu") == 0) haveMain = 1;
-  const char *first = haveMain ? "menu" : "menu.default";
-  int o = 0;
-  char keep[NM_KEY_LEN];
-  keep[0] = 0;
+  // reading order: menu.default.ini first, then the other files, then the user's menu.ini, so it has the last word
+  int haveDef = 0, haveMain = 0, o = 0;
   for (int i = 0; i < nmSideCount; i++)
   {
-    if (strcmp(nmSideNames[i], first) == 0) { nmCopy(keep, nmSideNames[i], NM_KEY_LEN); continue; }
-    if (strcmp(nmSideNames[i], "menu") == 0 || strcmp(nmSideNames[i], "menu.default") == 0) continue;
+    if (strcmp(nmSideNames[i], "menu.default") == 0) { haveDef = 1; continue; }
+    if (strcmp(nmSideNames[i], "menu") == 0) { haveMain = 1; continue; }
     if (o != i) nmCopy(nmSideNames[o], nmSideNames[i], NM_KEY_LEN);
     o++;
   }
   nmSideCount = o;
-  if (keep[0] != 0)
+  if (haveDef)
   {
     for (int i = nmSideCount; i > 0; i--) nmCopy(nmSideNames[i], nmSideNames[i - 1], NM_KEY_LEN);
-    nmCopy(nmSideNames[0], keep, NM_KEY_LEN);
+    nmCopy(nmSideNames[0], "menu.default", NM_KEY_LEN);
     nmSideCount++;
   }
+  if (haveMain) nmCopy(nmSideNames[nmSideCount++], "menu", NM_KEY_LEN);
 }
 
 // Reads menu/<stem>.ini into the records.
@@ -263,7 +259,7 @@ static int newMenuInitStep(void)
     case 2:
       nmInitRoms = nmScanRoms();
       break;
-    case 3:                                    // the menu files, a few per refresh (menu.ini alone in the first)
+    case 3:                                    // the menu files, a few per refresh (menu.default.ini alone in the first)
     {
       int n = nmInitDone == 0 ? 1 : nmSideCount - nmInitDone;
       if (n > 6) n = 6;

@@ -43,7 +43,8 @@ typedef struct NmNode
   int tags;                     // NM_TAG_* found in the notes
   int hidden;                   // hide = 1 in a sidecar, or the entry's image is not on the card
   int discovered;               // found on the card (a ROM or a program), not described by an entry file
-  int keepOrder;                // a category with "order = listed": its entries are not sorted
+  int keepOrder;                // a category with "order = listed": sorted by seq instead of title
+  int seq;                      // when the menu files last mentioned it (0: never)
   char key[NM_KEY_LEN];         // name of the sidecar file (without .ini): notes, controls and the entry itself
   char imgBuf[48];              // the entry's image path, e.g. piZero1/swsbt.img
   char p1[40];                  // the entry's parameters (a parameter can be one raw byte)
@@ -582,7 +583,13 @@ static int nmAddRoms(NmTree *t, NmNode *into, char (*paths)[NM_ROM_PATH], int np
   return added;
 }
 
-// Sorts the children of p by title (case-insensitive, stable).
+static int nmChildCmp(const NmNode *p, const NmNode *a, const NmNode *b)
+{
+  if (p->keepOrder && a->seq != b->seq) return a->seq < b->seq ? -1 : 1;   // order = listed: as the files mention them
+  return nmTitleCmp(a->title, b->title);
+}
+
+// Sorts the children of p by title (case-insensitive, stable); with order = listed by when they were mentioned.
 static void nmSortChildren(NmNode *p)
 {
   NmNode *sorted = 0;
@@ -591,7 +598,7 @@ static void nmSortChildren(NmNode *p)
   {
     NmNode *next = c->right;
     c->right = 0;
-    if (sorted == 0 || nmTitleCmp(c->title, sorted->title) < 0)
+    if (sorted == 0 || nmChildCmp(p, c, sorted) < 0)
     {
       c->right = sorted;
       sorted = c;
@@ -599,7 +606,7 @@ static void nmSortChildren(NmNode *p)
     else
     {
       NmNode *q = sorted;
-      while (q->right != 0 && nmTitleCmp(c->title, q->right->title) >= 0) q = q->right;
+      while (q->right != 0 && nmChildCmp(p, c, q->right) >= 0) q = q->right;
       c->right = q->right;
       q->right = c;
     }
@@ -662,7 +669,7 @@ static void nmSortAll(NmNode *n)
     if (n->id == NM_ID_ALL_ROMS) continue;
     if (n->child != 0)
     {
-      if (!n->keepOrder) nmSortChildren(n);
+      nmSortChildren(n);
       nmSortAll(n->child);
     }
   }
@@ -795,6 +802,38 @@ static NmNode *nmFindSame(NmNode *parent, const char *prefix, const char *image,
   return 0;
 }
 
+// A copy of entry n listed in category "to" (same program, parameters, notes and controls), unless "to" already
+// has it. Returns the copy or 0.
+static NmNode *nmCopyInto(NmTree *t, NmNode *n, NmNode *to)
+{
+  if (to == 0 || to == n->parent || nmFindSame(to, "", n->img, n->param1, n->param2) != 0) return 0;
+  NmNode *c = nmNewNode(t);
+  if (c == 0) return 0;
+  *c = *n;
+  c->child = 0;
+  if (n->img == n->imgBuf) c->img = c->imgBuf;          // pointers into the entry's own buffers follow the copy
+  if (n->param1 == n->p1) c->param1 = c->p1;
+  if (n->param2 == n->p2) c->param2 = c->p2;
+  nmAppendChild(to, c);
+  return c;
+}
+
+// "also = FAVOURITES, TWO PLAYERS": a copy in each of those categories (created if needed)
+static void nmAddAlso(NmTree *t, NmNode *n, const char *also)
+{
+  const char *p = also;
+  while (*p != 0)
+  {
+    char path[56];
+    int k = 0;
+    while (*p != 0 && *p != ',') { if (k < (int) sizeof path - 1) path[k++] = *p; p++; }
+    if (*p == ',') p++;
+    path[k] = 0;
+    NmNode *to = nmCategory(t, path);
+    if (to != 0) nmCopyInto(t, n, to);
+  }
+}
+
 // Adds the game that an entry file describes. key = file name without ".ini", prefix = image folder
 // ("piZero1/"). Returns the node, or 0 if the file has no image.
 static NmNode *nmAddEntry(NmTree *t, const char *key, const SidecarText *s, const char *prefix)
@@ -819,7 +858,9 @@ static NmNode *nmAddEntry(NmTree *t, const char *key, const SidecarText *s, cons
   nmCopy(n->needs, s->needs, (int) sizeof n->needs);
   for (int r = 0; r < s->rows; r++) n->tags |= nmTagsOfLine(s->row[r]);
   n->hidden = s->hide;
+  n->seq = s->seq;
   nmAppendChild(parent, n);
+  if (s->also[0] != 0) nmAddAlso(t, n, s->also);
   return n;
 }
 
@@ -1023,18 +1064,12 @@ static void nmApplySidecars(NmTree *t, NmReadFn rd)
     }
     if (st.title[0] != 0) { nmCopy(n->title, st.title, (int) sizeof n->title); nmCleanTitle(n->title); }
     if (st.emulator != 0) nmChooseEmulator(n, st.emulator);
+    n->seq = st.seq;
+    if (st.also[0] != 0) nmAddAlso(t, n, st.also);
     if (st.category[0] == 0) continue;
     NmNode *to = nmCategory(t, st.category);
     if (to == 0 || to == n->parent) continue;
-    if (n->altImg != 0)                         // a ROM: a copy in the category
-    {
-      if (nmFindSame(to, "", n->img, n->param1, n->param2) != 0) continue;
-      NmNode *c = nmNewNode(t);
-      if (c == 0) continue;
-      *c = *n;
-      c->child = 0;
-      nmAppendChild(to, c);
-    }
+    if (n->altImg != 0) nmCopyInto(t, n, to);   // a ROM: a copy in the category, it stays in ALL ROMS
     else if (n->parent != 0 && n->parent->id == NM_ID_PROGRAMS)
     {
       nmUnlink(n);
@@ -1090,8 +1125,10 @@ static int nmAddFolderFiles(NmTree *t, NmRecs *recs, const NmRec *rule, const ch
     {
       for (int r = 0; r < st.rows; r++) n->tags |= nmTagsOfLine(st.row[r]);
       n->hidden = st.hide;
+      n->seq = st.seq;
     }
     nmAppendChild(parent, n);
+    if (have && st.also[0] != 0) nmAddAlso(t, n, st.also);
     added++;
   }
   (void) recs;
@@ -1177,7 +1214,7 @@ static NmNode *nmAssembleRest(NmTree *t, NmScratch *sc, NmReadFn rd, const char 
 
   nmApplySidecars(t, rd);
   for (int i = 0; i < t->ntops; i++)             // every list below the top level is alphabetical
-    if (t->tops[i]->child != 0) { if (!t->tops[i]->keepOrder) nmSortChildren(t->tops[i]); nmSortAll(t->tops[i]->child); }
+    if (t->tops[i]->child != 0) { nmSortChildren(t->tops[i]); nmSortAll(t->tops[i]->child); }
   NmNode *settings = nmAddTop(t, "SETTINGS", NM_ID_SETTINGS);
   for (int i = 0; i < t->ntops; i++) nmHideEmpty(t->tops[i]);
   nmSortTops(t);

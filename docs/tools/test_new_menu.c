@@ -7,7 +7,7 @@
  *   /tmp/t <menu folder> /tmp/data/img_listing.txt /tmp/data/expected_programs.txt /tmp/data/rom_paths.txt /tmp/data/rom_expected.txt
  *
  * <menu folder> is docs/menu/sidecar/menu (0.1.0: one file per entry), a folder with menu.default.ini (0.2.0), or the
- * card's menu/. The folder is read the way the loader reads it (menu.ini or menu.default.ini first, then the rest).
+ * card's menu/. The folder is read the way the loader reads it (menu.default.ini, the rest, then menu.ini).
  * Set NM_DUMP=1 to print the tree.
  */
 #include <stdio.h>
@@ -36,7 +36,7 @@ static int nside = 0;
 
 static int cmpName(const void *a, const void *b) { return strcmp((const char *) a, (const char *) b); }
 
-/* the files of the menu folder in the loader's reading order: menu (or menu.default), then the others sorted */
+/* the files of the menu folder in the loader's reading order: menu.default, the others sorted, then menu */
 static void listSidecars(void)
 {
   DIR *d = opendir(menuDir);
@@ -51,15 +51,14 @@ static void listSidecars(void)
   }
   if (d) closedir(d);
   qsort(sideNames, (size_t) nside, NM_KEY_LEN, cmpName);
-  int main = -1, def = -1;
-  for (int i = 0; i < nside; i++) { if (!strcmp(sideNames[i], "menu")) main = i; if (!strcmp(sideNames[i], "menu.default")) def = i; }
-  char first[NM_KEY_LEN] = "";
-  if (main >= 0) strcpy(first, "menu"); else if (def >= 0) strcpy(first, "menu.default");
+  int main = 0, def = 0;
+  for (int i = 0; i < nside; i++) { if (!strcmp(sideNames[i], "menu")) main = 1; if (!strcmp(sideNames[i], "menu.default")) def = 1; }
   int o = 0;
   for (int i = 0; i < nside; i++)
     if (strcmp(sideNames[i], "menu") && strcmp(sideNames[i], "menu.default")) memmove(sideNames[o++], sideNames[i], NM_KEY_LEN);
   nside = o;
-  if (first[0]) { memmove(sideNames[1], sideNames[0], (size_t) nside * NM_KEY_LEN); strcpy(sideNames[0], first); nside++; }
+  if (def) { memmove(sideNames[1], sideNames[0], (size_t) nside * NM_KEY_LEN); strcpy(sideNames[0], "menu.default"); nside++; }
+  if (main) strcpy(sideNames[nside++], "menu");
 }
 
 static void loadRecs(void)
@@ -624,6 +623,106 @@ int main(int argc, char **argv)
     NmNode *gg = findTitle(findTitle(nmFindTop(&mt, "VECTREX"), "SPEEDY VECTREX"), "GONE GAME");
     CHECK(gg && !gg->hidden, "KNOWN GAP: an entry whose program exists but whose game file does not is still listed (it has no needs line)");
     recs = keep;
+  }
+
+  /* ---- layers: menu.default.ini, then the user's menu.ini changes it, re-adds things elsewhere, un-hides ---- */
+  {
+    static NmRecs lr;
+    static NmTree lt;
+    static NmScratch ls;
+    memset(&lr, 0, sizeof lr);
+    char def[] =
+      "[MAJOR HAVOC]\ncategory = ARCADE / ATARI\nimage = aae.img\nparam1 = 0x2d\ntext = WORK IN PROGRESS!!\ncontrol = FIRE  BUTTON 4\n"
+      "[TEMPEST]\ncategory = ARCADE / ATARI\nimage = tempest.img\n"
+      "[HELLO WORLD]\ncategory = PITREX / SAMPLE PROGRAMS\nimage = hello.img\nhide = 1\n"
+      "[BAD APPLE]\nfile = vectrex/movies/BadApple.bin\ntext = THE CLIP\n";
+    char mine[] =
+      "[MAJOR HAVOC]\ntext = WORKS GREAT NOW.\nalso = FAVOURITES, TWO PLAYERS\n"          /* change notes, add copies */
+      "[TEMPEST]\ncategory = FAVOURITES\n"                                                /* move */
+      "[HELLO WORLD]\nhide = 0\n"                                                         /* show again */
+      "[BAD APPLE]\ntitle = BAD APPLE CLIP\nalso = FAVOURITES\n"                          /* change a file section by name */
+      "[MAJOR HAVOC RESCUE]\ntitle = MAJOR HAVOC\ncategory = FAVOURITES\nimage = aae.img\nparam1 = 0x2d\n";  /* same game again */
+    nmParseMenuText(&lr, def, "menu.default");
+    nmParseMenuText(&lr, mine, "menu");
+    static NmRecs keep2;
+    keep2 = recs;
+    recs = lr;
+    memset(&lt, 0, sizeof lt);
+    nmAddRecEntries(&lt, &recs, "piZero1/");
+    const char *bv[] = { "BadApple.bin" };
+    static NmRec dr[2];
+    int nd = nmDefaultFolderRules(&recs, dr, 2);
+    for (int i = 0; i < nd; i++) if (!strcmp(dr[i].path, "vectrex/movies")) nmAddFolderFiles(&lt, &recs, &dr[i], "piZero1/", bv, 1, recRead);
+    const char *fl2[] = { "aae.img", "tempest.img", "hello.img", "vectrexvideo.img" };
+    nmAssembleRest(&lt, &ls, recRead, "piZero1/", fl2, 4, romPaths, 0, "piZero1/vectrexexact.img", "piZero1/vectrexspeedy.img", 0, &nfound);
+    NmNode *atari = findTitle(nmFindTop(&lt, "ARCADE"), "ATARI");
+    NmNode *mh = atari ? findTitle(atari, "MAJOR HAVOC") : 0;
+    SidecarText st;
+    CHECK(mh && recRead(mh->key, &st) && st.rows == 1 && !strcmp(st.row[0], "WORKS GREAT NOW.") && st.nctl == 1 && mh->param1[0] == 0x2d,
+          "menu.ini replaces the notes, keeps the program, parameter and controls");
+    NmNode *fav = nmFindTop(&lt, "FAVOURITES"), *two = nmFindTop(&lt, "TWO PLAYERS");
+    int mhInFav = 0;
+    for (NmNode *c = fav ? fav->child : 0; c; c = c->right) if (!strcmp(c->title, "MAJOR HAVOC")) mhInFav++;
+    CHECK(mhInFav == 1, "also = FAVOURITES lists Major Havoc there once, even though a second section adds it too (%d)", mhInFav);
+    CHECK(two && findTitle(two, "MAJOR HAVOC") && !strcmp(findTitle(two, "MAJOR HAVOC")->key, mh ? mh->key : "?"),
+          "also = TWO PLAYERS: a copy with the same notes (same key)");
+    CHECK(fav && findTitle(fav, "TEMPEST") && !(atari && findTitle(atari, "TEMPEST")), "category = moves an entry");
+    NmNode *hw = findTitle(findTitle(nmFindTop(&lt, "PITREX"), "SAMPLE PROGRAMS"), "HELLO WORLD");
+    CHECK(hw && !hw->hidden, "hide = 0 shows what the default hid");
+    NmNode *vid = nmFindTop(&lt, "VIDEO");
+    CHECK(vid && findTitle(vid, "BAD APPLE CLIP") && fav && findTitle(fav, "BAD APPLE CLIP"),
+          "a section with only a name changes the file section of that name (title, also)");
+    recs = keep2;
+  }
+
+  /* ---- the collections example of NEW_MENU_README.md, word for word ---- */
+  {
+    static NmRecs cr;
+    static NmTree ct;
+    static NmScratch cs;
+    memset(&cr, 0, sizeof cr);
+    char def[] =
+      "[MAJOR HAVOC]\ncategory = ARCADE / ATARI\nimage = aae.img\nparam1 = 0x2d\n"
+      "[TEMPEST]\ncategory = ARCADE / ATARI\nimage = tempest.img\n"
+      "[BERZERK]\ncategory = VECTREX / SPEEDY VECTREX\nimage = vectrexspeedy.img\nparam1 = original/BERZERK.BIN\n";
+    char mine[] =
+      "[FAVOURITES]\n"
+      "order = listed                      ; in the order of this file, not alphabetical\n"
+      "text = THE GAMES I PLAY MOST.       ; the help shown when FAVOURITES is highlighted\n"
+      "\n"
+      "[TEMPEST]\n"
+      "also = FAVOURITES\n"
+      "\n"
+      "[MAJOR HAVOC]\n"
+      "also = FAVOURITES, TWO PLAYERS\n"
+      "\n"
+      "[BERZERK]                           ; a Vectrex game the menu finds by itself under ALL ROMS\n"
+      "file = vectrex/original/BERZERK.BIN\n"
+      "also = FAVOURITES, VECTREX CLASSICS\n";
+    nmParseMenuText(&cr, def, "menu.default");
+    nmParseMenuText(&cr, mine, "menu");
+    static NmRecs keep3;
+    keep3 = recs;
+    recs = cr;
+    memset(&ct, 0, sizeof ct);
+    nmAddRecEntries(&ct, &recs, "piZero1/");
+    static char rp1[1][NM_ROM_PATH] = { "original/BERZERK.BIN" };
+    const char *fl3[] = { "aae.img", "tempest.img", "vectrexspeedy.img", "vectrexexact.img" };
+    nmAssembleRest(&ct, &cs, recRead, "piZero1/", fl3, 4, rp1, 1, "piZero1/vectrexexact.img", "piZero1/vectrexspeedy.img", 0, &nfound);
+    NmNode *fav = nmFindTop(&ct, "FAVOURITES");
+    const char *want[] = { "TEMPEST", "MAJOR HAVOC", "BERZERK" };
+    int k = 0, ok = fav != 0;
+    for (NmNode *c = fav ? fav->child : 0; c; c = c->right, k++) if (k >= 3 || strcmp(c->title, want[k])) ok = 0;
+    CHECK(ok && k == 3, "FAVOURITES: Tempest, Major Havoc, Berzerk in the order of menu.ini");
+    NmNode *bz = fav ? findTitle(fav, "BERZERK") : 0;
+    CHECK(bz && strstr(bz->img, "vectrexexact.img") && bz->altImg, "the Berzerk copy is the ALL ROMS file (Exact, Button 2 Speedy)");
+    NmNode *two = nmFindTop(&ct, "TWO PLAYERS"), *cl = nmFindTop(&ct, "VECTREX CLASSICS");
+    CHECK(two && findTitle(two, "MAJOR HAVOC") && cl && findTitle(cl, "BERZERK"), "TWO PLAYERS and VECTREX CLASSICS");
+    NmNode *atari = findTitle(nmFindTop(&ct, "ARCADE"), "ATARI");
+    CHECK(atari && findTitle(atari, "TEMPEST") && findTitle(atari, "MAJOR HAVOC"), "they stay in their usual places");
+    SidecarText st;
+    CHECK(fav && recRead(fav->key, &st) && st.rows == 1, "FAVOURITES has its help text");
+    recs = keep3;
   }
 
   if (getenv("NM_DUMP"))

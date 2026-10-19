@@ -1,5 +1,6 @@
-// The menu file(s): menu/menu.ini (or menu/menu.default.ini when there is no menu.ini), then every other
-// menu/*.ini in alphabetical order. Read into records in memory; the menu asks for a record by key.
+// The menu files, read in layers: menu/menu.default.ini (shipped), then every other menu/*.ini in alphabetical order,
+// then menu/menu.ini (the user's changes, last so it has the final word). Read into records in memory; the menu
+// asks for a record by key.
 // No hardware dependencies, so it can be unit tested on a PC (docs/tools/test_new_menu.c).
 //
 // One section is one record. The section name is the title shown in the menu, unless "title =" says otherwise.
@@ -10,7 +11,9 @@
 //                  without image: settings of a ROM folder group      key "dir.<folder under vectrex/>"
 //   none           settings of a category ("ARCADE / ATARI")          key "cat.<path>"
 // A section called [entry] is the 0.1.0 format (one file per entry): its key is the file name, as before.
-// A later record with the same key changes the earlier one: what it sets replaces what was there.
+// A later section with the same section name, file or folder changes the earlier one: what it sets replaces what
+// was there, the rest stays. A later section with only a name and changes (no image, file or folder) changes the
+// earlier section of that name, whatever it was. "also = A, B" lists a copy in further categories.
 // Format and examples: NEW_MENU_README.md, docs/menu/11-menu-ini-plan.md
 #ifndef MENU_FILE_H
 #define MENU_FILE_H
@@ -43,6 +46,9 @@ typedef struct
   char p1[48];
   char p2[48];
   char needs[56];
+  char also[96];                       // also listed in these categories (comma-separated)
+  char name[40];                       // the section name, so a later section of the same name changes this one
+  int seq;                             // the last time a section mentioned it (order = listed sorts by this)
   int rows;                            // offset of the first note line in the pool (lines follow, 0-separated)
   int ctl;                             // offset of the first control line
 } NmRec;
@@ -54,6 +60,7 @@ typedef struct
   char pool[NM_POOL];
   int used;
   int dropped;                         // records that did not fit
+  int seqNext;
 } NmRecs;
 
 // ---- keys --------------------------------------------------------------------------------------------------
@@ -115,6 +122,26 @@ static NmRec *nmFindRec(NmRecs *r, const char *key)
   return 0;
 }
 
+// The first record that came from a section with this name (not counting categories), or 0.
+static const NmRec *nmFindRecByName(NmRecs *r, const char *name)
+{
+  for (int i = 0; i < r->n; i++)
+  {
+    const NmRec *c = &r->rec[i];
+    if (c->kind == NM_REC_CATEGORY || c->name[0] == 0) continue;
+    const char *a = c->name, *b = name;
+    while (*a != 0 && *b != 0)
+    {
+      char x = *a++, y = *b++;
+      if (x >= 'a' && x <= 'z') x = (char) (x - 32);
+      if (y >= 'a' && y <= 'z') y = (char) (y - 32);
+      if (x != y) break;
+      if (*a == 0 && *b == 0) return c;
+    }
+  }
+  return 0;
+}
+
 static int nmPoolAdd(NmRecs *r, const char *s)
 {
   int len = (int) strlen(s);
@@ -144,6 +171,9 @@ static int nmRecToSidecar(NmRecs *r, const char *key, SidecarText *t)
   memcpy(t->p2, c->p2, sizeof t->p2 < sizeof c->p2 ? sizeof t->p2 : sizeof c->p2);
   t->p2[sizeof t->p2 - 1] = 0;
   sidecarCopy(t->needs, (int) sizeof t->needs, c->needs);
+  sidecarCopy(t->also, (int) sizeof t->also, c->also);
+  t->hideSet = 1;
+  t->seq = c->seq;
   const char *s = r->pool + c->rows;
   for (int i = 0; i < c->nrows && i < SC_MAX_ROWS; i++) { sidecarCopy(t->row[i], SC_ROW_LEN, s); s += strlen(s) + 1; }
   t->rows = c->nrows;
@@ -204,10 +234,9 @@ static void nmEndSection(NmRecs *r, NmSection *sec, const char *stem)
   }
   else
   {
-    char ek[NM_KEY_LEN];                      // no image: changes an entry of that name if there is one ...
-    nmSlugKey("e.", sec->name, ek, NM_KEY_LEN);
-    if (nmFindRec(r, ek) != 0) { c.kind = NM_REC_ENTRY; sidecarCopy(c.key, NM_KEY_LEN, ek); }
-    else { c.kind = NM_REC_CATEGORY; nmSlugKey("cat.", sec->name, c.key, NM_KEY_LEN); }   // ... else a category
+    const NmRec *same = nmFindRecByName(r, sec->name);   // no image, file or folder: changes what an earlier section
+    if (same != 0) { c.kind = same->kind; sidecarCopy(c.key, NM_KEY_LEN, same->key); }   // of that name described ...
+    else { c.kind = NM_REC_CATEGORY; nmSlugKey("cat.", sec->name, c.key, NM_KEY_LEN); }  // ... else it is a category
   }
   if (!legacy && st->title[0] == 0 && c.kind != NM_REC_CATEGORY && nmFindRec(r, c.key) == 0)
     sidecarCopy(st->title, (int) sizeof st->title, sec->name);
@@ -218,9 +247,11 @@ static void nmEndSection(NmRecs *r, NmSection *sec, const char *stem)
     if (r->n >= NM_MAX_RECS) { r->dropped++; return; }
     d = &r->rec[r->n++];
     *d = c;
+    if (!legacy) sidecarCopy(d->name, (int) sizeof d->name, sec->name);
   }
   else if (d->kind == NM_REC_NOTES && c.kind != NM_REC_NOTES) d->kind = c.kind;
   // what this section sets replaces what an earlier one with the same key said
+  d->seq = ++r->seqNext;
   sidecarCopy(d->path, NM_REC_PATH, sec->path[0] ? sec->path : d->path);
   if (sec->files[0]) sidecarCopy(d->files, (int) sizeof d->files, sec->files);
   if (st->title[0]) sidecarCopy(d->title, (int) sizeof d->title, st->title);
@@ -231,7 +262,8 @@ static void nmEndSection(NmRecs *r, NmSection *sec, const char *stem)
   d->p1[sizeof d->p1 - 1] = 0;
   d->p2[sizeof d->p2 - 1] = 0;
   if (st->needs[0]) sidecarCopy(d->needs, (int) sizeof d->needs, st->needs);
-  if (st->hide) d->hide = 1;
+  if (st->hideSet) d->hide = (char) st->hide;
+  if (st->also[0]) sidecarCopy(d->also, (int) sizeof d->also, st->also);
   if (st->emulator) d->emulator = st->emulator;
   if (sec->orderSet) d->order = (char) st->order;
   if (st->found)

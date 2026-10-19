@@ -13,7 +13,7 @@ assembled from what is on the SD card:
 | `vectrex/**/*.bin`, `*.vec` | every Vectrex game, under VECTREX > ALL ROMS (only files that start like a real cartridge, with `g GCE`) |
 | `vectrex/movies/*`, `vectrex/waves/*` | the videos and songs, under VIDEO and AUDIO, played by the video and audio players |
 | `piZero1/*.img` (program images) | programs; one the menu file does not mention is listed under PROGRAMS |
-| `menu/menu.ini` (or `menu/menu.default.ini`) | titles, notes, controls and categories: how everything is arranged |
+| `menu/menu.default.ini`, then your `menu/menu.ini` | titles, notes, controls and categories: how everything is arranged |
 | `roms/*.zip`, `roms/aae/*.zip` | decide whether an arcade entry is shown (its `needs` line) |
 
 **Without any menu file** the menu still lists every Vectrex game, video, song and program on the card, and the
@@ -23,17 +23,64 @@ arcade entries.
 The screen says READING SD CARD while it reads all this. To go back to the original menu, remove `NEW_MENU = 1`
 from `loader.ini`.
 
-## The menu file
+## The menu files: the default, and your changes on top
 
-The whole menu is described in one text file in `menu/`:
+The menu is described in text files in `menu/`, read in layers, each one able to change what the ones before it
+said:
 
-* `menu.default.ini` comes with the package and is replaced by every update.
-* **To make your own changes, copy it to `menu.ini`** (same folder) and edit the copy. When `menu.ini` exists, the
-  PiTrex reads it instead of `menu.default.ini`, and updates never touch it.
-* Any other `.ini` file in `menu/` is read after it, in alphabetical order, and can add entries or change them.
-  A game you add can come with its own small file (`menu/mygame.ini`); you do not have to edit the big one.
+1. **`menu.default.ini`** comes with the package: every entry, its notes, controls and place in the menu. **Do not
+   edit it**: every update replaces it.
+2. Any other `.ini` file in `menu/`, in alphabetical order. A game you add can come with its own small file
+   (`menu/mygame.ini`).
+3. **`menu.ini`: your changes.** It does not exist until you create it, updates never touch it, and it is read
+   last, so it always wins. It only needs the lines you want to be different; everything you do not mention
+   stays as the default says, and new games in a later update still appear.
 
-The file is plain text in the same style as `loader.ini`: `key = value` lines, and `;` starts a comment.
+The files are plain text in the same style as `loader.ini`: `key = value` lines, and `;` starts a comment.
+
+### Making changes in menu.ini
+
+To change something, write a section with **the same name in brackets** as in `menu.default.ini` (usually the
+title you see in the menu; open the default file to check) and only the lines to change:
+
+| To | Write in menu.ini |
+|---|---|
+| change the notes | `[MAJOR HAVOC]` / `text = WORKS GREAT NOW.` (your `text` lines replace all of its note lines; `control` lines work the same way) |
+| rename it | `[MAJOR HAVOC]` / `title = HAVOC` |
+| move it somewhere else | `[TEMPEST]` / `category = FAVOURITES` |
+| **also** list it somewhere else | `[TEMPEST]` / `also = FAVOURITES` (it stays where it was) |
+| hide it | `[MAZE]` / `hide = 1` |
+| show something the default hides | `[HELLO WORLD]` / `hide = 0` |
+| keep a category in your own order | `[FAVOURITES]` / `order = listed` |
+| add your own entry | a new name: `[MY GAME]` / `category = PITREX` / `image = mygame.img` |
+
+### Collections
+
+`also` lists an entry in more categories at once, so collections can overlap: a game can be in its usual place, in
+FAVOURITES and in TWO PLAYERS. A category that does not exist yet is created. For example, a `menu.ini` with:
+
+```
+[FAVOURITES]
+order = listed                      ; in the order of this file, not alphabetical
+text = THE GAMES I PLAY MOST.       ; the help shown when FAVOURITES is highlighted
+
+[TEMPEST]
+also = FAVOURITES
+
+[MAJOR HAVOC]
+also = FAVOURITES, TWO PLAYERS
+
+[BERZERK]                           ; a Vectrex game the menu finds by itself under ALL ROMS
+file = vectrex/original/BERZERK.BIN
+also = FAVOURITES, VECTREX CLASSICS
+```
+
+gives a FAVOURITES category with Tempest, Major Havoc and Berzerk, a TWO PLAYERS category with Major Havoc, and a
+VECTREX CLASSICS category with Berzerk, while all three stay in their usual places too. The copies have the same
+notes and controls, and a change to the entry changes every copy. A game is never listed twice in the same
+category.
+
+### Section format
 
 ```
 [MAJOR HAVOC]                       ; the name in brackets is the title shown in the menu
@@ -53,7 +100,7 @@ Each section in `[brackets]` is one thing in the menu. One line says what it is:
 | `file = ...` | a file the menu finds by itself (a Vectrex game, a video, a program); the section gives it a title, notes, a category | `[BERZERK]` / `file = vectrex/original/BERZERK.BIN` |
 | `folder = ...` and `image = ...` | a rule: every file in that folder becomes an entry | `[VIDEOS]` / `folder = vectrex/movies` |
 | `folder = ...` without `image` | a Vectrex ROM folder: its name in ALL ROMS, or `hide = 1` | `[MY HOMEBREW]` / `folder = vectrex/homebrew` |
-| none of these | a category, or an entry of the same name changed by a later file | `[ARCADE / ATARI]` / `order = listed` |
+| none of these | a change to the section of the same name in an earlier file; if there is none, settings of a category | `[MAJOR HAVOC]` / `text = ...`, `[ARCADE / ATARI]` / `order = listed` |
 
 All the keys:
 
@@ -61,23 +108,18 @@ All the keys:
 |---|---|
 | `title = ...` | the title, when it should differ from the section name (two entries can have the same title: `[SOLAR QUEST ARCADE]` with `title = SOLAR QUEST`) |
 | `category = A / B` | where it is listed. Empty: PROGRAMS. For a found Vectrex game: also listed there (it stays in ALL ROMS). For a found program: moved there |
+| `also = A, B / C` | also listed in these categories (a copy with the same notes; commas between categories) |
 | `image`, `param1`, `param2` | the program and what it is given. In a folder rule `{dir}` is the folder and `{file}` the file name |
 | `files = bin vec` | folder rule: only files with these extensions (default: all) |
 | `needs = path` | only listed while that file is on the card. A path ending in `/` (the AAE picker's `roms/aae/`): listed while any other entry needing a file in that folder is |
 | `text = ...` | a note line (up to 12). For a category: replaces its help text |
 | `control = ...` | a line of the CONTROLS page that Button 2 opens (up to 12) |
-| `hide = 1` | leave it out |
+| `hide = 1` | leave it out (`hide = 0` shows it again when an earlier file hid it) |
 | `emulator = speedy` or `exact` | for a Vectrex game: which emulator Button 4 uses |
-| `order = listed` | for a category: keep the order of the file instead of sorting alphabetically |
+| `order = listed` | for a category: its entries in the order the menu files mention them (the last mention counts, so the order of your `menu.ini`) instead of alphabetical |
 
 When two sections describe the same thing (the same section name, the same `file`, the same `folder`), the later
-one changes the earlier one: what it sets replaces what was there, everything else stays. That is how a small
-`menu/my-changes.ini` can retitle or hide an entry of `menu.default.ini` without copying the whole file:
-
-```
-[MAZE]
-hide = 1
-```
+one changes the earlier one: what it sets replaces what was there, everything else stays.
 
 A note containing NO SOUND, WORK IN PROGRESS, NOT WORKING or CRASH (any case, also inside a longer word such as
 CRASHES) makes the entry show a `!` in the list.
@@ -97,7 +139,8 @@ cut at 31 characters and about 28 fit in the list.
 * the same program with the same parameters twice in one category is listed once.
 
 Categories are sorted alphabetically, then PROGRAMS, then SETTINGS. Everything below the top level is
-alphabetical too (inside ALL ROMS the folders come first), unless the category says `order = listed`.
+alphabetical too (inside ALL ROMS the folders come first), unless the category says `order = listed`: then its
+entries come in the order the menu files mention them, with the last mention counting.
 
 ## Adding things
 
@@ -143,13 +186,10 @@ the MAME name (`param1 = mhavoc2`; see [docs/menu/06-aae-picker.md](docs/menu/06
 ## The 0.1.0 files
 
 Version 0.1.0 had one file per entry (`menu/aae.x2d.ini` and so on) with an `[entry]` section. Those files still
-work: they are read after the menu file, and a game described both ways is listed once. The installer removes the
-ones that are exactly as 0.1.0 shipped them, since their content is now in `menu.default.ini`, and keeps any you
-changed. To turn your own 0.1.0 files into one `menu.ini`:
-
-```
-python3 docs/tools/entries_to_menu_ini.py <folder with your .ini files> menu.ini
-```
+work: they are read after `menu.default.ini`, and a game described both ways is listed once. The installer removes
+the ones that are exactly as 0.1.0 shipped them, since their content is now in `menu.default.ini`, and keeps any you
+changed. Whatever you changed in them is simplest to carry over by hand into `menu.ini`, as the few lines that
+differ. (`docs/tools/entries_to_menu_ini.py <folder> <file>` turns a folder of such files into one file.)
 
 ## Controls
 

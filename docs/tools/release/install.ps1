@@ -143,7 +143,7 @@ if ((Test-Path -LiteralPath $legacy) -and (Test-Path -LiteralPath $menuDir -Path
   }
 }
 if (Test-Path -LiteralPath (Join-Path $menuDir 'menu.ini')) {
-  Write-Host "  keep     menu/menu.ini (your own menu; the new default is menu/menu.default.ini)"
+  Write-Host "  keep     menu/menu.ini (your changes; they are read after the new menu.default.ini)"
 }
 
 # loader.ini: NEW_MENU = 1 (keeps the file's own line endings)

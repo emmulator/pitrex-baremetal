@@ -27,6 +27,9 @@ typedef struct
   char p2[48];                     // entry files: parameter 2
   char needs[56];                  // entry files: a file that must exist (roms/aae/mhavoc.zip)
   int order;                       // a category: 1 = keep the order the entries were read in (order = listed)
+  int seq;                         // menu file: when the section describing it was last mentioned (order = listed)
+  int hideSet;                     // a hide line was given (hide = 0 can show again what an earlier file hid)
+  char also[96];                   // further categories it is also listed in: "FAVOURITES, TWO PLAYERS"
   int nctl;                        // number of control lines ("control = ..."), shown by Button 2 (new menu)
   char ctl[SC_MAX_ROWS][SC_ROW_LEN];
 } SidecarText;
@@ -155,6 +158,7 @@ static void sidecarLine(SidecarText *t, const char *name, const char *value)
   else if (strcmp(name, "hide") == 0)
   {
     t->hide = atoi(value) != 0;
+    t->hideSet = 1;
   }
   else if (strcmp(name, "emulator") == 0)
   {
@@ -167,6 +171,7 @@ static void sidecarLine(SidecarText *t, const char *name, const char *value)
   else if (strcmp(name, "param1") == 0) sidecarParam(t->p1, (int) sizeof t->p1, value);
   else if (strcmp(name, "param2") == 0) sidecarParam(t->p2, (int) sizeof t->p2, value);
   else if (strcmp(name, "needs") == 0) sidecarCopy(t->needs, (int) sizeof t->needs, value);
+  else if (strcmp(name, "also") == 0) sidecarCopy(t->also, (int) sizeof t->also, value);
   else if (strcmp(name, "order") == 0) t->order = (value[0] == 'l' || value[0] == 'L');
   else if (strcmp(name, "title") == 0)
   {

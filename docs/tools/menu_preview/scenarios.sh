@@ -81,6 +81,16 @@ run "...and the AAE picker is listed (first row of ARCADE)" 100 "right@10,b4@40"
 runnot "entering and leaving a category starts nothing" 80 "down@10,right@20,left@30" 'LAUNCH'
 runnot "category rows are not started by Button 4 on a category" 60 "b4@10" 'LAUNCH'
 
+# layers: an add-on file hides TEMPEST, the user's menu.ini (read last) shows it again and makes a collection in its own
+# order. "AAA FAVOURITES" sorts first at the top; Tempest is mentioned first, so it is the first row although M < T.
+if [ -f "$base/menu/menu.default.ini" ]; then
+  ly="$work/layers"; mkdir -p "$ly"; cp -r "$base"/. "$ly"/
+  printf '[TEMPEST]\nhide = 1\n' > "$ly/menu/addon.ini"
+  printf '[AAA FAVOURITES]\norder = listed\n\n[TEMPEST]\nhide = 0\nalso = AAA FAVOURITES\n\n[MAJOR HAVOC]\nalso = AAA FAVOURITES\n' > "$ly/menu/menu.ini"
+  run "menu.ini is read last: Tempest shown again, first in a collection with order = listed" 100 "right@10,b4@40" 'image=piZero1/tempest.img' "$ly"
+  run "...and Major Havoc is the second row of the collection" 110 "right@10,down@30,b4@50" 'image=piZero1/aae.img' "$ly"
+fi
+
 # no metadata at all: no menu files. Top level: AUDIO, VECTREX, VIDEO (from the built-in folder rules), PROGRAMS, SETTINGS
 nm="$work/nometa"; mkdir -p "$nm"; cp -r "$base"/. "$nm"/; rm -f "$nm"/menu/*.ini
 run "no menu files: VIDEO lists vectrex/movies and starts the video player with the file" 120 "$(downs 2 10),right@40,b4@60" 'image=piZero1/vectrexvideo.img param1="vectrex/movies" param2="BadApple.bin"' "$nm"
