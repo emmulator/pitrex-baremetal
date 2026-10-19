@@ -58,7 +58,9 @@ or build a whole card, arcade ROMs included, from Malban's zip and the RpiTeaM E
 | Pi Zero W in a PiTrex V.1 R.3 | the menu, Vectrex ROMs (Speedy and Exact), settings saving, video and audio players, Star Wars, Tempest, Asteroids, Black Widow, Red Baron, Gravitar, Space Duel, Lunar Lander |
 | A card built by `make_card.py` from the 2025 zip and the RpiTeaM image | boots and shows the menu (Pi Zero W, 2026-10-18) |
 | Hiding games whose ROM is missing, the entries for the other arcade versions, QB3 and the sample programs | tested on a PC (unit tests and the desktop preview); the menu starts on the PiTrex, the rest is **not yet tried there** |
-| The 0.2.0 menu file, folder rules, no-metadata mode, `.vec` | tested on a PC: the menu built from `menu.default.ini` is identical to the one built from the separate entry files, also on a card that has both; **not yet on the PiTrex** |
+| A 0.2.0 card built by `make_card.py` (menu file, FAVORITES, VIDEO and AUDIO from folder rules) | boots and the menu shows as expected (Pi Zero W, 2026-10-19) |
+| Changing the menu with `menu.ini`, collections, the no-metadata mode, `.vec` files | tested on a PC (unit tests and the desktop preview); **not yet tried on the PiTrex** |
+| Upgrading a 0.1.0 card with `install.sh` | tested on a PC copy of a 0.1.0 card: unchanged entry files removed, changed ones and `menu.ini` kept, `--restore` gives the 0.1.0 card back byte for byte |
 | Pi Zero 2 | built, **not tested on hardware** |
 | `install.sh` | tested against a fresh unzip of the 2025 card: install, repeat, `--settings tuned`, empty settings file, restore |
 | `make_card.py` | tested on Linux against the real 2025 zip and RpiTeaM image |

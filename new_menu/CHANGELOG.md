@@ -4,7 +4,7 @@ Changes to the new PiTrex menu (this fork of [malbanGit/pitrex-baremetal](https:
 Releases: <https://github.com/emmulator/pitrex-baremetal/releases>. Install guide: [README.md](README.md); changing
 the menu: [NEW_MENU_README.md](../NEW_MENU_README.md).
 
-## 0.2.0 (not yet released)
+## 0.2.0 (2026-10-19)
 
 ### The menu is one file, with your changes on top
 * All entries, notes, controls and categories are in one file, `menu/menu.default.ini`, instead of one file per
