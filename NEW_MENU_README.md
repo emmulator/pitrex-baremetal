@@ -178,6 +178,19 @@ category = PITREX
 image    = mygame.img
 ```
 
+**An entry that passes a file to a program** (a Vectrex game to an emulator, a video to the player): add a
+`needs` line naming that file, so the entry disappears when the file is not on the card instead of starting the
+program with nothing to load. The menu cannot tell this from `param1` itself, because for other programs it is a
+name or a number, not a file:
+
+```
+[WEB WARS]
+category = VECTREX / SPEEDY VECTREX
+image    = vectrexspeedy.img
+param1   = original/WEBWARS.BIN            ; the emulator looks for vectrex/original/WEBWARS.BIN
+needs    = vectrex/original/WEBWARS.BIN    ; listed only while that file is there
+```
+
 **An arcade game on AAE:** `image = aae.img`, `param1 = 0x2d` where the number is the game's position in the AAE
 driver table (`aae/aaemain.c`; listed in [docs/menu/04-arcade-candidates.md](docs/menu/04-arcade-candidates.md)), or
 the MAME name (`param1 = mhavoc2`; see [docs/menu/06-aae-picker.md](docs/menu/06-aae-picker.md)), and

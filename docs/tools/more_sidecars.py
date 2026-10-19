@@ -131,6 +131,24 @@ for key, (old, new) in MOVE.items():
         if 'category = ' + old + '\n' in t:
             open(p, 'w').write(t.replace('category = ' + old + '\n', 'category = ' + new + '\n'))
 
+# entries that pass a game file to a Vectrex emulator or player: the file must be on the card, else the entry is hidden
+# (param1 is relative to vectrex/ for the emulators; the players get a folder and a file)
+ROMIMG = ('vectrexspeedy.img', 'vectrexexact.img', 'vectrexlineart.img')
+PLAYIMG = ('vectrexvideo.img', 'vectrexaudio.img')
+for f in sorted(os.listdir(folder)):
+    p = os.path.join(folder, f)
+    if not f.endswith('.ini'):
+        continue
+    t = open(p).read()
+    vals = dict(l.split(' = ', 1) for l in t.split('\n') if ' = ' in l and not l.startswith(';'))
+    img, p1, p2 = vals.get('image', ''), vals.get('param1', ''), vals.get('param2', '')
+    if 'needs' in vals or not p1:
+        continue
+    need = 'vectrex/' + p1 if img in ROMIMG else (p1 + '/' + p2 if img in PLAYIMG and p2 else '')
+    if need:
+        anchor = 'param2 = ' + p2 + '\n' if p2 else 'param1 = ' + p1 + '\n'
+        open(p, 'w').write(t.replace(anchor, anchor + 'needs = ' + need + '\n', 1))
+
 # note lines: the PiTrex font draws commas, brackets and slashes as blanks
 CLEAN = [('ROMS/AAE', 'THE ROMS AAE FOLDER'), ('RYTHMIC', 'RHYTHMIC'), (', ', '. '), (',', '.'), ('(', ''), (')', '.'), ('/', ' ')]
 for f in sorted(os.listdir(folder)):

@@ -91,6 +91,11 @@ if [ -f "$base/menu/menu.default.ini" ]; then
   run "...and Major Havoc is the second row of the collection" 110 "right@10,down@30,b4@50" 'image=piZero1/aae.img' "$ly"
 fi
 
+# needs = vectrex/...: a curated Vectrex entry disappears when its game file is gone. WEB WARS is the last row of
+# SPEEDY VECTREX (VECTREX is the 4th category, SPEEDY VECTREX its 4th row); without WEBWARS.BIN, STAR CASTLE is last
+nw="$work/nowebwars"; mkdir -p "$nw"; cp -r "$base"/. "$nw"/; rm -f "$nw"/vectrex/original/WEBWARS.BIN
+run "an entry whose game file is missing is not listed (needs = vectrex/original/WEBWARS.BIN)" 300 "$(downs 3 10),right@40,$(downs 3 50),right@80,$(downs 20 90),b4@260" 'param1="original/CASTLE.BIN"' "$nw"
+
 # no metadata at all: no menu files. Top level: AUDIO, VECTREX, VIDEO (from the built-in folder rules), PROGRAMS, SETTINGS
 nm="$work/nometa"; mkdir -p "$nm"; cp -r "$base"/. "$nm"/; rm -f "$nm"/menu/*.ini
 run "no menu files: VIDEO lists vectrex/movies and starts the video player with the file" 120 "$(downs 2 10),right@40,b4@60" 'image=piZero1/vectrexvideo.img param1="vectrex/movies" param2="BadApple.bin"' "$nm"
