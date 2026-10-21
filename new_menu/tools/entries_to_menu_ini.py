@@ -42,7 +42,7 @@ HEAD = """; menu.default.ini: the PiTrex menu as it comes with the package. DO N
 ; Other lines: category = ARCADE / ATARI (a new path makes a new folder), also = more categories, needs = a file
 ; that must be on the card, text = a note line (up to 12), control = a line of the CONTROLS page (Button 2),
 ; hide = 1 or 0, emulator = speedy or exact (Vectrex games), order = listed. Text: A-Z, 0-9, . and ! only, about
-; 46 characters per line. Full description: NEW_MENU_README.md
+; 46 characters per line. Full description: NEW_MENU_README.md (in this folder)
 """
 
 

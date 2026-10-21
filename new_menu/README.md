@@ -3,12 +3,14 @@
 A replacement menu for the PiTrex bare-metal SD card: a plain list (category, game, start) that is built from
 what is actually on the card. A game appears when its files are there and is left out when they are not, and
 every game has notes and a controls page. Nothing is compiled in: copy a Vectrex game, a video or a song onto the
-card and it is in the menu at the next start, with no file to edit.
+card and it is in the menu at the next start, with no file to edit. A PiTrex program (an `.img` in `piZero1/` or
+`piZero2/`) is listed under PITREX by itself.
 
 This page is for installing it and getting your games running. The arrangement, titles and notes are in one text
-file, `menu/menu.default.ini`. To change them you write only your changes in `menu/menu.ini`, which updates never
-touch. The FAVORITES category in the main menu comes from `menu/favorites.ini`, an example collection you can edit
-into your own list (updates never replace it). See [NEW_MENU_README.md](../NEW_MENU_README.md).
+file, `menu/menu.default.ini`. To change them (a name or notes for a game you added, another place for it) you write
+only your changes in `menu/menu.ini`, which updates never touch. The FAVORITES category in the main menu comes from
+`menu/favorites.ini`, an example collection you can edit into your own list (updates never replace it). The guide is
+[NEW_MENU_README.md](../NEW_MENU_README.md); on the card it is `menu/NEW_MENU_README.md`, next to those files.
 
 No ROMs are included in this package. Below is exactly which ROM files the menu looks for, which of them come
 with the RpiTeaM image, and which you would have to find elsewhere.

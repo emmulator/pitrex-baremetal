@@ -34,8 +34,8 @@ The plan as written before implementation follows.
 | On the card | How it is recognized | Listed as |
 |---|---|---|
 | Vectrex games | `.bin` or `.vec` under `vectrex/` (two folder levels) **and** the file starts with the cartridge marker `g GCE` (what the Vectrex BIOS checks) | VECTREX > ALL ROMS, as today; Button 4 = Exact, Button 2 = Speedy |
-| Programs | `piZero1/*.img` (`piZero2/` on a Pi Zero 2), minus the boot and emulator images | PROGRAMS, as today |
-| Arcade games | `aae.img` started without a parameter opens its own game picker; the dedicated emulators read their zips themselves | PROGRAMS (as today; not every dedicated emulator has been checked started this way) |
+| Programs | `piZero1/*.img` (`piZero2/` on a Pi Zero 2), minus the boot and emulator images | PITREX (PROGRAMS until 0.2.1) |
+| Arcade games | `aae.img` started without a parameter opens its own game picker; the dedicated emulators read their zips themselves | PITREX (PROGRAMS until 0.2.1; not every dedicated emulator has been checked started this way) |
 | Videos | every file in `vectrex/movies/` | VIDEO, each file started with `vectrexvideo.img` (new built-in default) |
 | Songs | every file in `vectrex/waves/` | AUDIO, each file started with `vectrexaudio.img` (new built-in default) |
 
@@ -170,7 +170,7 @@ rule, as `nmAddMissingRoms()` does for DEMOS today.
 ## Open questions
 
 * `menu.default.ini`: reference copy only, or read when there is no `menu.ini`?
-* Do the dedicated arcade emulators all behave when started from PROGRAMS without a parameter?
+* Do the dedicated arcade emulators all behave when started from PITREX without a parameter?
 * Start-up time with the `g GCE` reads, measured on the card.
 * Should Vectorblade's plain cartridge (`VECTORBLADE.NIB`) be offered under ALL ROMS too (rename or an entry), once
   it is tried in Exact?

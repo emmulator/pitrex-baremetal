@@ -1,7 +1,12 @@
 # The new PiTrex menu: changing it and adding to it
 
-This is the guide for people who want to change how the menu looks, add their own games, or arrange things their
-own way. To **install** the menu and find out which ROMs it wants, read [new_menu/README.md](new_menu/README.md) first.
+This is the guide for people who want to change how the menu is arranged (what is listed where, the names and the
+notes), add their own games, or make collections. On the card it is `menu/NEW_MENU_README.md`, next to the files it
+describes. To **install** the menu and find out which ROMs it wants, read [new_menu/README.md](new_menu/README.md) first.
+
+**A game you add to the card shows up by itself** (a Vectrex game under VECTREX > ALL ROMS, a PiTrex program under
+PITREX), named after its file. You only need the menu file when you want a better name, notes, controls or another
+place for it: see "Adding things" below.
 
 ## How it works
 
@@ -12,12 +17,12 @@ assembled from what is on the SD card:
 |---|---|
 | `vectrex/**/*.bin`, `*.vec` | every Vectrex game, under VECTREX > ALL ROMS (only files that start like a real cartridge, with `g GCE`) |
 | `vectrex/movies/*`, `vectrex/waves/*` | the videos and songs, under VIDEO and AUDIO, played by the video and audio players |
-| `piZero1/*.img` (program images) | programs; one the menu file does not mention is listed under PROGRAMS |
+| `piZero1/*.img` (program images) | programs (PiTrex games and demos); one the menu file does not mention is listed under PITREX, named after its file |
 | `menu/menu.default.ini`, then your `menu/menu.ini` | titles, notes, controls and categories: how everything is arranged |
 | `roms/*.zip`, `roms/aae/*.zip` | decide whether an arcade entry is shown (its `needs` line) |
 
 **Without any menu file** the menu still lists every Vectrex game, video, song and program on the card, and the
-arcade games through the AAE game picker under PROGRAMS. The menu file adds the arrangement, the notes and the
+arcade games through the AAE game picker under PITREX. The menu file adds the arrangement, the notes and the
 arcade entries.
 
 The screen says READING SD CARD while it reads all this. To go back to the original menu, remove `NEW_MENU = 1`
@@ -123,7 +128,7 @@ All the keys:
 | Key | Meaning |
 |---|---|
 | `title = ...` | the title, when it should differ from the section name (two entries can have the same title: `[SOLAR QUEST ARCADE]` with `title = SOLAR QUEST`) |
-| `category = A / B` | where it is listed. Empty: PROGRAMS. For a found Vectrex game: also listed there (it stays in ALL ROMS). For a found program: moved there |
+| `category = A / B` | where it is listed. Empty: PITREX. For a found Vectrex game: also listed there (it stays in ALL ROMS). For a found program: moved there |
 | `also = A, B / C` | also listed in these categories (a copy with the same notes; commas between categories) |
 | `image`, `param1`, `param2` | the program and what it is given. In a folder rule `{dir}` is the folder and `{file}` the file name |
 | `files = bin vec` | folder rule: only files with these extensions (default: all) |
@@ -154,7 +159,7 @@ cut at 31 characters and about 28 fit in the list.
 * a category with nothing visible in it disappears;
 * the same program with the same parameters twice in one category is listed once.
 
-Categories are sorted alphabetically, then PROGRAMS, then SETTINGS. Everything below the top level is
+Categories are sorted alphabetically, then SETTINGS. Everything below the top level is
 alphabetical too (inside ALL ROMS the folders come first), unless the category says `order = listed`: then its
 entries come in the order the menu files mention them, with the last mention counting.
 
@@ -186,12 +191,31 @@ param2   = {file}
 ```
 
 **A program image** (`something.img` built for the Pi): copy it into `piZero1/` (and `piZero2/` for a Pi Zero 2).
-It is listed under PROGRAMS, named after the file. To put it elsewhere:
+It is listed under PITREX by itself, named after the file: nothing else is needed. To give it a proper name, notes or
+another place, add a section to `menu.ini`:
 
 ```
 [MY GAME]
 category = PITREX
 image    = mygame.img
+text     = A GAME BY ME.
+```
+
+**A game with a different file name for each Pi model** (say `mygame_zero1.img` in `piZero1/` and `mygame_zero2.img`
+in `piZero2/`): make one entry for each file. An entry whose image is not in the folder of the Pi that is running is
+not shown, so each owner sees one:
+
+```
+[MY GAME]
+category = PITREX
+image    = mygame_zero1.img
+text     = A GAME BY ME.
+
+[MY GAME FOR ZERO 2]
+category = PITREX
+title    = MY GAME
+image    = mygame_zero2.img
+text     = A GAME BY ME.
 ```
 
 **An entry that passes a file to a program** (a Vectrex game to an emulator, a video to the player): add a
@@ -228,7 +252,7 @@ shows its CONTROLS page, Button 1 is Button 4 plus "load the last saved state" (
 with `HANDLE_STATES = 1` in `vectrex.ini`; the menu reads that line and only then says AND SAVED STATE). The menu
 ignores the controls until they have rested for 15 frames, so a Button 4 held at power-on does not open anything.
 
-## Changing how it looks
+## Changing the layout
 
 Through the menu file you can change every title, category, note, controls line, what is hidden, where things are
 listed, their order and which emulator a Vectrex game prefers. You cannot change the text size or the number of

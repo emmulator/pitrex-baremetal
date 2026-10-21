@@ -5,7 +5,7 @@
 > category, image, parameters, needs, notes, controls), the images in `piZero1/` and the ROMs in `vectrex/`
 > (`nmAssemble()` in `newMenuLogic.h`). The VECTORBURNER and ALL AAE GAMES entries I had added to `loaderMain.c`
 > are removed; they are plain entry files now. Categories come from the entry files and are sorted; an entry whose
-> image is missing and an emptied category are hidden; PROGRAMS and SETTINGS come last. The loader's compiled menu
+> image is missing and an emptied category are hidden; SETTINGS comes last (0.2.1: the PROGRAMS category was folded into PITREX). The loader's compiled menu
 > still exists for `NEW_MENU = 0`. Format: `05-sidecar-format.md`, user guide: `NEW_MENU_README.md`.
 
 
@@ -34,7 +34,7 @@ start-up and again when it comes back from a program.
   COMPUTER, VIDEO and AUDIO. Leading spaces in names are trimmed.
 * **Programs found on the card.** Every `.img` in `piZero1/` (or `piZero2/` on a Zero 2) that
   the compiled menu does not start and that is not `pitrex.img`/`pitrex7.img` becomes an
-  entry under a new **PROGRAMS** category, sorted by name. Drop a new program in the folder
+  entry under PITREX (until 0.2.1 a separate **PROGRAMS** category), sorted by name. Drop a new program in the folder
   and it appears. On the current card that finds 8: asteroids, deluxe, gyrocks, hello, maze,
   pacman, perspective, window.
 * **Vectrex ROMs.** Every `.bin` under `vectrex/` (two folder levels deep; `bios`, `movies`,
@@ -87,7 +87,7 @@ returns to the list when you leave it with the stick.
 * Icons.
 * `.vec` files and folders deeper than two levels are not listed; a ROM whose path is 64
   characters or longer is skipped. At most 400 ROMs.
-* Categories for programs (all go under PROGRAMS).
+* Categories for programs (all go under PITREX).
 * Remembering your place after a program returns is not implemented. It may happen anyway,
   because the loader stays in memory while a program runs and its variables are kept; that is
   unverified.

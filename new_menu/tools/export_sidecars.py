@@ -140,7 +140,7 @@ for n, path in reached:
         if len(bs) == 1: return '0x%02x' % bs[0]
         return bs.decode('latin-1')
     lines = ['; PiTrex menu entry: the new menu is built from files like this one.',
-             '; Delete the file and the entry is gone from the menu (a program is then listed under PROGRAMS).',
+             '; Delete the file and the entry is gone from the menu (a program is then listed under PITREX).',
              '; Format: new_menu/menu/05-sidecar-format.md',
              '[entry]', f'title = {title}',
              'category = ' + ' / '.join(x for x in path if x)]
@@ -160,12 +160,11 @@ for n, path in reached:
     expected.append((k, skip, rows))
     open(f'{out}/menu/{k}.ini', 'w').write(body)
 
-# entries that are plain data and were never in the compiled menu
+# entries that are plain data and were never in the compiled menu (Vectorburner is not on Malban's card: a program
+# the card has is listed under PITREX by itself)
 EXTRA = {
     'aae': ['title = ALL AAE GAMES', 'category = ARCADE', 'image = aae.img', 'skip = 4',
             'text = LISTS THE ROM ZIPS', 'text = FOUND IN ROMS/AAE'],
-    'vectorburner': ['title = VECTORBURNER', 'category = PITREX', 'image = vectorburner.img', 'skip = 4',
-                     'text = VECTORBURNER V065'],
 }
 for k, body in EXTRA.items():
     if k not in written:

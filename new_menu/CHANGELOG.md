@@ -4,6 +4,23 @@ Changes to the new PiTrex menu (this fork of [malbanGit/pitrex-baremetal](https:
 Releases: <https://github.com/emmulator/pitrex-baremetal/releases>. Install guide: [README.md](README.md); changing
 the menu: [NEW_MENU_README.md](../NEW_MENU_README.md).
 
+## 0.2.1 (not released yet)
+
+### Menu
+* A PiTrex program the menu files do not mention (an `.img` you copied into `piZero1/` or `piZero2/`) is listed
+  under **PITREX**, with the other PiTrex games. The separate PROGRAMS category is gone.
+* The PITREX help text says that a program you copy to the card is listed there and where the guide is.
+* Vectorburner is no longer in the default menu file: it is not part of Malban's card, so it is listed under PITREX
+  by itself when its image is on the card, and `menu.ini` can give it a name and notes.
+* The default menu file no longer says NOT TESTED about games: whether a game has been tried is not part of the
+  release. (`test-log.ini`, kept by whoever tests, can put those notes back for their own card.)
+
+### Guide
+* `NEW_MENU_README.md` is now `menu/NEW_MENU_README.md` on the card, next to `menu.ini`, instead of in the card's
+  root. The installer removes the old copy from the root when it is unchanged.
+* It tells how to add a game with a different file name for each Pi model (one entry per file; the one whose file is
+  not on that Pi is not shown).
+
 ## 0.2.0 (2026-10-19)
 
 ### The menu is one file, with your changes on top

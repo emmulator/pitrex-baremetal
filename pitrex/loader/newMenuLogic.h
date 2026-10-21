@@ -122,7 +122,6 @@ static int nmTagsOfLine(const char *line)
 
 // Ids of nodes that the menu adds itself.
 #define NM_ID_SETTINGS 9004
-#define NM_ID_PROGRAMS 9001
 #define NM_ID_ALL_ROMS 9002
 #define NM_ID_ROM_FOLDER 9003
 
@@ -172,14 +171,14 @@ static int nmHelp(const NmNode *n, const char **out, int max)
     "MOST NEED THEIR ROM FILES ON THE CARD.",
     "ALL AAE GAMES LISTS THE ONES YOU HAVE.", 0 };
   static const char *pitrexOwn[] = {
-    "PROGRAMS AND GAMES WRITTEN FOR THE PITREX.", 0 };
+    "PROGRAMS AND GAMES WRITTEN FOR THE PITREX.",
+    "ONE YOU COPY TO THE CARD IS LISTED HERE.",
+    "THE GUIDE IN THE MENU FOLDER TELLS HOW TO",
+    "NAME IT AND PUT IT IN THE RIGHT PLACE.", 0 };
   static const char *video[] = {
     "VIDEO PLAYBACK ON THE VECTREX SCREEN.", 0 };
   static const char *audio[] = {
     "MUSIC PLAYBACK. THE PICTURE DANCES TO IT.", 0 };
-  static const char *programs[] = {
-    "PROGRAMS FOUND ON THE CARD THAT THE MENU",
-    "DOES NOT KNOW BY NAME.", 0 };
   static const char *settings[] = {
     "SCREEN SETTINGS AND CALIBRATION.",
     "4 OPENS THEM. THEY ARE SAVED IN",
@@ -187,7 +186,6 @@ static int nmHelp(const NmNode *n, const char **out, int max)
   const char **t = 0;
   switch (n->id)
   {
-    case NM_ID_PROGRAMS: t = programs; break;
     case NM_ID_ALL_ROMS: t = allRoms; break;
     case NM_ID_ROM_FOLDER: t = folder; break;
     case NM_ID_SETTINGS: t = settings; break;
@@ -348,13 +346,22 @@ static int nmDiscover(const char *const *files, int nfiles,
   return n;
 }
 
+static void nmAppendChild(NmNode *parent, NmNode *child)
+{
+  child->parent = parent;
+  child->right = 0;
+  if (parent->child == 0) { parent->child = child; return; }
+  NmNode *last = parent->child;
+  while (last->right != 0) last = last->right;
+  last->right = child;
+}
+
 // Adds the discovered programs as children of node "into". image: e.g. "piZero1/".
 // Returns how many were added.
 static int nmAddPrograms(NmTree *t, NmNode *into, const char *imageDir,
                          char (*bases)[NM_NAME_LEN], int nbases,
                          char (*imgPaths)[56])
 {
-  NmNode *prev = 0;
   int added = 0;
   for (int i = 0; i < nbases && i < NM_MAX_PROGS; i++)
   {
@@ -368,26 +375,14 @@ static int nmAddPrograms(NmTree *t, NmNode *into, const char *imageDir,
     nmPrettyTitle(bases[i], n->title, (int) sizeof n->title);
     nmCopy(n->key, bases[i], NM_NAME_LEN);
     n->img = imgPaths[i];
-    n->parent = into;
     n->discovered = 1;
-    if (prev != 0) prev->right = n; else into->child = n;
-    prev = n;
+    nmAppendChild(into, n);                     // "into" may already list games the menu files put there
     added++;
   }
   return added;
 }
 
 // ---- Vectrex ROMs found under vectrex/ ------------------------------------------------
-
-static void nmAppendChild(NmNode *parent, NmNode *child)
-{
-  child->parent = parent;
-  child->right = 0;
-  if (parent->child == 0) { parent->child = child; return; }
-  NmNode *last = parent->child;
-  while (last->right != 0) last = last->right;
-  last->right = child;
-}
 
 // true if the first "len" characters of seg equal word, ignoring case
 static int nmSegIs(const char *seg, int len, const char *word)
@@ -793,12 +788,17 @@ static NmNode *nmCategory(NmTree *t, const char *path)
   return cur;
 }
 
-// PROGRAMS: entries without a category and programs found on the card.
-static NmNode *nmProgramsNode(NmTree *t)
+// PITREX: entries without a category and programs found on the card (a .img in piZero1/ or piZero2/ is a PiTrex
+// program).
+static NmNode *nmPitrexNode(NmTree *t)
 {
-  for (int i = 0; i < t->ntops; i++)
-    if (t->tops[i]->id == NM_ID_PROGRAMS) return t->tops[i];
-  return nmAddTop(t, "PROGRAMS", NM_ID_PROGRAMS);
+  return nmCategory(t, "PITREX");
+}
+
+// A program found on the card that is still in the PITREX top level (the menu files gave it no other place).
+static int nmInPitrexTop(const NmNode *n)
+{
+  return n->parent != 0 && n->parent->parent == 0 && nmEqNoCase(n->parent->title, "PITREX");
 }
 
 static int nmParamEq(const char *a, const char *b)
@@ -858,7 +858,7 @@ static NmNode *nmAddEntry(NmTree *t, const char *key, const SidecarText *s, cons
 {
   if (s->image[0] == 0) return 0;
   NmNode *parent = s->category[0] != 0 ? nmCategory(t, s->category) : 0;
-  if (parent == 0) parent = nmProgramsNode(t);
+  if (parent == 0) parent = nmPitrexNode(t);
   if (parent == 0) return 0;
   if (nmFindSame(parent, prefix, s->image, s->p1, s->p2) != 0) return 0;   // the same game twice in one category
   NmNode *n = nmNewNode(t);
@@ -942,10 +942,10 @@ static void nmHideMissingImages(NmTree *t, const char *const *files, int nfiles)
 
 static int nmTopRank(const NmNode *n)
 {
-  return n->id == NM_ID_SETTINGS ? 2 : (n->id == NM_ID_PROGRAMS ? 1 : 0);
+  return n->id == NM_ID_SETTINGS ? 1 : 0;
 }
 
-// Top level: the categories alphabetically, then PROGRAMS, then SETTINGS.
+// Top level: the categories alphabetically, then SETTINGS.
 static void nmSortTops(NmTree *t)
 {
   for (int a = 1; a < t->ntops; a++)
@@ -1088,7 +1088,7 @@ static void nmApplySidecars(NmTree *t, NmReadFn rd)
     NmNode *to = nmCategory(t, st.category);
     if (to == 0 || to == n->parent) continue;
     if (n->altImg != 0) nmCopyInto(t, n, to);   // a ROM: a copy in the category, it stays in ALL ROMS
-    else if (n->parent != 0 && n->parent->id == NM_ID_PROGRAMS)
+    else if (nmInPitrexTop(n))
     {
       nmUnlink(n);
       nmAppendChild(to, n);
@@ -1111,7 +1111,7 @@ static int nmAddFolderFiles(NmTree *t, NmRecs *recs, const NmRec *rule, const ch
 {
   int added = 0;
   NmNode *parent = rule->category[0] != 0 ? nmCategory(t, rule->category) : 0;
-  if (parent == 0) parent = nmProgramsNode(t);
+  if (parent == 0) parent = nmPitrexNode(t);
   if (parent == 0) return 0;
   SidecarText st;
   for (int f = 0; f < nfiles; f++)
@@ -1211,7 +1211,7 @@ static NmNode *nmAssembleRest(NmTree *t, NmScratch *sc, NmReadFn rd, const char 
   *nfound = nmDiscover(files, nfiles, sc->known, nknown, sc->found, NM_MAX_PROGS);
   if (*nfound > 0)
   {
-    NmNode *programs = nmProgramsNode(t);
+    NmNode *programs = nmPitrexNode(t);
     if (programs != 0) nmAddPrograms(t, programs, prefix, sc->found, *nfound, sc->paths);
   }
 

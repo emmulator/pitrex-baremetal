@@ -45,10 +45,10 @@ roms="$(downs 3 10),right@50,right@60,right@70,down@80,down@88"
 run "ROM starts the Exact emulator with its path" 150 "$roms,b4@110" 'image=piZero1/vectrexexact.img param1="demos/epic.bin"'
 run "Button 2 starts the same ROM with Speedy" 150 "$roms,b2@110" 'image=piZero1/vectrexspeedy.img param1="demos/epic.bin"'
 
-# PROGRAMS (6th category: only programs without an entry file are listed there; the card has zzprog.img)
-run "Discovered program starts its own image, no parameters" 100 "$(downs 5 10),right@60,b4@80" 'image=piZero1/zzprog.img param1=- param2='
-run "SETTINGS opens the calibration screen" 100 "$(downs 6 10),b4@70" 'SETTINGS GUI opened'
-run "SETTINGS saves to vectrexInterface.ini, not the last ini read" 100 "$(downs 6 10),b4@70" 'save ini vectrexInterface.ini'
+# PITREX (3rd category): a program without an entry (the card has zzprog.img) is listed in it, last (25 downs: the list stops at its end)
+run "A program no menu file mentions is listed under PITREX and starts its own image, no parameters" 280 "$(downs 2 10),right@40,$(downs 25 50),b4@260" 'image=piZero1/zzprog.img param1=- param2='
+run "SETTINGS opens the calibration screen" 100 "$(downs 5 10),b4@70" 'SETTINGS GUI opened'
+run "SETTINGS saves to vectrexInterface.ini, not the last ini read" 100 "$(downs 5 10),b4@70" 'save ini vectrexInterface.ini'
 
 
 # ARCADE > ATARI > ASTEROIDS: Button 2 opens the CONTROLS page (it starts nothing), a button leaves it, Button 4 then starts the game
@@ -65,8 +65,9 @@ printf '[entry]\nemulator = speedy\n' > "$work/card/menu/rom.demos_epic_bin.ini"
 run "sidecar emulator = speedy: Button 4 starts Speedy" 150 "$roms,b4@110" 'image=piZero1/vectrexspeedy.img param1="demos/epic.bin"' "$work/card"
 run "...and Button 2 then starts Exact" 150 "$roms,b2@110" 'image=piZero1/vectrexexact.img param1="demos/epic.bin"' "$work/card"
 
-# a brand new entry file: no recompiling. PITREX is the 3rd category; the new game sorts last in it (25 downs: the list stops at its end)
-printf '[entry]\ntitle = ZZ NEW GAME\ncategory = PITREX\nimage = hello.img\nparam1 = my/param\n' > "$work/card/menu/zznew.ini"
+# a brand new entry file: no recompiling. PITREX is the 3rd category; the new game sorts last in it (after ZZPROG, the program
+# the card has without an entry; 25 downs: the list stops at its end)
+printf '[entry]\ntitle = ZZZ NEW GAME\ncategory = PITREX\nimage = hello.img\nparam1 = my/param\n' > "$work/card/menu/zznew.ini"
 run "a new entry file appears in its category, sorted, with its parameter" 280 "$(downs 2 10),right@40,$(downs 25 50),b4@260" 'image=piZero1/hello.img param1="my/param"' "$work/card"
 rm -f "$work/card/menu/zznew.ini"
 
@@ -102,11 +103,11 @@ fv="$work/favorites"; mkdir -p "$fv"; cp -r "$base"/. "$fv"/; cp "$here/../../me
 run "favorites.ini: FAVORITES starts with Vectorblade" 100 "$(downs 2 10),right@40,b4@60" 'image=piZero1/vectorblade.img' "$fv"
 run "...and its third game is the Vectrex Armor Attack cartridge" 120 "$(downs 2 10),right@40,$(downs 2 50),b4@80" 'image=piZero1/vectrexexact.img param1="original/ARMOR.BIN"' "$fv"
 
-# no metadata at all: no menu files. Top level: AUDIO, VECTREX, VIDEO (from the built-in folder rules), PROGRAMS, SETTINGS
+# no metadata at all: no menu files. Top level: AUDIO, PITREX (the programs found), VECTREX, VIDEO (from the built-in folder rules), SETTINGS
 nm="$work/nometa"; mkdir -p "$nm"; cp -r "$base"/. "$nm"/; rm -f "$nm"/menu/*.ini
-run "no menu files: VIDEO lists vectrex/movies and starts the video player with the file" 120 "$(downs 2 10),right@40,b4@60" 'image=piZero1/vectrexvideo.img param1="vectrex/movies" param2="BadApple.bin"' "$nm"
+run "no menu files: VIDEO lists vectrex/movies and starts the video player with the file" 120 "$(downs 3 10),right@40,b4@60" 'image=piZero1/vectrexvideo.img param1="vectrex/movies" param2="BadApple.bin"' "$nm"
 printf 'g GCE 2026\200' > "$nm/vectrex/000_FIRST.vec"
-run "a .vec file is listed under ALL ROMS (loose files come after the folders)" 160 "$(downs 1 10),right@30,right@40,$(downs 2 50),b4@90" 'image=piZero1/vectrexexact.img param1="000_FIRST.vec"' "$nm"
+run "a .vec file is listed under ALL ROMS (loose files come after the folders)" 160 "$(downs 2 10),right@30,right@40,$(downs 2 50),b4@90" 'image=piZero1/vectrexexact.img param1="000_FIRST.vec"' "$nm"
 
 echo; echo "$pass passed, $fail failed"
 [ "$fail" -eq 0 ]

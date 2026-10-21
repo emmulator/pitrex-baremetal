@@ -3,17 +3,18 @@
 
     python3 -I release_links.py <fork checkout> <release folder>
 
-new_menu/README.md becomes README.md, new_menu/CHANGELOG.md CHANGELOG.md, and NEW_MENU_README.md stays NEW_MENU_README.md (also in payload/, so it lands on the
-card). Links between the two point at each other; links to anything else in the repository point at the source
-repository on GitHub.
+new_menu/README.md becomes README.md, new_menu/CHANGELOG.md CHANGELOG.md, and NEW_MENU_README.md stays NEW_MENU_README.md.
+The guide is also in payload/menu/, so it lands on the card next to menu.ini; that copy links to GitHub only (it is
+not next to the front page). Links between the guides in the release folder point at each other; links to anything
+else in the repository point at the source repository on GitHub.
 """
-import re, sys
+import os, re, sys
 
 REPO = "https://github.com/emmulator/pitrex-baremetal/blob/menu-redesign/"
 SHIPPED = {"NEW_MENU_README.md": "NEW_MENU_README.md", "new_menu/README.md": "README.md", "new_menu/CHANGELOG.md": "CHANGELOG.md"}
 
 
-def fix(text, here):
+def fix(text, here, shipped=SHIPPED):
     """here: the folder of the file inside the repository ("" or "new_menu/")."""
     def link(m):
         target = m.group(1)
@@ -28,16 +29,17 @@ def fix(text, here):
                 parts.append(p)
         path = "/".join(parts)
         anchor = "#" + anchor if anchor else ""
-        if path in SHIPPED:
-            return "](%s%s)" % (SHIPPED[path], anchor)
+        if path in shipped:
+            return "](%s%s)" % (shipped[path], anchor)
         return "](%s%s%s)" % (REPO, path, anchor)
     return re.sub(r"\]\(([^)\s]+)\)", link, text)
 
 
 def main(fork, root):
-    nm = fix(open(fork + "/NEW_MENU_README.md").read(), "")
-    for out in (root + "/NEW_MENU_README.md", root + "/payload/NEW_MENU_README.md"):
-        open(out, "w").write(nm)
+    src = open(fork + "/NEW_MENU_README.md").read()
+    open(root + "/NEW_MENU_README.md", "w").write(fix(src, ""))
+    os.makedirs(root + "/payload/menu", exist_ok=True)
+    open(root + "/payload/menu/NEW_MENU_README.md", "w").write(fix(src, "", {}))
     open(root + "/README.md", "w").write(fix(open(fork + "/new_menu/README.md").read(), "new_menu/"))
     open(root + "/CHANGELOG.md", "w").write(fix(open(fork + "/new_menu/CHANGELOG.md").read(), "new_menu/"))
 

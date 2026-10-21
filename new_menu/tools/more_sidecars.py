@@ -13,7 +13,7 @@ in cinematronics/cinemu.c is an empty stub (the game is a 68000 board), so there
 import os, sys
 
 HEAD = ("; PiTrex menu entry: the new menu is built from files like this one.\n"
-        "; Delete the file and the entry is gone from the menu (a program is then listed under PROGRAMS).\n"
+        "; Delete the file and the entry is gone from the menu (a program is then listed under PITREX).\n"
         "; Format: new_menu/menu/05-sidecar-format.md\n[entry]\n")
 
 # (AAE game number, MAME name, title, category). Numbers are positions in the driver table of aae/aaemain.c.
@@ -72,14 +72,14 @@ for num, name, title, cat in AAE:
         'title = ' + title, 'category = ' + cat, 'image = aae.img', 'param1 = 0x%02x' % num,
         'needs = roms/aae/%s.zip' % name, 'skip = 4',
         'text = ANOTHER VERSION OF THE GAME',
-        'text = RUNS ON AAE. NOT TESTED.',
+        'text = RUNS ON AAE.',
     ])
 
 write(folder, 'cine.qb3', [
     'title = QB3', 'category = ARCADE / OTHER ARCADE', 'image = cine.img', 'param1 = qb3',
     'needs = roms/qb3.zip', 'skip = 4',
     'text = CINEMATRONICS EMU',
-    'text = ROCK OLA PROTOTYPE. NOT TESTED.',
+    'text = ROCK OLA PROTOTYPE.',
 ])
 write(folder, 'asteroids.sim', [  # key must be the image's own name to be found as an entry; see below
 ])
@@ -87,22 +87,22 @@ os.remove(os.path.join(folder, 'asteroids.sim.ini'))
 write(folder, 'asteroids', [
     'title = ASTEROIDS SIM', 'category = ARCADE / ATARI', 'image = asteroids.img',
     'needs = roms/asteroid.zip', 'skip = 4',
-    'text = OLDER EMULATOR. NOT TESTED.',
+    'text = OLDER EMULATOR.',
     'text = ASTEROIDS SBT IS THE FASTER ONE.',
 ])
 write(folder, 'deluxe', [
     'title = ASTEROIDS DELUXE SIM', 'category = ARCADE / ATARI', 'image = deluxe.img',
     'needs = roms/astdelux.zip', 'skip = 4',
-    'text = OLDER EMULATOR. NOT TESTED.',
+    'text = OLDER EMULATOR.',
 ])
 write(folder, 'gyrocks', [
     'title = GYROCKS', 'category = PITREX', 'image = gyrocks.img', 'skip = 4',
-    'text = NOT TESTED.',
+    'text =',
 ])
 for img, title in (('maze', 'MAZE'), ('pacman', 'PACMAN DEMO'), ('perspective', 'PERSPECTIVE')):
     write(folder, img, [
         'title = ' + title, 'category = PITREX / SAMPLE PROGRAMS', 'image = %s.img' % img, 'skip = 4',
-        'text = SAMPLE PROGRAM FROM THE SOURCE. NOT TESTED.',
+        'text = SAMPLE PROGRAM FROM THE SOURCE.',
     ])
 for img, title in (('hello', 'HELLO WORLD'), ('window', 'WINDOW')):
     write(folder, img, [

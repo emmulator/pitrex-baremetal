@@ -163,6 +163,35 @@ if (Test-Path -LiteralPath (Join-Path $menuDir 'menu.ini')) {
   Write-Host "  keep     menu/menu.ini (your changes; they are read after the new menu.default.ini)"
 }
 
+# files that earlier versions put on the card and that moved or are no longer needed (the guide NEW_MENU_README.md is
+# now menu\README.md): removed when they are exactly as a release shipped them (saved in the backup), kept when changed
+$legacyFiles = Join-Path $here 'legacy-files.sha256'
+if (Test-Path -LiteralPath $legacyFiles) {
+  $legacyLines = @(Get-Content -LiteralPath $legacyFiles | ForEach-Object { , ($_ -split '\s+', 2) } | Where-Object { $_.Count -ge 2 })
+  $seenLegacy = @{}
+  foreach ($parts in $legacyLines) {
+    $f = P $target $parts[1]
+    if (-not (Test-Path -LiteralPath $f -PathType Leaf)) { continue }
+    if ((Get-FileHash -LiteralPath $f -Algorithm SHA256).Hash -ne $parts[0].ToUpper()) { continue }
+    $seenLegacy[$parts[1]] = 1
+    $script:changed++
+    Write-Host "  remove   $($parts[1]) (replaced by a newer file)"
+    if (-not $DryRun) {
+      StartBackup
+      $bkDir = Split-Path -Parent (P $bkPath $parts[1])
+      New-Item -ItemType Directory -Force -Path $bkDir | Out-Null
+      Copy-Item -LiteralPath $f -Destination (P $bkPath $parts[1])
+      Note 'D' $parts[1] ''
+      Remove-Item -LiteralPath $f -Force
+    }
+  }
+  foreach ($parts in $legacyLines) {
+    if ($seenLegacy.ContainsKey($parts[1])) { continue }
+    $seenLegacy[$parts[1]] = 1
+    if (Test-Path -LiteralPath (P $target $parts[1]) -PathType Leaf) { Write-Host "  keep     $($parts[1]) (you changed it)" }
+  }
+}
+
 # loader.ini: NEW_MENU = 1 (keeps the file's own line endings)
 $ini = P $target 'loader.ini'
 $text = $latin1.GetString([System.IO.File]::ReadAllBytes($ini))

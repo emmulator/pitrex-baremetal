@@ -34,6 +34,8 @@ cp "$fork/new_menu/menu/sidecar/favorites.ini" "$root/payload-if-missing/menu/"
 git -C "$fork" ls-tree --name-only v0.1.0 new_menu/menu/sidecar/menu/ | while IFS= read -r f; do
   printf '%s  %s\n' "$(git -C "$fork" show "v0.1.0:$f" | sha256sum | cut -d' ' -f1)" "$(basename "$f")"
 done > "$root/legacy-menu-files.sha256"
+# files that earlier releases put elsewhere (0.1.0 and 0.2.0 shipped the guide in the card's root: it is menu/NEW_MENU_README.md now)
+cp "$here/legacy-files.sha256" "$root/legacy-files.sha256"
 
 # the guides: README.md (from new_menu/README.md) is the front page. Links into the repository's other docs point at the
 # source repository, which is public before a release goes out.

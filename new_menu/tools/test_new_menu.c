@@ -184,7 +184,7 @@ int main(int argc, char **argv)
   CHECK(nentries >= 60 && nentries <= entryFiles, "entries %d of %d (fewer only when two files describe the same game)", nentries, entryFiles);
   CHECK(entryFiles >= 60, "entry files found: %d", entryFiles);
 
-  /* ---- top level: categories alphabetically, then PROGRAMS, then SETTINGS ---- */
+  /* ---- top level: categories alphabetically, then SETTINGS ---- */
   {
     int sorted = 1;
     int i = 0;
@@ -277,13 +277,15 @@ int main(int argc, char **argv)
     fclose(f);
     CHECK(ne == nfound, "discovered %d programs, expected %d", nfound, ne);
     for (int i = 0; i < ne && i < nfound; i++) CHECK(strcmp(exp[i], scratch.found[i]) == 0, "discovered[%d] '%s' != expected '%s'", i, scratch.found[i], exp[i]);
-    NmNode *pr = nmFindTop(&tree, "PROGRAMS");
-    CHECK((ne > 0) == (pr != 0), "PROGRAMS exists exactly when something was found");
-    if (pr != 0)
-    {
-      CHECK(pr->child != 0 && pr->child->discovered && strncmp(pr->child->img, "piZero1/", 8) == 0, "first program is discovered with its image path");
-      CHECK(nmTopRank(pr) == 1, "PROGRAMS ranks after the categories");
-    }
+    NmNode *pr = nmFindTop(&tree, "PITREX");
+    int inPitrex = 0, wrongPath = 0;
+    for (NmNode *c = pr ? pr->child : 0; c != 0; c = c->right)
+      if (c->discovered) { inPitrex++; if (strncmp(c->img, "piZero1/", 8) != 0) wrongPath++; }
+    CHECK(inPitrex == ne && wrongPath == 0, "every program found on the card is listed under PITREX with its image path (%d of %d)", inPitrex, ne);
+    CHECK(nmFindTop(&tree, "PROGRAMS") == 0, "there is no PROGRAMS category any more");
+    int described = 0;
+    for (NmNode *c = pr ? pr->child : 0; c != 0; c = c->right) if (!c->discovered) described++;
+    CHECK(ne == 0 || described > 0, "programs found on the card are added to PITREX, not put in place of the games the menu files list there");
   }
 
   /* ---- an entry whose image is not on the card is hidden, and so is an emptied category ---- */
@@ -453,7 +455,7 @@ int main(int argc, char **argv)
                 "help uses a drawable character, got '%c' in: %s", *c, lines[l]);
       }
     }
-    const int ids[] = { NM_ID_PROGRAMS, NM_ID_ALL_ROMS, NM_ID_ROM_FOLDER, NM_ID_SETTINGS };
+    const int ids[] = { NM_ID_ALL_ROMS, NM_ID_ROM_FOLDER, NM_ID_SETTINGS };
     for (unsigned i = 0; i < sizeof ids / sizeof ids[0]; i++)
     {
       NmNode n;
@@ -596,7 +598,7 @@ int main(int argc, char **argv)
 
     /* build a small tree with these records (recRead reads the global recs: point them here for this block) */
     static char rp[3][NM_ROM_PATH] = { "original/BERZERK.BIN", "original/WEBWARS.BIN", "solo.vec" };
-    const char *fl[] = { "aae.img", "vectrexvideo.img", "vectrexexact.img", "vectrexspeedy.img", "voom.img", "old.img" };   /* no nosuch.img */
+    const char *fl[] = { "aae.img", "vectrexvideo.img", "vectrexexact.img", "vectrexspeedy.img", "voom.img", "newgame.img" };   /* no nosuch.img */
     const char *mv[] = { "BadApple.bin", "LaLinea.bin", "notes.txt", ".hidden.bin" };
     static NmRecs keep;
     keep = recs;
@@ -634,8 +636,11 @@ int main(int argc, char **argv)
     NmNode *all = findTitle(nmFindTop(&mt, "VECTREX"), "ALL ROMS");
     CHECK(all && findTitle(all, "SOLO") && findTitle(all, "ORIGINAL GAMES"), "the ROM stays in ALL ROMS; .vec listed; the group renamed");
     NmNode *pd = findTitle(nmFindTop(&mt, "PITREX"), "DEMOS");
-    NmNode *pg = nmFindTop(&mt, "PROGRAMS");
-    CHECK(pd && findTitle(pd, "MY PROGRAM") && (pg == 0 || pg->hidden), "a program with a category moves out of PROGRAMS, titled by its section");
+    CHECK(pd && findTitle(pd, "MY PROGRAM") && findTitle(nmFindTop(&mt, "PITREX"), "VOOM") == 0,
+          "a program with a category moves out of PITREX, titled by its section");
+    NmNode *oldp = findTitle(nmFindTop(&mt, "PITREX"), "NEWGAME");
+    CHECK(oldp && oldp->discovered && findTitle(nmFindTop(&mt, "PITREX"), "NO SUCH PROGRAM"),
+          "a program no menu file mentions is listed under PITREX, next to the entries the menu files put there");
     NmNode *atari = findTitle(nmFindTop(&mt, "ARCADE"), "ATARI");
     CHECK(atari && atari->hidden, "a hidden category");
     NmNode *lost = nmFindTop(&mt, "LOST AND FOUND");

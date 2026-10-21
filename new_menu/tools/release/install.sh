@@ -170,6 +170,33 @@ if [ -f "$target/menu/menu.ini" ]; then
   echo "  keep     menu/menu.ini (your changes; they are read after the new menu.default.ini)"
 fi
 
+# files that earlier versions put on the card and that moved or are no longer needed (the guide NEW_MENU_README.md is
+# now menu/README.md): removed when they are exactly as a release shipped them (saved in the backup), kept when changed
+legacyfiles="$here/legacy-files.sha256"
+if [ -f "$legacyfiles" ]; then
+  gone=" "
+  while read -r sum rel; do
+    f="$target/$rel"
+    [ -f "$f" ] && [ "$(hashf "$f")" = "$sum" ] || continue
+    gone="$gone$rel "
+    changed=$((changed + 1))
+    echo "  remove   $rel (replaced by a newer file)"
+    if [ "$dry" = 0 ]; then
+      start_backup
+      mkdir -p "$bk/$(dirname "$rel")"
+      cp "$f" "$bk/$rel"
+      note D "$rel"
+      rm -f "$f"
+    fi
+  done < "$legacyfiles"
+  seen="$gone"
+  while read -r sum rel; do
+    case "$seen" in *" $rel "*) continue ;; esac
+    seen="$seen$rel "
+    [ -f "$target/$rel" ] && echo "  keep     $rel (you changed it)"
+  done < "$legacyfiles"
+fi
+
 # loader.ini: NEW_MENU = 1 (keeps the file's own line endings)
 ini="$target/loader.ini"
 tmp=$(mktemp)
