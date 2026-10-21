@@ -18,6 +18,19 @@ or build a whole card, arcade ROMs included, from Malban's zip and the RpiTeaM E
 
 `--dry-run` shows what would change. `--restore` undoes it. No ROMs or BIOS files are included.
 
+## New in 0.2.1
+
+* **A program you copy to the card is listed under PITREX** (an `.img` in `piZero1/` or `piZero2/`), named after its
+  file, with no menu entry needed. The separate PROGRAMS category is gone. Give it a name, notes or another place
+  with a few lines in `menu/menu.ini`; the guide has an example, including a game that has a different file for
+  each Pi model.
+* **The guide is on the card, in `menu/`** (`menu/NEW_MENU_README.md`), next to `menu.ini`. The installer removes the
+  old copy from the card's root if you have not changed it.
+* **Vectorburner** is no longer in the default menu (it is not part of Malban's card). It is listed under PITREX by
+  itself when its image is on the card.
+* The default menu no longer carries "not tested" notes. The notes of Red Baron, Gravitar and Space Duel no longer
+  say NO SOUND: they have sound on a real PiTrex.
+
 ## New in 0.2.0
 
 * **The whole menu is one file**, `menu/menu.default.ini`, and **your changes go in `menu/menu.ini`**, read last:
@@ -43,13 +56,13 @@ or build a whole card, arcade ROMs included, from Malban's zip and the RpiTeaM E
 |---|---|
 | `README.md`, `NEW_MENU_README.md`, `CHANGELOG.md` | the plug-and-play guide, the guide to changing the menu, and what changed in each version |
 | `install.sh`, `install.ps1`, `install.bat`, `make_card.py` | the installers |
-| `payload/` | bootstrap (`pitrex.img`, `pitrex7.img`), loader, AAE with the game picker, Vectrex emulators and players, Vectorblade, rebuilt Star Wars / Tempest / Black Widow (both Pi models), and the menu file `menu/menu.default.ini` |
+| `payload/` | bootstrap (`pitrex.img`, `pitrex7.img`), loader, AAE with the game picker, Vectrex emulators and players, Vectorblade, rebuilt Star Wars / Tempest / Black Widow (both Pi models), the menu file `menu/menu.default.ini` and the guide `menu/NEW_MENU_README.md` |
 | `payload-if-missing/` | `menu/favorites.ini`, an example FAVORITES collection: installed only if the card has no `favorites.ini` yet, so your own list is never overwritten |
 | `settings/` | the tuned `vectrexInterface.ini` (used with `--settings tuned`, or if yours is missing or empty) and `vectrex.ini` (only with `--settings tuned`) |
 | `arcade-tweaks/` | single-controller `blackwidow.ini` and `battlezone.ini` (only with `--arcade-tweaks`) |
 
 `SHA256SUMS` lists every file. `BUILDINFO.txt` says which source each program was built from.
-`legacy-menu-files.sha256` lets the installer recognise unchanged 0.1.0 entry files.
+`legacy-menu-files.sha256` and `legacy-files.sha256` let the installer recognise unchanged files of earlier versions.
 
 ## Credits and source
 

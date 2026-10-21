@@ -4,7 +4,7 @@ Changes to the new PiTrex menu (this fork of [malbanGit/pitrex-baremetal](https:
 Releases: <https://github.com/emmulator/pitrex-baremetal/releases>. Install guide: [README.md](README.md); changing
 the menu: [NEW_MENU_README.md](../NEW_MENU_README.md).
 
-## 0.2.1 (not released yet)
+## 0.2.1 (2026-10-20)
 
 ### Menu
 * A PiTrex program the menu files do not mention (an `.img` you copied into `piZero1/` or `piZero2/`) is listed
