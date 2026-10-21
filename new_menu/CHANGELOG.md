@@ -12,6 +12,8 @@ the menu: [NEW_MENU_README.md](../NEW_MENU_README.md).
 * The PITREX help text says that a program you copy to the card is listed there and where the guide is.
 * Vectorburner is no longer in the default menu file: it is not part of Malban's card, so it is listed under PITREX
   by itself when its image is on the card, and `menu.ini` can give it a name and notes.
+* The notes of Red Baron, Gravitar and Space Duel no longer say NO SOUND: they have sound on a real PiTrex (Black Widow's
+  note was already corrected in 0.2.0). The other notes are Malban's own.
 * The default menu file no longer says NOT TESTED about games: whether a game has been tried is not part of the
   release. (`test-log.ini`, kept by whoever tests, can put those notes back for their own card.)
 

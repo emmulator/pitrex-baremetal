@@ -71,9 +71,12 @@ BY_KEY = {
         "TRY BUTTON 3 FOR THE SUPERZAPPER",
     ] + SIM_COIN,
 }
-# notes the user found to be wrong on hardware (2026-10-17): Black Widow does have sound
+# notes of the original menu that the user found to be wrong on hardware (2026-10-17): these games do have sound
 TEXT_BY_KEY = {
     'blackwidow': ["WORK IN PROGRESS!!", "FLICKER. SOME SOUND WORKS."],
+    'redbaron': ["WORK IN PROGRESS!!", "FLICKER. SOME SOUND WORKS."],
+    'gravitar': ["WORK IN PROGRESS!", "SOUND WORKS."],
+    'spaceduel': ["WORK IN PROGRESS!!", "FLICKER. SOUND WORKS."],
 }
 BY_AAE_TITLE = {
     'MAJOR HAVOC': [
