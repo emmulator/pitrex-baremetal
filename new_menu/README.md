@@ -215,19 +215,6 @@ The same games are also in `roms/` in the RpiTeaM image; the menu does not use t
 ARCADE > ALL AAE GAMES is a picker that lists every zip in `roms/aae/` that AAE has a driver for, including
 the ones the menu has no entry for. Button 4 plays, Button 1 goes back.
 
-How well they run (tested on one Vectrex with a Pi Zero W, 2026-10-17/18):
-
-| Game | Result |
-|---|---|
-| Star Wars, Tempest | work (the rebuilt programs; the July 2025 ones show a blank screen) |
-| Asteroids | works; the explosion sound is missing |
-| Black Widow | works, some sound. One controller: hold Button 4 to fire the way the stick last pointed |
-| Red Baron, Gravitar, Space Duel | work, with sound |
-| Lunar Lander | works; sound not confirmed |
-| Asteroids Deluxe, Major Havoc, Quantum (AAE) | work, no sound |
-| Other AAE games and versions, the Cinematronics emulator, QB3, the two older "SIM" Asteroids programs | **not tested**. The menu notes copy the original author's remarks (NO SOUND, WORK IN PROGRESS...) |
-| Pi Zero 2 | built, **not tested on hardware** |
-
 ## Settings
 
 SETTINGS (last in the list) opens the screen calibration pages. Press Button 4 to leave: the values are written

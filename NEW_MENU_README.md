@@ -298,8 +298,8 @@ python3 -I new_menu/tools/entries_to_menu_ini.py new_menu/menu/sidecar/menu new_
 
 | File | What it does |
 |---|---|
-| `pitrex/loader/menuFile.h` | reading the menu files into records, keys, folder-rule helpers. No hardware calls, tested on a PC. |
-| `pitrex/loader/newMenuLogic.h` | building the tree: entries, folder rules, program and ROM discovery, hiding, sorting, navigation, help texts. No hardware calls, tested on a PC. |
+| `pitrex/loader/menuFile.h` | reading the menu files into records, keys, folder-rule helpers. No hardware calls; host tests in `new_menu/tools/test_new_menu.c`. |
+| `pitrex/loader/newMenuLogic.h` | building the tree: entries, folder rules, program and ROM discovery, hiding, sorting, navigation, help texts. No hardware calls; host tests in `new_menu/tools/test_new_menu.c`. |
 | `pitrex/loader/newMenuUi.h` | drawing, buttons, launching, reading the card, the staged start-up |
 | `pitrex/loader/menuSidecar.h`, `menuSidecarIo.h` | the keys of a section; the original menu's notes files |
 | `pitrex/loader/loaderMain.c` | calls the new menu each frame when `NEW_MENU = 1` (the original compiled menu is untouched) |

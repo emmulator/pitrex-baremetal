@@ -16,7 +16,6 @@ Nothing here is part of upstream.
 | [05-sidecar-format.md](menu/05-sidecar-format.md) | Menu notes as editable `menu/<key>.ini` files on the SD card |
 | [06-aae-picker.md](menu/06-aae-picker.md) | AAE accepts game names and lists the ROM zips on the card |
 | [07-new-menu.md](menu/07-new-menu.md) | The new list menu (`NEW_MENU = 1`), program and ROM discovery |
-| [09-hardware-test-log.md](menu/09-hardware-test-log.md) | What was tried on a real PiTrex on 2026-10-17 and what happened |
 | [10-other-work.md](menu/10-other-work.md) | Other published menu work (forks, posts) found on 2026-10-18 |
 | [08-menu-preview.md](menu/08-menu-preview.md) | Running the real menu code on a PC with the PiTrex simulator, scripted checks |
 | [11-menu-ini-plan.md](menu/11-menu-ini-plan.md) | Plan for 0.2.0: one `menu/menu.ini`, folder rules, a menu that works with no metadata |
