@@ -4,7 +4,7 @@ Changes to the new PiTrex menu (this fork of [malbanGit/pitrex-baremetal](https:
 Releases: <https://github.com/emmulator/pitrex-baremetal/releases>. Install guide: [README.md](README.md); changing
 the menu: [NEW_MENU_README.md](../NEW_MENU_README.md).
 
-## 0.2.2 (not released yet)
+## 0.2.2 (2026-11-04)
 
 ### Menu
 * The groups under VECTREX > ALL ROMS that stand for a folder of the card are no longer named "... FOLDER": the folder

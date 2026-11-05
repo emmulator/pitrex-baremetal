@@ -18,6 +18,20 @@ or build a whole card, arcade ROMs included, from Malban's zip and the RpiTeaM E
 
 `--dry-run` shows what would change. `--restore` undoes it. No ROMs or BIOS files are included.
 
+## New in 0.2.2
+
+* **A second font for the menu text.** Add `NEW_MENU_FONT = MINIMALIST` to `loader.ini` to draw the text with a font
+  that takes fewer lines per letter, so a screen with a lot of text may flicker less. `DEFAULT` (or no line) keeps the
+  PiTrex font. The installer adds `NEW_MENU_FONT = DEFAULT` to `loader.ini`, with comments that explain the two
+  values, if the file has no such line.
+* **Shorter help texts and control lines**, and the groups under VECTREX > ALL ROMS that stand for a folder of the card
+  are named after the folder, without the word FOLDER (the folder sign says it).
+* **Screen settings:** Malban's `vectrexInterface.ini` stays the starting point. `--settings tuned` is now
+  `--settings alt` (`tuned` still works): it installs the settings of the author's Vectrex, which are no better than
+  Malban's in general. A card with no `vectrexInterface.ini`, or an empty one, now gets Malban's file.
+* **Upgrading from 0.1.0** removes the 0.1.0 entry files you did not change, as 0.2.0 and 0.2.1 said it would (their
+  list of those files was empty).
+
 ## New in 0.2.1
 
 * **A program you copy to the card is listed under PITREX** (an `.img` in `piZero1/` or `piZero2/`), named after its
