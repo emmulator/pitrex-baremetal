@@ -2,12 +2,13 @@
 # Installs the new PiTrex menu release over an unpacked Malban "PiTrex_sd_Jul29_25" archive
 # (or over the SD card made from it). Linux, macOS, WSL.
 #
-#   ./install.sh [--settings tuned] [--arcade-tweaks] [--dry-run] <folder>
+#   ./install.sh [--settings alt] [--arcade-tweaks] [--dry-run] <folder>
 #   ./install.sh --restore <folder>
 #
 # Replaced files are saved in <folder>/backup-menu-<date>/ with a MANIFEST.tsv that --restore reads.
 # Nothing outside the files listed in payload/ and payload-if-missing/ (only added when missing) is touched (and, with
-# --arcade-tweaks, arcade-tweaks/; with --settings tuned, settings/).
+# --arcade-tweaks, arcade-tweaks/; with --settings alt, settings-alt/; settings-default/ only when the card has no usable
+# vectrexInterface.ini).
 set -eu
 
 here=$(cd "$(dirname "$0")" && pwd)
@@ -29,7 +30,7 @@ while [ $# -gt 0 ]; do
     --restore) mode=restore ;;
     --dry-run) dry=1 ;;
     --arcade-tweaks) arcade=1 ;;
-    --settings) shift; [ $# -gt 0 ] || usage; settings=$1; case $settings in keep|tuned) ;; *) echo "--settings takes keep or tuned" >&2; usage ;; esac ;;
+    --settings) shift; [ $# -gt 0 ] || usage; settings=$1; case $settings in keep|alt) ;; tuned) settings=alt ;; *) echo "--settings takes keep or alt" >&2; usage ;; esac ;;
     -h|--help) usage 0 ;;
     -*) echo "unknown option: $1" >&2; usage ;;
     *) [ -z "$target" ] || usage; target=$1 ;;
@@ -197,25 +198,36 @@ if [ -f "$legacyfiles" ]; then
   done < "$legacyfiles"
 fi
 
-# loader.ini: NEW_MENU = 1 (keeps the file's own line endings)
+# loader.ini: NEW_MENU = 1, and a NEW_MENU_FONT line with comments if there is none (keeps the file's own line endings)
 ini="$target/loader.ini"
 tmp=$(mktemp)
-if tr -d '\r' < "$ini" | grep -Eiq '^[[:space:]]*NEW_MENU[[:space:]]*=[[:space:]]*1'; then
+menu_ok=0; font_ok=0
+tr -d '\r' < "$ini" | grep -Eiq '^[[:space:]]*NEW_MENU[[:space:]]*=[[:space:]]*1' && menu_ok=1
+tr -d '\r' < "$ini" | grep -Eiq '^[[:space:]]*NEW_MENU_FONT[[:space:]]*=' && font_ok=1
+if [ "$menu_ok" = 1 ] && [ "$font_ok" = 1 ]; then
   echo "  same     loader.ini (NEW_MENU already 1)"
 else
   crlf=0
   grep -q "$(printf '\r')" "$ini" && crlf=1
-  if tr -d '\r' < "$ini" | grep -Eiq '^[[:space:]]*NEW_MENU[[:space:]]*='; then
-    tr -d '\r' < "$ini" | sed -E 's/^[[:space:]]*NEW_MENU[[:space:]]*=.*/NEW_MENU = 1/' > "$tmp"
-  else
-    tr -d '\r' < "$ini" > "$tmp"
-    # last byte must be a newline before the new line is added
-    [ -z "$(tail -c 1 "$tmp")" ] || printf '\n' >> "$tmp"
-    printf 'NEW_MENU = 1\n' >> "$tmp"
+  tr -d '\r' < "$ini" > "$tmp"
+  # last byte must be a newline before a line is added
+  [ ! -s "$tmp" ] || [ -z "$(tail -c 1 "$tmp")" ] || printf '\n' >> "$tmp"
+  if [ "$menu_ok" = 0 ]; then
+    if grep -Eiq '^[[:space:]]*NEW_MENU[[:space:]]*=' "$tmp"; then
+      sed -E 's/^[[:space:]]*NEW_MENU[[:space:]]*=.*/NEW_MENU = 1/' "$tmp" > "$tmp.2" && mv "$tmp.2" "$tmp"
+    else
+      printf 'NEW_MENU = 1\n' >> "$tmp"
+    fi
+  fi
+  if [ "$font_ok" = 0 ]; then
+    printf '%s\n' "; NEW_MENU_FONT is the lettering of the new menu:" \
+      ";   DEFAULT     the PiTrex's own font" \
+      ";   MINIMALIST  fewer lines per letter, so a screen full of text may flicker less" \
+      "NEW_MENU_FONT = DEFAULT" >> "$tmp"
   fi
   if [ "$crlf" = 1 ]; then awk '{ printf "%s\r\n", $0 }' "$tmp" > "$tmp.2" && mv "$tmp.2" "$tmp"; fi
   changed=$((changed + 1))
-  echo "  edit     loader.ini (NEW_MENU = 1)"
+  echo "  edit     loader.ini (NEW_MENU = 1, NEW_MENU_FONT)"
   if [ "$dry" = 0 ]; then
     start_backup
     cp "$ini" "$bk/loader.ini"
@@ -226,21 +238,27 @@ fi
 rm -f "$tmp"
 
 # vectrexInterface.ini (the screen settings): an existing file is the user's and stays, unless it is missing or
-# empty (the original settings screen can leave it empty), or --settings tuned asks for ours.
+# empty (the original settings screen can leave it empty): then Malban's file from settings-default/ goes in. --settings alt
+# replaces it with the alternative file (settings-alt/) that this package was developed with.
 cur="$target/vectrexInterface.ini"
 size=-1
 [ -f "$cur" ] && size=$(wc -c < "$cur" | tr -d ' ')
-if [ "$settings" = tuned ] || [ "$size" -lt 100 ]; then
-  [ -d "$here/settings" ] || die "settings/ folder missing next to this script"
-  if [ "$size" -ge 100 ] && [ -n "${PITREX_FRESH_CARD:-}" ]; then echo "settings: installing the tuned file"
-  elif [ "$size" -ge 100 ]; then echo "settings: replacing yours with the tuned file (saved in the backup)"
-  elif [ "$size" -ge 0 ]; then echo "settings: your vectrexInterface.ini is empty; installing the tuned one"
-  else echo "settings: no vectrexInterface.ini; installing the tuned one"; fi
-  put_file "$here/settings/vectrexInterface.ini" vectrexInterface.ini
-  # vectrex.ini (which BIOS Exact loads): only replaced on request; the tuned one uses the original BIOS 7ADB.bin
-  if [ "$settings" = tuned ]; then put_file "$here/settings/vectrex.ini" vectrex.ini; fi
+if [ "$settings" = alt ]; then
+  [ -d "$here/settings-alt" ] || die "settings-alt/ folder missing next to this script"
+  if [ "$size" -ge 100 ] && [ -n "${PITREX_FRESH_CARD:-}" ]; then echo "settings: installing the alternative file"
+  elif [ "$size" -ge 100 ]; then echo "settings: replacing yours with the alternative file (saved in the backup)"
+  elif [ "$size" -ge 0 ]; then echo "settings: your vectrexInterface.ini is empty; installing the alternative one"
+  else echo "settings: no vectrexInterface.ini; installing the alternative one"; fi
+  put_file "$here/settings-alt/vectrexInterface.ini" vectrexInterface.ini
+  # vectrex.ini (which BIOS Exact loads): only replaced on request; the alternative one uses the original BIOS 7ADB.bin
+  put_file "$here/settings-alt/vectrex.ini" vectrex.ini
+elif [ "$size" -lt 100 ]; then
+  [ -d "$here/settings-default" ] || die "settings-default/ folder missing next to this script"
+  if [ "$size" -ge 0 ]; then echo "settings: your vectrexInterface.ini is empty; installing Malban's"
+  else echo "settings: no vectrexInterface.ini; installing Malban's"; fi
+  put_file "$here/settings-default/vectrexInterface.ini" vectrexInterface.ini
 else
-  echo "  keep     vectrexInterface.ini (your settings; use --settings tuned to replace them)"
+  echo "  keep     vectrexInterface.ini (your settings; use --settings alt to replace them)"
 fi
 
 # optional arcade tweaks

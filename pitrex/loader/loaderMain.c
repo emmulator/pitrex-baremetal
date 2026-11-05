@@ -79,6 +79,7 @@ MenuItemNew *currentMenuItem;
 int newMenuEnabled = 0;     // loader.ini: NEW_MENU = 1 selects the new list menu
 int newMenuShowMissing = 0; // loader.ini: NEW_MENU_SHOW_MISSING = 1 lists games whose ROM is not on the card too
 int newMenuLog = 0;         // loader.ini: NEW_MENU_LOG = 1 writes NMLOG.TXT (start-up, launches, settings steps)
+int newMenuFontMinimalist = 0;      // loader.ini: NEW_MENU_FONT = MINIMALIST draws the menu text with the minimalist font (fewer strokes, less flicker)
 void newMenuFrame(void);
 static int newMenuIniHandler(void* user, const char* section, const char* name, const char* value);
 
@@ -350,6 +351,10 @@ static int loaderIniHandler(void* user, const char* section, const char* name, c
   {
     newMenuLog = atoi(value);
   }
+  if (MATCH_NAME("NEW_MENU_FONT"))
+  {
+    newMenuFontMinimalist = strcasecmp(value, "MINIMALIST") == 0;
+  }
 #if RASPPI != 1 
   if (MATCH_NAME("USE_SMP")) 
   {
@@ -365,6 +370,7 @@ static int newMenuIniHandler(void* user, const char* section, const char* name, 
   if (strcmp(name, "NEW_MENU") == 0) newMenuEnabled = atoi(value);
   if (strcmp(name, "NEW_MENU_SHOW_MISSING") == 0) newMenuShowMissing = atoi(value);
   if (strcmp(name, "NEW_MENU_LOG") == 0) newMenuLog = atoi(value);
+  if (strcmp(name, "NEW_MENU_FONT") == 0) newMenuFontMinimalist = strcasecmp(value, "MINIMALIST") == 0;
   return 1;
 }
 
@@ -3069,6 +3075,7 @@ void oneSubDirOut()
 #define TIMING_MAX 25
 int timingAnalog=TIMING_MAX;
   
+#define NM_MIN_DRAW 1   // newMenuFont.h: the minimalist font draws with the library calls here
 #include "newMenuUi.h"
 
 void displayMenu()

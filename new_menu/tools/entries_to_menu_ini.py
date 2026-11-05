@@ -3,8 +3,8 @@
 
     python3 -I new_menu/tools/entries_to_menu_ini.py <menu folder> <output .ini>
 
-Used to make the shipped menu/menu.default.ini from new_menu/menu/sidecar/menu, and by anyone who edited 0.1.0 files
-and wants them in one file (the result describes every entry; as a menu.ini it simply repeats the default). Every entry becomes a section named after its title (a second entry with the same
+Made the shipped menu/menu.default.ini from the 0.1.0 entry files (which are gone from the repository: the shipped file
+is edited directly now, see NEW_MENU_README.md), and is for anyone who edited 0.1.0 files and wants them in one file (the result describes every entry; as a menu.ini it simply repeats the default). Every entry becomes a section named after its title (a second entry with the same
 title gets a number and a title line). Entries that play a file from a folder with the video or audio player become
 one folder rule for the folder plus a short section per file. skip lines are left out: only the original menu used
 them, and it reads the separate files.

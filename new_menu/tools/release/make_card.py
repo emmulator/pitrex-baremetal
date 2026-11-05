@@ -2,7 +2,7 @@
 """Builds a complete PiTrex SD card folder from two downloads plus this package.
 
     python3 make_card.py PiTrex_sd_Jul29_25.zip PitreX_Baremetal_RpiTeaM_Edition.img OUTPUT_FOLDER
-                         [--settings tuned] [--arcade-tweaks] [--no-zip]
+                         [--settings alt] [--arcade-tweaks] [--no-zip]
 
   * the card contents come from Malban's 2025 zip (the newer baremetal: loader, emulators, programs),
   * the arcade ROM zips (roms/ and roms/aae/) are read out of the RpiTeaM disk image,
@@ -117,12 +117,13 @@ def main(argv):
     flags = [a for a in argv if a.startswith('--')]
     args = [a for a in argv if not a.startswith('--')]
     settings = None
-    if '--settings' in argv:                       # --settings tuned: the value is not a path
+    if '--settings' in argv:                       # --settings alt: the value is not a path
         i = argv.index('--settings')
         settings = argv[i + 1] if i + 1 < len(argv) else ''
         args = [a for a in args if a != settings]
-        if settings not in ('keep', 'tuned'):
-            raise SystemExit('--settings takes keep or tuned')
+        if settings == 'tuned': settings = 'alt'      # the name in 0.2.1
+        if settings not in ('keep', 'alt'):
+            raise SystemExit('--settings takes keep or alt')
     if len(args) != 3:
         print(__doc__)
         return 2
@@ -164,7 +165,7 @@ def main(argv):
 
     print('3/3 laying the new menu over it')
     opts = []
-    if settings == 'tuned': opts += ['--settings', 'tuned']
+    if settings == 'alt': opts += ['--settings', 'alt']
     if '--arcade-tweaks' in flags: opts += ['--arcade-tweaks']
     if os.name == 'nt':
         cmd = ['powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', os.path.join(HERE, 'install.ps1')]

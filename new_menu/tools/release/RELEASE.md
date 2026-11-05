@@ -58,7 +58,8 @@ or build a whole card, arcade ROMs included, from Malban's zip and the RpiTeaM E
 | `install.sh`, `install.ps1`, `install.bat`, `make_card.py` | the installers |
 | `payload/` | bootstrap (`pitrex.img`, `pitrex7.img`), loader, AAE with the game picker, Vectrex emulators and players, Vectorblade, rebuilt Star Wars / Tempest / Black Widow (both Pi models), the menu file `menu/menu.default.ini` and the guide `menu/NEW_MENU_README.md` |
 | `payload-if-missing/` | `menu/favorites.ini`, an example FAVORITES collection: installed only if the card has no `favorites.ini` yet, so your own list is never overwritten |
-| `settings/` | the tuned `vectrexInterface.ini` (used with `--settings tuned`, or if yours is missing or empty) and `vectrex.ini` (only with `--settings tuned`) |
+| `settings-default/` | Malban's `vectrexInterface.ini`, installed only if the card has none or an empty one |
+| `settings-alt/` | an alternative `vectrexInterface.ini` and `vectrex.ini`, the settings of the author's Vectrex, installed only with `--settings alt` (to try if Malban's give an unreadable picture; not better in general) |
 | `arcade-tweaks/` | single-controller `blackwidow.ini` and `battlezone.ini` (only with `--arcade-tweaks`) |
 
 `SHA256SUMS` lists every file. `BUILDINFO.txt` says which source each program was built from.

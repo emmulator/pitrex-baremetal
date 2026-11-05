@@ -167,7 +167,7 @@ entries come in the order the menu files mention them, with the last mention cou
 
 **A Vectrex game:** copy the `.bin` or `.vec` into `vectrex/` or a sub-folder (two levels). It shows up under
 VECTREX > ALL ROMS with a title made from its file name: upper case, `_` and `-` become spaces, the extension
-dropped (`E-SRG.bin` is `E SRG`). Sub-folders become groups named `<FOLDER> FOLDER`. A loose file whose name also
+dropped (`E-SRG.bin` is `E SRG`). Sub-folders become groups named after the folder (the menu marks them with the folder sign). A loose file whose name also
 exists in a folder is treated as a copy and left out. `bios`, `movies` and `waves` are not game folders. Button 4
 starts a game with Exact and Button 2 with Speedy. To give it a title, notes or a place of its own:
 
@@ -278,21 +278,16 @@ PC against Roger Boesch's PiTrex simulator, so a layout change can be looked at 
 | `NEW_MENU = 1` | use the new menu (remove it for the original menu) |
 | `NEW_MENU_SHOW_MISSING = 1` | also list arcade games whose ROM is not on the card |
 | `NEW_MENU_LOG = 1` | write `NMLOG.TXT` on the card: the first controls read, launches, settings steps, menu sections that did not fit (for tracking down a problem; off by default because it writes to the card at every start) |
+| `NEW_MENU_FONT = DEFAULT` or `MINIMALIST` | the lettering of the menu: `DEFAULT` is the PiTrex font, `MINIMALIST` draws the text with the minimalist font instead. It takes fewer strokes per letter (about 16 % fewer lines and jumps in a line of text), so a screen with a lot of text may flicker less. The letters are the same width and a quarter shorter, and the folder mark is a small folder. Leave the line out, or use `PITREX`, for the normal font |
 
-## Regenerating the shipped menu file
+## Changing the shipped menu file
 
-`menu.default.ini` is generated from one file per entry in `new_menu/menu/sidecar/menu`, so a change to all entries is
-one edit in a script:
-
-```
-python3 -I new_menu/tools/export_sidecars.py ...        # from the original menu's list (was run once)
-python3 -I new_menu/tools/more_sidecars.py  new_menu/menu/sidecar/menu   # the other AAE versions, QB3, sample programs, fixes
-python3 -I new_menu/tools/controls_sidecars.py new_menu/menu/sidecar/menu   # the CONTROLS lines
-python3 -I new_menu/tools/entries_to_menu_ini.py new_menu/menu/sidecar/menu new_menu/menu/sidecar/menu.default.ini
-```
-
-`make_release.sh` runs the last step itself. The ROM tables in `new_menu/README.md` come from
-`new_menu/tools/gen_rom_tables.py`.
+`new_menu/menu/sidecar/menu.default.ini` is the shipped menu file and the only copy: edit it directly (its header says
+what an update does to the card's copy). `make_release.sh` puts it in the package as `menu/menu.default.ini`. The ROM
+tables in `new_menu/README.md` come from it: `python3 -I new_menu/tools/gen_rom_tables.py
+new_menu/menu/sidecar/menu.default.ini aae_names.txt`. Until 0.2.1 it was generated from one file per game (the 0.1.0
+format) by scripts; those files and scripts are in the history, at the `v0.2.1` tag. A card that still has 0.1.0
+entry files you edited can be converted with `new_menu/tools/entries_to_menu_ini.py <menu folder> <output .ini>`.
 
 ## Where the code is
 

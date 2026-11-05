@@ -52,13 +52,13 @@ route A.
 ### Options (both routes)
 
 * `--dry-run` (route A only) shows what would change and writes nothing.
-* `--settings tuned` replaces your screen settings with the tuned ones, see [Settings](#settings).
+* `--settings alt` replaces your screen settings with the alternative ones, see [Settings](#settings).
 * `--arcade-tweaks` adds single-controller files for Black Widow and Battle Zone and sets the original author's
   Star Wars and Lunar Lander calibration files aside (they are for his Vectrex).
 * `--restore` (route A) undoes the newest install.
 
 The installer saves every file it replaces in `backup-menu-<date>/` first, never touches ROMs or BIOS files,
-leaves your settings and game `.ini` files alone unless you ask (`--settings tuned`, `--arcade-tweaks`), and can be
+leaves your settings and game `.ini` files alone unless you ask (`--settings alt`, `--arcade-tweaks`), and can be
 run twice safely. It replaces the boot files `pitrex.img` and `pitrex7.img` (they must match the loader), the
 loader, AAE (with its game picker), the Vectrex emulators, the video, audio and line-art players and Vectorblade
 (the July 2025 images show a blank screen on a Pi Zero W), three rebuilt arcade programs (Star Wars, Tempest,
@@ -222,12 +222,14 @@ to `vectrexInterface.ini` and the screen says **SETTINGS SAVED** (or **SETTINGS 
 every start, so you only set them once per Vectrex.
 
 The installer **keeps your existing `vectrexInterface.ini`**. If the file is missing or empty (the original
-menu can leave it empty), it installs the tuned file instead. If the picture or the menu text is unreadable
-on your Vectrex with the file from Malban's card, install with `--settings tuned`: it replaces your
-`vectrexInterface.ini` and `vectrex.ini` with the ones this package was developed with (your originals are saved in
-the backup). Those values were tuned on one Vectrex, so treat them as a better starting point, not as the answer.
+menu can leave it empty), it installs Malban's file (`settings-default/`, the one on his card). Malban's values are
+the starting point for everyone. If the picture or the menu text is unreadable on your Vectrex with them, you can try
+`--settings alt`: it replaces your `vectrexInterface.ini` and `vectrex.ini` with the ones this package was developed
+with (your originals are saved in the backup). Those values are the result of calibrating one Vectrex and are no
+more correct than Malban's; on another Vectrex they may be worse. Calibrate with SETTINGS in the menu either way.
+(`--settings tuned`, the name in 0.2.1, still works and means the same.)
 
-The tuned `vectrex.ini` differs from Malban's in the BIOS line: `ROM_FILE = bios/7ADB.bin` (the original Vectrex BIOS,
+The alternative `vectrex.ini` differs from Malban's in the BIOS line: `ROM_FILE = bios/7ADB.bin` (the original Vectrex BIOS,
 so the Vectrex intro plays) instead of `bios/FASTBOOT.IMG`. Both files have `INTERNAL_STRING_DISPLAY = 1` (the emulator
 draws the BIOS text itself) and leave `CYCLE_EQUIVALENT` commented out. On the test Vectrex, the text of the Vectrex
 boot screen and of games (scores, "GAME OVER") was steady with exactly that combination, and shimmered or was garbled
@@ -249,7 +251,7 @@ values; the ones on Malban's card carry his own calibration (that is what `--arc
   turn the Vectrex volume all the way up. The video player plays sound too. Queen is a little scratchy.
 * The menu music slows a little on the busiest screens.
 * Vectrex BIOS text (boot screen, scores) can shimmer or be garbled depending on `ROM_FILE` and `CYCLE_EQUIVALENT` in
-  `vectrex.ini`: see [Settings](#settings). `--settings tuned` installs a combination that was steady on the test Vectrex.
+  `vectrex.ini`: see [Settings](#settings). `--settings alt` installs the combination the author's Vectrex ended up with.
 * The AAE picker does not show the caveat marks.
 * If the menu freezes: add `NEW_MENU_LOG = 1` to `loader.ini`. The menu then writes `NMLOG.TXT` on the card
   (the first controls it read, launches, settings steps), complete up to the freeze. It is off by default

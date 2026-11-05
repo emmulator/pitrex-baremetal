@@ -1,5 +1,12 @@
 # Sidecar files for menu notes
 
+> **Historical (after 0.2.1):** this describes the 0.1.0 format, one `menu/<name>.ini` per game. The files in
+> `new_menu/menu/sidecar/menu/` and the scripts named below (`export_sidecars.py`, `more_sidecars.py`,
+> `controls_sidecars.py`) were removed from the repository; they are at the `v0.2.1` tag. The shipped menu is now
+> `new_menu/menu/sidecar/menu.default.ini`, edited directly. The format still loads (an `[entry]` section keyed by
+> its file name).
+
+
 Status: implemented in the loader on branch `menu-redesign` (commit "loader: read note lines
 from menu/<key>.ini"). **Built for both Pi targets and tested on a PC; not yet tried on
 hardware.**

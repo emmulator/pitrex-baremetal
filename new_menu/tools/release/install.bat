@@ -1,6 +1,6 @@
 @echo off
 rem Double-click wrapper is not useful (the script needs the folder), so run it from a command prompt:
-rem   install.bat [--settings tuned] [--arcade-tweaks] [--dry-run] C:\path\to\PiTrex_sd_Jul29_25
+rem   install.bat [--settings alt] [--arcade-tweaks] [--dry-run] C:\path\to\PiTrex_sd_Jul29_25
 rem   install.bat --restore C:\path\to\PiTrex_sd_Jul29_25
 rem   install.bat E:\        (the SD card itself)
 setlocal EnableDelayedExpansion
@@ -18,7 +18,7 @@ shift
 goto next
 :run
 if "!ARGS!"=="" (
-  echo usage: install.bat [--settings tuned] [--arcade-tweaks] [--dry-run] [--restore] folder
+  echo usage: install.bat [--settings alt] [--arcade-tweaks] [--dry-run] [--restore] folder
   exit /b 2
 )
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0install.ps1" !ARGS!

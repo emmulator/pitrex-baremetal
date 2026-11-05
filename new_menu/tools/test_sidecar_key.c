@@ -1,4 +1,4 @@
-/* Host test for pitrex/loader/menuSidecar.h against the exporter's output.
+/* Host test for pitrex/loader/menuSidecar.h against the keys the 0.1.0 exporter wrote.
  *
  *   gcc -c -w -Wno-error=implicit-function-declaration -include stdio.h -include string.h \
  *       -include ctype.h -include stdlib.h -include errno.h \
@@ -6,9 +6,8 @@
  *   gcc -Wall -Wextra -I pitrex/loader -I pitrex/vectrex -o /tmp/t \
  *       new_menu/tools/test_sidecar_key.c /tmp/ini.o && /tmp/t new_menu/menu/sidecar
  *
- * 1. every (image, param1, param2) in keys.tsv produces the key the exporter wrote
- * 2. every sidecar file, parsed with the loader's real ini parser (ini_parse_string),
- *    yields exactly the rows the exporter expects, also with CRLF line endings
+ * every (image, param1, param2) in keys.tsv produces the key the 0.1.0 exporter wrote (the entry files of 0.1.0 were
+ * named by it), and hide/title lines parse as the new menu needs
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -75,69 +74,6 @@ int main(int argc, char **argv)
   fclose(f);
   printf("keys checked: %d\n", checked);
 
-  snprintf(path, sizeof path, "%s/expected.tsv", argv[1]);
-  f = fopen(path, "r");
-  if (!f) { perror(path); return 2; }
-  int files = 0;
-  size_t biggest = 0;
-  while (fgets(line, sizeof line, f))
-  {
-    line[strcspn(line, "\n")] = 0;
-    char *tab1 = strchr(line, '\t');
-    char *tab2 = tab1 ? strchr(tab1 + 1, '\t') : 0;
-    if (!tab2) { fprintf(stderr, "bad expected line\n"); fail++; continue; }
-    *tab1 = 0; *tab2 = 0;
-    const char *key = line;
-    int skip = atoi(tab1 + 1);
-    const char *rows = tab2 + 1;
-
-    char file[1100];
-    snprintf(file, sizeof file, "%s/menu/%s.ini", argv[1], key);
-    FILE *g = fopen(file, "rb");
-    if (!g) { printf("MISSING FILE %s\n", file); fail++; continue; }
-    static char buf[4096];
-    size_t len = fread(buf, 1, sizeof buf - 1, g);
-    fclose(g);
-    if (len > biggest) biggest = len;
-
-    for (int crlf = 0; crlf < 2; crlf++)
-    {
-      static char data[8192];
-      size_t o = 0;
-      for (size_t i = 0; i < len; i++)
-      {
-        if (crlf && buf[i] == '\n') data[o++] = '\r';
-        data[o++] = buf[i];
-      }
-      data[o] = 0;
-      SidecarText t; memset(&t, 0, sizeof t);
-      ini_parse_string(data, handler, &t);
-
-      /* build the expected rows */
-      char exp[SC_MAX_ROWS][SC_ROW_LEN]; int er = 0;
-      const char *p = rows;
-      if (*rows)
-        for (;;)
-        {
-          const char *e = strchr(p, 0x1f);
-          size_t l = e ? (size_t) (e - p) : strlen(p);
-          memcpy(exp[er], p, l); exp[er][l] = 0; er++;
-          if (!e) break;
-          p = e + 1;
-        }
-      int same = t.found && t.skip == skip && t.rows == er;
-      for (int r = 0; same && r < er; r++) if (strcmp(t.row[r], exp[r]) != 0) same = 0;
-      if (!same)
-      {
-        printf("PARSE MISMATCH %s (%s): found=%d skip=%d/%d rows=%d/%d\n", key, crlf ? "CRLF" : "LF", t.found, t.skip, skip, t.rows, er);
-        for (int r = 0; r < t.rows; r++) printf("   got  [%s]\n", t.row[r]);
-        for (int r = 0; r < er; r++) printf("   want [%s]\n", exp[r]);
-        fail++;
-      }
-    }
-    files++;
-  }
-  fclose(f);
   /* hide and title (used by the new menu) */
   {
     SidecarText t; memset(&t, 0, sizeof t);
@@ -148,8 +84,6 @@ int main(int argc, char **argv)
     ini_parse_string("hide = 0\n", handler, &t);
     if (t.hide != 0) { printf("hide = 0 should not hide\n"); fail++; }
   }
-  printf("sidecar files parsed: %d (largest %zu bytes; loader buffer is %d)\n", files, biggest, 2047);
-  if (biggest > 2047) { printf("FILE TOO LARGE FOR LOADER BUFFER\n"); fail++; }
   printf(fail ? "FAIL (%d)\n" : "PASS\n", fail);
   return fail != 0;
 }

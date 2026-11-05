@@ -34,7 +34,7 @@ rows = []; cur = None
 for p in good:
     if d(p):
         if d(p) != cur:
-            cur = d(p); rows.append('G:' + d(p).upper().replace('_', ' ').replace('-', ' ').replace('/', '>') + ' FOLDER')
+            cur = d(p); rows.append('G:' + d(p).upper().replace('_', ' ').replace('-', ' ').replace('/', '>'))
         rows.append('E:' + clean(title(p)))
 rows += ['R:' + clean(title(p)) for p in good if not d(p)]
 os.makedirs(out, exist_ok=True)

@@ -11,7 +11,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 name="pitrex-new-menu-$ver"
 root="$out/$name"
 rm -rf "$root"
-mkdir -p "$root/payload" "$root/arcade-tweaks" "$root/settings"
+mkdir -p "$root/payload" "$root/arcade-tweaks" "$root/settings-alt" "$root/settings-default"
 
 # the bootstrap (pitrex.img, pitrex7.img) must come from the same source as the loader: Malban's May 2025 one does
 # not start this loader (blank screen)
@@ -24,16 +24,15 @@ for pi in piZero1 piZero2; do
   cp "$builds/vectrex-players-fork-source/$pi/"*.img "$root/payload/$pi/"
   cp "$builds/arcade-fixes-20261017/$pi/"*.img "$root/payload/$pi/"
 done
-# the menu: one file made from the entry files (new_menu/menu/sidecar/menu), and the checksums of the 0.1.0 entry files
-# so the installer can remove the ones an upgraded card still has unchanged
+# the menu: the committed file new_menu/menu/sidecar/menu.default.ini (edit it there; it is the only copy)
 mkdir -p "$root/payload/menu"
-python3 -I "$fork/new_menu/tools/entries_to_menu_ini.py" "$fork/new_menu/menu/sidecar/menu" "$root/payload/menu/menu.default.ini"
+cp "$fork/new_menu/menu/sidecar/menu.default.ini" "$root/payload/menu/menu.default.ini"
+# the checksums of the entry files that 0.1.0 shipped (one menu/<name>.ini per game), so the installer can remove the
+# ones an upgraded card still has unchanged
+cp "$here/legacy-menu-files.sha256" "$root/legacy-menu-files.sha256"
 # the example collection: installed only on cards that do not have one, so it becomes the user's own list
 mkdir -p "$root/payload-if-missing/menu"
 cp "$fork/new_menu/menu/sidecar/favorites.ini" "$root/payload-if-missing/menu/"
-git -C "$fork" ls-tree --name-only v0.1.0 new_menu/menu/sidecar/menu/ | while IFS= read -r f; do
-  printf '%s  %s\n' "$(git -C "$fork" show "v0.1.0:$f" | sha256sum | cut -d' ' -f1)" "$(basename "$f")"
-done > "$root/legacy-menu-files.sha256"
 # files that earlier releases put elsewhere (0.1.0 and 0.2.0 shipped the guide in the card's root: it is menu/NEW_MENU_README.md now)
 cp "$here/legacy-files.sha256" "$root/legacy-files.sha256"
 
@@ -44,7 +43,8 @@ python3 -I "$here/release_links.py" "$fork" "$root"
 # arcade tweaks: files exactly as tested on the card
 cp "$here/arcade-tweaks/blackwidow.ini" "$here/arcade-tweaks/battlezone.ini" "$root/arcade-tweaks/"
 
-cp "$here/settings/vectrexInterface.ini" "$here/settings/vectrex.ini" "$root/settings/"
+cp "$here/settings-alt/vectrexInterface.ini" "$here/settings-alt/vectrex.ini" "$root/settings-alt/"
+cp "$here/settings-default/vectrexInterface.ini" "$root/settings-default/"
 cp "$here/install.sh" "$here/install.ps1" "$here/install.bat" "$here/make_card.py" "$root/"
 chmod +x "$root/install.sh"
 sed "s/@VERSION@/$ver/g" "$here/RELEASE.md" > "$root/RELEASE.md"

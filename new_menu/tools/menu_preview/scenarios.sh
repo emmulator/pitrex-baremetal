@@ -40,7 +40,7 @@ run "Button 1 starts it with button=1" 260 "right@10,down@20,right@30,$(downs 13
 # VECTREX (4th category) > SPEEDY VECTREX (4th: ALL ROMS, DEMOS, EXACT, SPEEDY) > first game
 run "SPEEDY group is alphabetical: first game is Berzerk" 130 "$(downs 3 10),right@50,$(downs 3 60),right@90,b4@110" 'image=piZero1/vectrexspeedy.img param1="original/BERZERK.BIN"'
 
-# VECTREX > ALL ROMS (first) > DEMOS FOLDER (first group) > EPIC (2 down)
+# VECTREX > ALL ROMS (first) > DEMOS (first group) > EPIC (2 down)
 roms="$(downs 3 10),right@50,right@60,right@70,down@80,down@88"
 run "ROM starts the Exact emulator with its path" 150 "$roms,b4@110" 'image=piZero1/vectrexexact.img param1="demos/epic.bin"'
 run "Button 2 starts the same ROM with Speedy" 150 "$roms,b2@110" 'image=piZero1/vectrexspeedy.img param1="demos/epic.bin"'

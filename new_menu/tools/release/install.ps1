@@ -2,17 +2,18 @@
 Installs the new PiTrex menu release over an unpacked Malban "PiTrex_sd_Jul29_25" archive
 (or over the SD card made from it). Windows PowerShell 5.1 or PowerShell 7.
 
-  .\install.ps1 [-Settings tuned] [-ArcadeTweaks] [-DryRun] <folder>
+  .\install.ps1 [-Settings alt] [-ArcadeTweaks] [-DryRun] <folder>
   .\install.ps1 -Restore <folder>
 
 Replaced files are saved in <folder>\backup-menu-<date>\ with a MANIFEST.tsv that -Restore reads.
 Nothing outside the files listed in payload\ and payload-if-missing\ (only added when missing) is touched (and, with
--ArcadeTweaks, arcade-tweaks\; with -Settings tuned, settings\).
+-ArcadeTweaks, arcade-tweaks\; with -Settings alt, settings-alt\; settings-default\ only when the card has no usable
+vectrexInterface.ini).
 #>
 param(
   [Parameter(Position = 0)][string]$Folder,
   [switch]$ArcadeTweaks,
-  [ValidateSet('keep', 'tuned')][string]$Settings = 'keep',
+  [ValidateSet('keep', 'alt', 'tuned')][string]$Settings = 'keep',
   [switch]$DryRun,
   [switch]$Restore
 )
@@ -25,7 +26,7 @@ function Same($a, $b) {
   ((Get-FileHash -LiteralPath $a -Algorithm SHA256).Hash -eq (Get-FileHash -LiteralPath $b -Algorithm SHA256).Hash)
 }
 
-if (-not $Folder) { Write-Host "usage: .\install.ps1 [-Settings tuned] [-ArcadeTweaks] [-DryRun] [-Restore] <folder>"; exit 2 }
+if (-not $Folder) { Write-Host "usage: .\install.ps1 [-Settings alt] [-ArcadeTweaks] [-DryRun] [-Restore] <folder>"; exit 2 }
 if (-not (Test-Path -LiteralPath $Folder -PathType Container)) { Die "not a folder: $Folder" }
 $target = (Resolve-Path -LiteralPath $Folder).ProviderPath.TrimEnd('\')
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -192,23 +193,30 @@ if (Test-Path -LiteralPath $legacyFiles) {
   }
 }
 
-# loader.ini: NEW_MENU = 1 (keeps the file's own line endings)
+# loader.ini: NEW_MENU = 1, and a NEW_MENU_FONT line with comments if there is none (keeps the file's own line endings)
 $ini = P $target 'loader.ini'
 $text = $latin1.GetString([System.IO.File]::ReadAllBytes($ini))
-if ($text -match '(?im)^[ \t]*NEW_MENU[ \t]*=[ \t]*1') {
+$menuOk = $text -match '(?im)^[ \t]*NEW_MENU[ \t]*=[ \t]*1'
+$fontOk = $text -match '(?im)^[ \t]*NEW_MENU_FONT[ \t]*='
+if ($menuOk -and $fontOk) {
   Write-Host "  same     loader.ini (NEW_MENU already 1)"
 } else {
   $crlf = $text.Contains("`r")
   $lf = $text -replace "`r", ''
-  if ($lf -match '(?im)^[ \t]*NEW_MENU[ \t]*=') {
-    $lf = [regex]::Replace($lf, '(?im)^[ \t]*NEW_MENU[ \t]*=.*$', 'NEW_MENU = 1')
-  } else {
-    if ($lf.Length -gt 0 -and -not $lf.EndsWith("`n")) { $lf += "`n" }
-    $lf += "NEW_MENU = 1`n"
+  if ($lf.Length -gt 0 -and -not $lf.EndsWith("`n")) { $lf += "`n" }
+  if (-not $menuOk) {
+    if ($lf -match '(?im)^[ \t]*NEW_MENU[ \t]*=') {
+      $lf = [regex]::Replace($lf, '(?im)^[ \t]*NEW_MENU[ \t]*=.*$', 'NEW_MENU = 1')
+    } else {
+      $lf += "NEW_MENU = 1`n"
+    }
+  }
+  if (-not $fontOk) {
+    $lf += "; NEW_MENU_FONT is the lettering of the new menu:`n;   DEFAULT     the PiTrex's own font`n;   MINIMALIST  fewer lines per letter, so a screen full of text may flicker less`nNEW_MENU_FONT = DEFAULT`n"
   }
   if ($crlf) { $lf = $lf -replace "`n", "`r`n" }
   $script:changed++
-  Write-Host "  edit     loader.ini (NEW_MENU = 1)"
+  Write-Host "  edit     loader.ini (NEW_MENU = 1, NEW_MENU_FONT)"
   if (-not $DryRun) {
     StartBackup
     Copy-Item -LiteralPath $ini -Destination (Join-Path $bkPath 'loader.ini')
@@ -218,22 +226,29 @@ if ($text -match '(?im)^[ \t]*NEW_MENU[ \t]*=[ \t]*1') {
 }
 
 # vectrexInterface.ini (the screen settings): an existing file is the user's and stays, unless it is missing or
-# empty (the original settings screen can leave it empty), or -Settings tuned asks for ours.
+# empty (the original settings screen can leave it empty): then Malban's file from settings-default\ goes in. -Settings alt
+# replaces it with the alternative file (settings-alt\) that this package was developed with.
 $cur = P $target 'vectrexInterface.ini'
 $size = -1
 if (Test-Path -LiteralPath $cur -PathType Leaf) { $size = (Get-Item -LiteralPath $cur).Length }
-if ($Settings -eq 'tuned' -or $size -lt 100) {
-  $sdir = Join-Path $here 'settings'
-  if (-not (Test-Path -LiteralPath $sdir -PathType Container)) { Die "settings\ folder missing next to this script" }
-  if ($size -ge 100 -and $env:PITREX_FRESH_CARD) { Write-Host "settings: installing the tuned file" }
-  elseif ($size -ge 100) { Write-Host "settings: replacing yours with the tuned file (saved in the backup)" }
-  elseif ($size -ge 0) { Write-Host "settings: your vectrexInterface.ini is empty; installing the tuned one" }
-  else { Write-Host "settings: no vectrexInterface.ini; installing the tuned one" }
+if ($Settings -eq 'alt' -or $Settings -eq 'tuned') {
+  $sdir = Join-Path $here 'settings-alt'
+  if (-not (Test-Path -LiteralPath $sdir -PathType Container)) { Die "settings-alt\ folder missing next to this script" }
+  if ($size -ge 100 -and $env:PITREX_FRESH_CARD) { Write-Host "settings: installing the alternative file" }
+  elseif ($size -ge 100) { Write-Host "settings: replacing yours with the alternative file (saved in the backup)" }
+  elseif ($size -ge 0) { Write-Host "settings: your vectrexInterface.ini is empty; installing the alternative one" }
+  else { Write-Host "settings: no vectrexInterface.ini; installing the alternative one" }
   PutFile (Join-Path $sdir 'vectrexInterface.ini') 'vectrexInterface.ini'
-  # vectrex.ini (which BIOS Exact loads): only replaced on request; the tuned one uses the original BIOS 7ADB.bin
-  if ($Settings -eq 'tuned') { PutFile (Join-Path $sdir 'vectrex.ini') 'vectrex.ini' }
+  # vectrex.ini (which BIOS Exact loads): only replaced on request; the alternative one uses the original BIOS 7ADB.bin
+  PutFile (Join-Path $sdir 'vectrex.ini') 'vectrex.ini'
+} elseif ($size -lt 100) {
+  $sdir = Join-Path $here 'settings-default'
+  if (-not (Test-Path -LiteralPath $sdir -PathType Container)) { Die "settings-default\ folder missing next to this script" }
+  if ($size -ge 0) { Write-Host "settings: your vectrexInterface.ini is empty; installing Malban's" }
+  else { Write-Host "settings: no vectrexInterface.ini; installing Malban's" }
+  PutFile (Join-Path $sdir 'vectrexInterface.ini') 'vectrexInterface.ini'
 } else {
-  Write-Host "  keep     vectrexInterface.ini (your settings; use -Settings tuned to replace them)"
+  Write-Host "  keep     vectrexInterface.ini (your settings; use -Settings alt to replace them)"
 }
 
 # optional arcade tweaks

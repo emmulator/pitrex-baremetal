@@ -148,7 +148,7 @@ rule, as `nmAddMissingRoms()` does for DEMOS today.
 
 ## Tools
 
-* The generators (`more_sidecars.py`, `controls_sidecars.py`) write `menu.default.ini` instead of separate files.
+* The generators (`more_sidecars.py`, `controls_sidecars.py`; removed after 0.2.1, see the `v0.2.1` tag) write `menu.default.ini` instead of separate files.
 * A converter: separate entry files to one `menu.ini`, for people who edited 0.1.0 files.
 * Host tests: the reader (sections, repeated titles, `{dir}`/`{file}`, precedence, old `[entry]` files, broken
   lines), discovery with no metadata at all (`g GCE`, `.vec`, movies/waves defaults), no doubled entries.

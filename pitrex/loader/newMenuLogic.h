@@ -141,44 +141,29 @@ static int nmEqNoCase(const char *a, const char *b)
 static int nmHelp(const NmNode *n, const char **out, int max)
 {
   static const char *vectrex[] = {
-    "GAMES FOR THE VECTREX EMULATORS.",
-    "SPEEDY AND EXACT LIST GAMES SET UP FOR THEM.",
-    "ALL ROMS LISTS EVERY GAME ON THE CARD.",
-    "DEMOS ARE SMALL VECTREX SHOWS.", 0 };
+    "NATIVE VECTREX GAMES.", 0 };
   static const char *speedy[] = {
-    "SPEEDY RUNS GAMES FASTER THAN A REAL VECTREX.",
-    "IT SKIPS SOME BIOS WORK TO GO FAST.",
-    "A FEW GAMES MISBEHAVE. THEN TRY EXACT.", 0 };
+    "GAMES THAT SHOULD WORK ON THE SPEEDY EMULATOR.",
+    "IF GAMES MISBEHAVE. THEN TRY EXACT.", 0 };
   static const char *exact[] = {
-    "EXACT RUNS GAMES THE WAY A REAL VECTREX DOES.",
-    "IT IS THE SAFE CHOICE FOR ANY GAME.",
-    "ALL ROMS LISTS EVERY GAME ON THE CARD.", 0 };
+    "GAMES THAT REQUIRE THE EXACT EMULATOR.", 0 };
   static const char *demos[] = {
-    "SMALL SHOWS MADE FOR THE VECTREX.", 0 };
+    "NOT GAMES.", 0 };
   static const char *allRoms[] = {
-    "EVERY GAME FILE FOUND IN THE VECTREX FOLDER",
-    "OF THE CARD. THE GAMES UNDER SPEEDY AND",
-    "EXACT ARE LISTED HERE TOO. FOLDERS COME FIRST.",
-    "FILES NOT IN A FOLDER ARE LISTED AFTER THEM.",
+    "EVERY GAME FILE FOUND IN THE VECTREX FOLDER.",
     "4 STARTS WITH EXACT. 2 WITH SPEEDY.", 0 };
   static const char *folder[] = {
     "A FOLDER ON THE CARD UNDER VECTREX.",
-    "THE NAME IS THE FOLDER NAME. NOT A GAME TYPE.",
     "4 STARTS A GAME WITH EXACT.",
     "2 STARTS IT WITH SPEEDY.", 0 };
   static const char *arcade[] = {
-    "ARCADE GAMES RUN BY THE PITREX EMULATORS.",
-    "MOST NEED THEIR ROM FILES ON THE CARD.",
-    "ALL AAE GAMES LISTS THE ONES YOU HAVE.", 0 };
+    "ARCADE GAMES RUN BY THE PITREX EMULATORS.", 0 };
   static const char *pitrexOwn[] = {
-    "PROGRAMS AND GAMES WRITTEN FOR THE PITREX.",
-    "ONE YOU COPY TO THE CARD IS LISTED HERE.",
-    "THE GUIDE IN THE MENU FOLDER TELLS HOW TO",
-    "NAME IT AND PUT IT IN THE RIGHT PLACE.", 0 };
+    "PROGRAMS AND GAMES WRITTEN FOR THE PITREX.", 0 };
   static const char *video[] = {
-    "VIDEO PLAYBACK ON THE VECTREX SCREEN.", 0 };
+    "VIDEO PLAYBACK.", 0 };
   static const char *audio[] = {
-    "MUSIC PLAYBACK. THE PICTURE DANCES TO IT.", 0 };
+    "MUSIC PLAYBACK.", 0 };
   static const char *settings[] = {
     "SCREEN SETTINGS AND CALIBRATION.",
     "4 OPENS THEM. THEY ARE SAVED IN",
@@ -552,9 +537,8 @@ static int nmAddRoms(NmTree *t, NmNode *into, char (*paths)[NM_ROM_PATH], int np
           group = nmNewNode(t);
           if (group == 0) return added;
           group->id = NM_ID_ROM_FOLDER;
-          nmPrettyTitle(dir, group->title, (int) sizeof group->title - 8);
+          nmPrettyTitle(dir, group->title, (int) sizeof group->title);
           for (int i = 0; group->title[i] != 0; i++) if (group->title[i] == '/') group->title[i] = '>';
-          strcat(group->title, " FOLDER");               // a folder of the card, not a kind of game
           nmRomKey(dir, group->key, (int) sizeof group->key);
           memcpy(group->key, "dir.", 4);                 // sidecar menu/dir.<folder>.ini can rename it
           nmAppendChild(into, group);

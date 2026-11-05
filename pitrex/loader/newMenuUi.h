@@ -4,7 +4,7 @@
 // The includer provides before this header: MenuItemNew (only as the launch record that
 // loadAndStart() takes), newMenuLogic.h, menuSidecar.h, menuSidecarIo.h, the PiTrex library calls
 // v_printString, v_directReadButtons, v_SettingsGUI, v_saveIni, v_WaitRecal, v_noSound, the globals
-// currentButtonState, currentJoy1X/Y, the loader.ini flags newMenuShowMissing and newMenuLog, the function loadAndStart(), ensureMainPath(),
+// currentButtonState, currentJoy1X/Y, the loader.ini flags newMenuShowMissing, newMenuLog and newMenuFontMinimalist, the function loadAndStart(), ensureMainPath(),
 // opendir/readdir/closedir with DT_DIR, and the macros IMG_FILE_PREFIX and NM_IMG_DIR. NM_CARD is the
 // prefix of paths on the card ("0:/" on the PiTrex, "" on the desktop). Nothing about the menu is compiled
 // in: it is built from menu/*.ini, the image folder and vectrex/. Documentation: new_menu/menu/07-new-menu.md
@@ -17,6 +17,17 @@
 #ifndef RASPPI
 #define RASPPI 1
 #endif
+
+#include "newMenuFont.h"
+
+// All menu text goes through here: the PiTrex font, or the minimalist font when loader.ini asks for it.
+static void nmText(int8_t x, int8_t y, char *string, uint8_t textSize, uint8_t brightness)
+{
+#ifdef NM_MIN_DRAW
+  if (newMenuFontMinimalist) { nmPrintMinimalist(x, y, string, textSize, brightness); return; }
+#endif
+  v_printString(x, y, string, textSize, brightness);
+}
 
 // ---------------------------------------------------------------------------
 // The new menu (loader.ini: NEW_MENU = 1). A vertical list of categories; you drill down.
@@ -342,9 +353,9 @@ static void nmSplash(const char *what, const char *how)
   for (int f = 0; f < 45; f++)
   {
     v_WaitRecal();
-    v_printString(-120, 40, l1, 7, 0x5f);
-    v_printString(-120, 16, (char *) what, 7, 0x5f);
-    if (l2[0] != 0) v_printString(-120, -12, l2, 5, 0x48);
+    nmText(-120, 40, l1, 7, 0x5f);
+    nmText(-120, 16, (char *) what, 7, 0x5f);
+    if (l2[0] != 0) nmText(-120, -12, l2, 5, 0x48);
   }
 }
 
@@ -391,7 +402,7 @@ static void nmCheckSettingsFile(void)
     for (int f = 0; f < 60; f++)
     {
       v_WaitRecal();
-      v_printString(-120, 20, "SETTINGS SAVED", 7, 0x5f);
+      nmText(-120, 20, "SETTINGS SAVED", 7, 0x5f);
     }
   }
   else
@@ -413,15 +424,15 @@ static void nmShowControls(NmNode *n)
     char shown[36];
     nmCopy(shown, n->title, (int) sizeof shown);
     shown[17] = 0;
-    v_printString(-120, 100, "CONTROLS", 5, 0x5f);
-    v_printString(-120, 80, shown, 7, 0x5f);
+    nmText(-120, 100, "CONTROLS", 5, 0x5f);
+    nmText(-120, 80, shown, 7, 0x5f);
     int y = 54;
     for (int r = 0; r < sidecar.nctl && y > -100; r++)
     {
-      v_printString(-120, y, sidecar.ctl[r], 5, 0x48);
+      nmText(-120, y, sidecar.ctl[r], 5, 0x48);
       y -= 13;
     }
-    v_printString(-120, -124, "ANY BUTTON OR STICK LEFT GOES BACK.", 5, 0x40);
+    nmText(-120, -124, "ANY BUTTON OR STICK LEFT GOES BACK.", 5, 0x40);
     int down = (currentButtonState & 0x0f) != 0;
     int jx = currentJoy1X;
     if (!down && jx > -60) armed = 1;
@@ -489,7 +500,7 @@ static void nmDrawNotes(NmNode *n)
   {
     for (int r = 0; r < nh; r++)
     {
-      v_printString(-120, y, (char *) help[r], 5, 0x48);
+      nmText(-120, y, (char *) help[r], 5, 0x48);
       y -= NM_NOTE_STEP;
     }
     return;
@@ -511,13 +522,13 @@ static void nmDrawNotes(NmNode *n)
   }
   if (nmNeedsMissing)
   {
-    v_printString(-120, y, "ROM NOT FOUND!", 5, 0x5f);
+    nmText(-120, y, "ROM NOT FOUND!", 5, 0x5f);
     y -= NM_NOTE_STEP;
   }
   for (int r = 0; r < sidecar.rows && y > -90; r++)
   {
     if (sidecar.row[r][0] == 0) continue;
-    v_printString(-120, y, sidecar.row[r], 5, 0x48);
+    nmText(-120, y, sidecar.row[r], 5, 0x48);
     y -= NM_NOTE_STEP;
   }
 }
@@ -528,7 +539,7 @@ static void nmDrawHint(NmNode *cur)
   if (cur == 0) return;
   if (nmHasVisibleChild(cur))
   {
-    v_printString(-120, -124, "4 OR RIGHT OPENS.  LEFT GOES BACK.", 5, 0x40);
+    nmText(-120, -124, "4 OR RIGHT OPENS.  LEFT GOES BACK.", 5, 0x40);
   }
   else if (cur->altImg != 0)                   // a Vectrex game file
   {
@@ -539,15 +550,15 @@ static void nmDrawHint(NmNode *cur)
     strcat(l1, mainSpeedy ? "SPEEDY" : "EXACT");
     strcpy(l2, "2 STARTS WITH ");
     strcat(l2, otherSpeedy ? "SPEEDY" : "EXACT");
-    v_printString(-120, -100, l1, 5, 0x5f);
-    v_printString(-120, -112, l2, 5, 0x5f);
-    v_printString(-120, -124, "LEFT GOES BACK.", 5, 0x40);
+    nmText(-120, -100, l1, 5, 0x5f);
+    nmText(-120, -112, l2, 5, 0x5f);
+    nmText(-120, -124, "LEFT GOES BACK.", 5, 0x40);
   }
   else if (cur->img != 0 || cur->id == 0)
   {
     if (nmNotesOwner == cur && sidecar.nctl > 0)
-      v_printString(-120, -112, "2 SHOWS THE CONTROLS", 5, 0x5f);
-    v_printString(-120, -124, "4 STARTS.  LEFT GOES BACK.", 5, 0x40);
+      nmText(-120, -112, "2 SHOWS THE CONTROLS", 5, 0x5f);
+    nmText(-120, -124, "4 STARTS.  LEFT GOES BACK.", 5, 0x40);
   }
 }
 
@@ -555,12 +566,12 @@ void newMenuFrame(void)
 {
   if (!nmReady)
   {
-    v_printString(-120, 20, "READING SD CARD", 7, 0x5f);
+    nmText(-120, 20, "READING SD CARD", 7, 0x5f);
     if (nmInitStage == 3 && nmSideCount > 0)
     {
       char b[24];
       sprintf(b, "%i OF %i", nmInitDone, nmSideCount);
-      v_printString(-120, -10, b, 5, 0x48);
+      nmText(-120, -10, b, 5, 0x48);
     }
     if (newMenuInitStep()) nmReady = 1;
     return;
@@ -569,7 +580,7 @@ void newMenuFrame(void)
   char line[56];
   char path[64];
   nmPath(&nmNav, path, (int) sizeof path);
-  v_printString(-120, 84, path[0] ? path : "MAIN MENU", 5, 0x5f);
+  nmText(-120, 84, path[0] ? path : "MAIN MENU", 5, 0x5f);
 
   // The PiTrex vector font has A-Z, 0-9, ".", "!", "<" and ">" (drawn as arrows) and "$" (a folder).
   // Most other punctuation prints as a blank, so: ">" marks the selection, "$" a category, and "!"
@@ -585,11 +596,11 @@ void newMenuFrame(void)
     for (int k = 0; n->title[k] != 0 && c < 31; k++) line[c++] = n->title[k];
     line[c] = 0;
     int y = NM_LIST_Y - r * NM_LIST_STEP;
-    v_printString(-120, y, line, 7, selected ? 0x5f : 0x40);
-    if (n->tags != 0) v_printString(108, y, "!", 7, selected ? 0x5f : 0x40);
+    nmText(-120, y, line, 7, selected ? 0x5f : 0x40);
+    if (n->tags != 0) nmText(108, y, "!", 7, selected ? 0x5f : 0x40);
   }
-  if (nmNav.top > 0) v_printString(84, 84, "MORE", 5, 0x30);
-  if (nmNav.top + NM_ROWS < nmNav.count) v_printString(84, NM_LIST_Y - NM_ROWS * NM_LIST_STEP + 6, "MORE", 5, 0x30);
+  if (nmNav.top > 0) nmText(84, 84, "MORE", 5, 0x30);
+  if (nmNav.top + NM_ROWS < nmNav.count) nmText(84, NM_LIST_Y - NM_ROWS * NM_LIST_STEP + 6, "MORE", 5, 0x30);
 
   NmNode *cur = nmCurrent(&nmNav);
   nmDrawNotes(cur);

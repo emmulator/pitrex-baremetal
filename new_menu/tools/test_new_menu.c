@@ -6,7 +6,7 @@
  *   python3 -I new_menu/tools/make_rom_test_data.py <card>/vectrex <homebrew dir> /tmp/data <menu folder> <card>/piZero1
  *   /tmp/t <menu folder> /tmp/data/img_listing.txt /tmp/data/expected_programs.txt /tmp/data/rom_paths.txt /tmp/data/rom_expected.txt
  *
- * <menu folder> is new_menu/menu/sidecar/menu (0.1.0: one file per entry), a folder with menu.default.ini (0.2.0), or the
+ * <menu folder> is a folder with menu.default.ini (new_menu/menu/sidecar has it), 0.1.0-style entry files, or the
  * card's menu/. The folder is read the way the loader reads it (menu.default.ini, the rest, then menu.ini).
  * Set NM_DUMP=1 to print the tree.
  */
@@ -323,7 +323,7 @@ int main(int argc, char **argv)
     NmNode *cin = findTitle(nmFindTop(&tree, "ARCADE"), "CINEMATRONICS");
     NmNode *arc = cin ? findTitle(cin, "ARMOR ATTACK") : 0;
     CHECK(arc && strcmp(arc->img, "piZero1/aae.img") == 0, "the arcade Armor Attack is untouched");
-    NmNode *orig = findTitle(findTitle(nmFindTop(&tree, "VECTREX"), "ALL ROMS"), "ORIGINAL FOLDER");
+    NmNode *orig = findTitle(findTitle(nmFindTop(&tree, "VECTREX"), "ALL ROMS"), "ORIGINAL");
     int sortedOrig = orig != 0;
     for (NmNode *c = orig ? orig->child : 0; c && c->right; c = c->right) if (nmTitleCmp(c->title, c->right->title) > 0) sortedOrig = 0;
     CHECK(sortedOrig && findTitle(orig, "ARMOR ATTACK"), "the renamed ARMOR ATTACK is sorted in its ALL ROMS folder");
@@ -344,7 +344,7 @@ int main(int argc, char **argv)
     struct { const char *title; int tags; } expect[] = {
       { "LUNAR LANDER", 0 }, { "BLACK WIDOW", NM_TAG_WIP }, { "SPEEDFREAK", NM_TAG_NOSOUND },
       { "SPACE WARS", NM_TAG_BROKEN }, { "OMEGA RACE", NM_TAG_WIP | NM_TAG_NOSOUND }, { "TEMPEST", NM_TAG_WIP | NM_TAG_NOSOUND },
-      { "GRAVITAR", NM_TAG_WIP | NM_TAG_NOSOUND }, { "BARRIER", 0 }, { "DEMON", 0 }, { "ZBLAST", 0 }, { "REBEL DEFENDER", NM_TAG_NOSOUND },
+      { "GRAVITAR", NM_TAG_WIP }, { "BARRIER", 0 }, { "DEMON", 0 }, { "ZBLAST", 0 }, { "REBEL DEFENDER", NM_TAG_NOSOUND },
       { "BZ2 BETA", NM_TAG_NOSOUND }, { "ASTEROIDS", 0 } };
     int tagged = 0, total = 0;
     for (int i = 0; i < tree.used; i++)

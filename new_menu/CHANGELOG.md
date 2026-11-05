@@ -4,6 +4,31 @@ Changes to the new PiTrex menu (this fork of [malbanGit/pitrex-baremetal](https:
 Releases: <https://github.com/emmulator/pitrex-baremetal/releases>. Install guide: [README.md](README.md); changing
 the menu: [NEW_MENU_README.md](../NEW_MENU_README.md).
 
+## 0.2.2 (not released yet)
+
+### Menu
+* The groups under VECTREX > ALL ROMS that stand for a folder of the card are no longer named "... FOLDER": the folder
+  sign in front of them says so.
+* `NEW_MENU_FONT = MINIMALIST` in `loader.ini` draws the menu text with the minimalist font (the font of uvmc2-menu): fewer strokes
+  and jumps per letter, so a screen with a lot of text takes less beam time and may flicker less. The PiTrex font
+  stays the default. The installer adds `NEW_MENU_FONT = DEFAULT` to `loader.ini`, with comment lines that explain the
+  two values, if the file has no such line yet. The glyph table is `pitrex/loader/newMenuFont.h`, checked by `new_menu/tools/test_minimalist_font.c`.
+
+### Installers
+* The option `--settings tuned` is now `--settings alt` (`-Settings alt` on Windows; `tuned` still works). The word
+  "tuned" made the author's calibration sound like an improvement over Malban's, and it is not: it is what one Vectrex
+  ended up with. The folder `settings/` of the package is `settings-alt/`.
+* If the card has no `vectrexInterface.ini`, or an empty one, the installer now puts Malban's file in
+  (`settings-default/`), no longer the alternative one.
+* Fix: the list of 0.1.0 entry files that the installer may remove (`legacy-menu-files.sha256`) was empty in 0.2.0 and
+  0.2.1 (it was made from a path that moved when `docs/` became `new_menu/`), so upgrading a 0.1.0 card left the old
+  `menu/*.ini` entry files in place. They did no harm (the menu file still wins), but they were not removed as
+  described. The list is now a file in the repository.
+
+### Repository
+* The 0.1.0 entry files (`new_menu/menu/sidecar/menu/`) and the scripts that made them are gone; `menu.default.ini`
+  is edited directly. They are at the `v0.2.1` tag.
+
 ## 0.2.1 (2026-10-20)
 
 ### Menu
