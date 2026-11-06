@@ -4,6 +4,24 @@ Changes to the new PiTrex menu (this fork of [malbanGit/pitrex-baremetal](https:
 Releases: <https://github.com/emmulator/pitrex-baremetal/releases>. Install guide: [README.md](README.md); changing
 the menu: [NEW_MENU_README.md](../NEW_MENU_README.md).
 
+## 0.2.3 (not released yet)
+
+### Installers
+* Four versions of the screen settings file are in the package's `settings/` folder (replacing `settings-alt/` and
+  `settings-default/`): Malban's March 2021 file, the RpiTeaM Edition's December 2021 file, Malban's July 2025 file
+  and the author's own (`alt`). `--settings malban-2021 | rpiteam-2021 | malban-2025 | alt` chooses one (`tuned` still
+  means `alt`). Running the installer again with another value changes only `vectrexInterface.ini` (`alt` also
+  `vectrex.ini`). The 2021 files are the first thing to try when the 2025 file gives a garbled picture: a user
+  reported that. `settings/README.txt` and the Settings section of `README.md` explain the versions.
+
+### Docs
+* `README.md` has a section on the menu font (`NEW_MENU_FONT`): why one might choose the minimalist font, and where
+  to look at photos of both before choosing. It no longer says that Speedy and Exact each run any game: the games
+  under EXACT VECTREX need Exact.
+
+### Repository
+* The repository README starts with photos of the menu in the default and the minimalist font.
+
 ## 0.2.2 (2026-11-04)
 
 ### Menu

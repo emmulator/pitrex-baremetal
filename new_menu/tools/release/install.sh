@@ -2,13 +2,13 @@
 # Installs the new PiTrex menu release over an unpacked Malban "PiTrex_sd_Jul29_25" archive
 # (or over the SD card made from it). Linux, macOS, WSL.
 #
-#   ./install.sh [--settings alt] [--arcade-tweaks] [--dry-run] <folder>
+#   ./install.sh [--settings malban-2025|malban-2021|rpiteam-2021|alt] [--arcade-tweaks] [--dry-run] <folder>
 #   ./install.sh --restore <folder>
 #
 # Replaced files are saved in <folder>/backup-menu-<date>/ with a MANIFEST.tsv that --restore reads.
 # Nothing outside the files listed in payload/ and payload-if-missing/ (only added when missing) is touched (and, with
-# --arcade-tweaks, arcade-tweaks/; with --settings alt, settings-alt/; settings-default/ only when the card has no usable
-# vectrexInterface.ini).
+# --arcade-tweaks, arcade-tweaks/; with --settings, the chosen file of settings/; Malban's 2025 file of settings/ also
+# when the card has no usable vectrexInterface.ini). Running it again with another --settings value changes only that file.
 set -eu
 
 here=$(cd "$(dirname "$0")" && pwd)
@@ -21,7 +21,7 @@ settings=keep
 target=
 
 usage() {
-  sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'
   exit "${1:-2}"
 }
 
@@ -30,7 +30,7 @@ while [ $# -gt 0 ]; do
     --restore) mode=restore ;;
     --dry-run) dry=1 ;;
     --arcade-tweaks) arcade=1 ;;
-    --settings) shift; [ $# -gt 0 ] || usage; settings=$1; case $settings in keep|alt) ;; tuned) settings=alt ;; *) echo "--settings takes keep or alt" >&2; usage ;; esac ;;
+    --settings) shift; [ $# -gt 0 ] || usage; settings=$1; case $settings in keep|malban-2025|malban-2021|rpiteam-2021|alt) ;; tuned) settings=alt ;; *) echo "--settings takes malban-2025, malban-2021, rpiteam-2021 or alt (see settings/README.txt)" >&2; usage ;; esac ;;
     -h|--help) usage 0 ;;
     -*) echo "unknown option: $1" >&2; usage ;;
     *) [ -z "$target" ] || usage; target=$1 ;;
@@ -237,28 +237,35 @@ else
 fi
 rm -f "$tmp"
 
-# vectrexInterface.ini (the screen settings): an existing file is the user's and stays, unless it is missing or
-# empty (the original settings screen can leave it empty): then Malban's file from settings-default/ goes in. --settings alt
-# replaces it with the alternative file (settings-alt/) that this package was developed with.
+# vectrexInterface.ini (the screen settings): an existing file is the user's and stays, unless it is missing or empty (the
+# original settings screen can leave it empty): then Malban's 2025 file goes in. --settings picks one of the four files of
+# settings/ (see settings/README.txt); the alt one comes with its vectrex.ini.
 cur="$target/vectrexInterface.ini"
 size=-1
 [ -f "$cur" ] && size=$(wc -c < "$cur" | tr -d ' ')
-if [ "$settings" = alt ]; then
-  [ -d "$here/settings-alt" ] || die "settings-alt/ folder missing next to this script"
-  if [ "$size" -ge 100 ] && [ -n "${PITREX_FRESH_CARD:-}" ]; then echo "settings: installing the alternative file"
-  elif [ "$size" -ge 100 ]; then echo "settings: replacing yours with the alternative file (saved in the backup)"
-  elif [ "$size" -ge 0 ]; then echo "settings: your vectrexInterface.ini is empty; installing the alternative one"
-  else echo "settings: no vectrexInterface.ini; installing the alternative one"; fi
-  put_file "$here/settings-alt/vectrexInterface.ini" vectrexInterface.ini
-  # vectrex.ini (which BIOS Exact loads): only replaced on request; the alternative one uses the original BIOS 7ADB.bin
-  put_file "$here/settings-alt/vectrex.ini" vectrex.ini
+case $settings in
+  malban-2025)  src_ini=vectrexInterface-malban-2025-07.ini;  label="Malban's 2025 file" ;;
+  malban-2021)  src_ini=vectrexInterface-malban-2021-03.ini;  label="Malban's 2021 file" ;;
+  rpiteam-2021) src_ini=vectrexInterface-rpiteam-2021-12.ini; label="the RpiTeaM 2021 file" ;;
+  alt)          src_ini=vectrexInterface-alt.ini;             label="the alternative file" ;;
+  *)            src_ini= ;;
+esac
+if [ -n "$src_ini" ]; then
+  [ -f "$here/settings/$src_ini" ] || die "settings/$src_ini missing next to this script"
+  if [ "$size" -ge 100 ] && [ -n "${PITREX_FRESH_CARD:-}" ]; then echo "settings: installing $label"
+  elif [ "$size" -ge 100 ]; then echo "settings: replacing yours with $label (saved in the backup)"
+  elif [ "$size" -ge 0 ]; then echo "settings: your vectrexInterface.ini is empty; installing $label"
+  else echo "settings: no vectrexInterface.ini; installing $label"; fi
+  put_file "$here/settings/$src_ini" vectrexInterface.ini
+  # vectrex.ini (which BIOS Exact loads) comes only with the alt file; it uses the original BIOS 7ADB.bin
+  if [ "$settings" = alt ]; then put_file "$here/settings/vectrex-alt.ini" vectrex.ini; fi
 elif [ "$size" -lt 100 ]; then
-  [ -d "$here/settings-default" ] || die "settings-default/ folder missing next to this script"
-  if [ "$size" -ge 0 ]; then echo "settings: your vectrexInterface.ini is empty; installing Malban's"
-  else echo "settings: no vectrexInterface.ini; installing Malban's"; fi
-  put_file "$here/settings-default/vectrexInterface.ini" vectrexInterface.ini
+  [ -f "$here/settings/vectrexInterface-malban-2025-07.ini" ] || die "settings/ folder missing next to this script"
+  if [ "$size" -ge 0 ]; then echo "settings: your vectrexInterface.ini is empty; installing Malban's 2025 file"
+  else echo "settings: no vectrexInterface.ini; installing Malban's 2025 file"; fi
+  put_file "$here/settings/vectrexInterface-malban-2025-07.ini" vectrexInterface.ini
 else
-  echo "  keep     vectrexInterface.ini (your settings; use --settings alt to replace them)"
+  echo "  keep     vectrexInterface.ini (your settings; --settings malban-2021, rpiteam-2021, malban-2025 or alt replaces them)"
 fi
 
 # optional arcade tweaks

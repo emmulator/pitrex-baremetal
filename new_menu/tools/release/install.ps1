@@ -2,18 +2,18 @@
 Installs the new PiTrex menu release over an unpacked Malban "PiTrex_sd_Jul29_25" archive
 (or over the SD card made from it). Windows PowerShell 5.1 or PowerShell 7.
 
-  .\install.ps1 [-Settings alt] [-ArcadeTweaks] [-DryRun] <folder>
+  .\install.ps1 [-Settings malban-2025|malban-2021|rpiteam-2021|alt] [-ArcadeTweaks] [-DryRun] <folder>
   .\install.ps1 -Restore <folder>
 
 Replaced files are saved in <folder>\backup-menu-<date>\ with a MANIFEST.tsv that -Restore reads.
 Nothing outside the files listed in payload\ and payload-if-missing\ (only added when missing) is touched (and, with
--ArcadeTweaks, arcade-tweaks\; with -Settings alt, settings-alt\; settings-default\ only when the card has no usable
-vectrexInterface.ini).
+-ArcadeTweaks, arcade-tweaks\; with -Settings, the chosen file of settings\; Malban's 2025 file of settings\ also
+when the card has no usable vectrexInterface.ini). Running it again with another -Settings value changes only that file.
 #>
 param(
   [Parameter(Position = 0)][string]$Folder,
   [switch]$ArcadeTweaks,
-  [ValidateSet('keep', 'alt', 'tuned')][string]$Settings = 'keep',
+  [ValidateSet('keep', 'malban-2025', 'malban-2021', 'rpiteam-2021', 'alt', 'tuned')][string]$Settings = 'keep',
   [switch]$DryRun,
   [switch]$Restore
 )
@@ -26,7 +26,7 @@ function Same($a, $b) {
   ((Get-FileHash -LiteralPath $a -Algorithm SHA256).Hash -eq (Get-FileHash -LiteralPath $b -Algorithm SHA256).Hash)
 }
 
-if (-not $Folder) { Write-Host "usage: .\install.ps1 [-Settings alt] [-ArcadeTweaks] [-DryRun] [-Restore] <folder>"; exit 2 }
+if (-not $Folder) { Write-Host "usage: .\install.ps1 [-Settings malban-2025|malban-2021|rpiteam-2021|alt] [-ArcadeTweaks] [-DryRun] [-Restore] <folder>"; exit 2 }
 if (-not (Test-Path -LiteralPath $Folder -PathType Container)) { Die "not a folder: $Folder" }
 $target = (Resolve-Path -LiteralPath $Folder).ProviderPath.TrimEnd('\')
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -225,30 +225,38 @@ if ($menuOk -and $fontOk) {
   }
 }
 
-# vectrexInterface.ini (the screen settings): an existing file is the user's and stays, unless it is missing or
-# empty (the original settings screen can leave it empty): then Malban's file from settings-default\ goes in. -Settings alt
-# replaces it with the alternative file (settings-alt\) that this package was developed with.
+# vectrexInterface.ini (the screen settings): an existing file is the user's and stays, unless it is missing or empty (the
+# original settings screen can leave it empty): then Malban's 2025 file goes in. -Settings picks one of the four files of
+# settings\ (see settings\README.txt); the alt one comes with its vectrex.ini.
 $cur = P $target 'vectrexInterface.ini'
 $size = -1
 if (Test-Path -LiteralPath $cur -PathType Leaf) { $size = (Get-Item -LiteralPath $cur).Length }
-if ($Settings -eq 'alt' -or $Settings -eq 'tuned') {
-  $sdir = Join-Path $here 'settings-alt'
-  if (-not (Test-Path -LiteralPath $sdir -PathType Container)) { Die "settings-alt\ folder missing next to this script" }
-  if ($size -ge 100 -and $env:PITREX_FRESH_CARD) { Write-Host "settings: installing the alternative file" }
-  elseif ($size -ge 100) { Write-Host "settings: replacing yours with the alternative file (saved in the backup)" }
-  elseif ($size -ge 0) { Write-Host "settings: your vectrexInterface.ini is empty; installing the alternative one" }
-  else { Write-Host "settings: no vectrexInterface.ini; installing the alternative one" }
-  PutFile (Join-Path $sdir 'vectrexInterface.ini') 'vectrexInterface.ini'
-  # vectrex.ini (which BIOS Exact loads): only replaced on request; the alternative one uses the original BIOS 7ADB.bin
-  PutFile (Join-Path $sdir 'vectrex.ini') 'vectrex.ini'
+if ($Settings -eq 'tuned') { $Settings = 'alt' }
+$files = @{
+  'malban-2025'  = @('vectrexInterface-malban-2025-07.ini',  "Malban's 2025 file")
+  'malban-2021'  = @('vectrexInterface-malban-2021-03.ini',  "Malban's 2021 file")
+  'rpiteam-2021' = @('vectrexInterface-rpiteam-2021-12.ini', 'the RpiTeaM 2021 file')
+  'alt'          = @('vectrexInterface-alt.ini',             'the alternative file')
+}
+$sdir = Join-Path $here 'settings'
+if ($files.ContainsKey($Settings)) {
+  $srcIni = $files[$Settings][0]; $label = $files[$Settings][1]
+  if (-not (Test-Path -LiteralPath (Join-Path $sdir $srcIni) -PathType Leaf)) { Die "settings\$srcIni missing next to this script" }
+  if ($size -ge 100 -and $env:PITREX_FRESH_CARD) { Write-Host "settings: installing $label" }
+  elseif ($size -ge 100) { Write-Host "settings: replacing yours with $label (saved in the backup)" }
+  elseif ($size -ge 0) { Write-Host "settings: your vectrexInterface.ini is empty; installing $label" }
+  else { Write-Host "settings: no vectrexInterface.ini; installing $label" }
+  PutFile (Join-Path $sdir $srcIni) 'vectrexInterface.ini'
+  # vectrex.ini (which BIOS Exact loads) comes only with the alt file; it uses the original BIOS 7ADB.bin
+  if ($Settings -eq 'alt') { PutFile (Join-Path $sdir 'vectrex-alt.ini') 'vectrex.ini' }
 } elseif ($size -lt 100) {
-  $sdir = Join-Path $here 'settings-default'
-  if (-not (Test-Path -LiteralPath $sdir -PathType Container)) { Die "settings-default\ folder missing next to this script" }
-  if ($size -ge 0) { Write-Host "settings: your vectrexInterface.ini is empty; installing Malban's" }
-  else { Write-Host "settings: no vectrexInterface.ini; installing Malban's" }
-  PutFile (Join-Path $sdir 'vectrexInterface.ini') 'vectrexInterface.ini'
+  $srcIni = 'vectrexInterface-malban-2025-07.ini'
+  if (-not (Test-Path -LiteralPath (Join-Path $sdir $srcIni) -PathType Leaf)) { Die "settings\ folder missing next to this script" }
+  if ($size -ge 0) { Write-Host "settings: your vectrexInterface.ini is empty; installing Malban's 2025 file" }
+  else { Write-Host "settings: no vectrexInterface.ini; installing Malban's 2025 file" }
+  PutFile (Join-Path $sdir $srcIni) 'vectrexInterface.ini'
 } else {
-  Write-Host "  keep     vectrexInterface.ini (your settings; use -Settings alt to replace them)"
+  Write-Host "  keep     vectrexInterface.ini (your settings; -Settings malban-2021, rpiteam-2021, malban-2025 or alt replaces them)"
 }
 
 # optional arcade tweaks

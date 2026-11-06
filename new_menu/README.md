@@ -52,13 +52,14 @@ route A.
 ### Options (both routes)
 
 * `--dry-run` (route A only) shows what would change and writes nothing.
-* `--settings alt` replaces your screen settings with the alternative ones, see [Settings](#settings).
+* `--settings malban-2021`, `rpiteam-2021`, `malban-2025` or `alt` puts one of four versions of the screen settings
+  on the card, see [Settings](#settings). Without it, your own settings stay.
 * `--arcade-tweaks` adds single-controller files for Black Widow and Battle Zone and sets the original author's
   Star Wars and Lunar Lander calibration files aside (they are for his Vectrex).
 * `--restore` (route A) undoes the newest install.
 
 The installer saves every file it replaces in `backup-menu-<date>/` first, never touches ROMs or BIOS files,
-leaves your settings and game `.ini` files alone unless you ask (`--settings alt`, `--arcade-tweaks`), and can be
+leaves your settings and game `.ini` files alone unless you ask (`--settings`, `--arcade-tweaks`), and can be
 run twice safely. It replaces the boot files `pitrex.img` and `pitrex7.img` (they must match the loader), the
 loader, AAE (with its game picker), the Vectrex emulators, the video, audio and line-art players and Vectorblade
 (the July 2025 images show a blank screen on a Pi Zero W), three rebuilt arcade programs (Star Wars, Tempest,
@@ -87,9 +88,31 @@ Games are listed alphabetically. **A game whose ROM is not on the card is not li
 the file is there. (To list every game anyway, with a "ROM NOT FOUND!" note, add `NEW_MENU_SHOW_MISSING = 1` to
 `loader.ini`.)
 
-Speedy and Exact are one Vectrex emulator built two ways and either runs any game. Exact is as close to a real
-Vectrex as the author could make it; Speedy runs games 30-50% faster and skips some BIOS work, so a few games
-misbehave. Start with Exact and press Button 2 if a game is too slow or looks wrong.
+Speedy and Exact are one Vectrex emulator built two ways. Exact is as close to a real Vectrex as the author could
+make it; Speedy runs games 30-50% faster and skips some BIOS work, so a few games misbehave on it. The games listed
+under EXACT VECTREX need Exact (one of them was tried on Speedy and did not run correctly). Start with Exact and press
+Button 2 if a game is too slow or looks wrong.
+
+## The menu font
+
+The menu text is drawn with the PiTrex's own vector font. A screen with a lot of text (a long help text, a controls
+page) asks the Vectrex to draw many lines every frame, and on some Vectrexes the picture then flickers. If yours does,
+try the **minimalist** font: it draws each letter with fewer lines (about a sixth fewer in a line of text), so there
+is less to draw per frame and the picture may flicker less. The letters are the same width and a little shorter, and
+the folder mark is a small folder. Only the menu is affected, not the games.
+
+Choose it with one line in `loader.ini` on the card:
+
+```
+NEW_MENU_FONT = DEFAULT         the PiTrex font (the installer adds this line, with a comment)
+NEW_MENU_FONT = MINIMALIST      the minimalist font
+```
+
+Anything other than `MINIMALIST` gives the default font. **Look at the photos before you choose:** the menu in the
+[default font](images/default-font.jpg) and in the [minimalist font](images/minimalist-font.jpg) (they are also at the
+top of the project page on GitHub). The minimalist letters are simpler and more angular; some people prefer the
+default's look, and it flickers less only on some Vectrexes. If the menu is steady with the default font, there is
+nothing to gain.
 
 ## Where the ROMs go
 
@@ -221,13 +244,41 @@ SETTINGS (last in the list) opens the screen calibration pages. Press Button 4 t
 to `vectrexInterface.ini` and the screen says **SETTINGS SAVED** (or **SETTINGS NOT SAVED!**). They are read at
 every start, so you only set them once per Vectrex.
 
-The installer **keeps your existing `vectrexInterface.ini`**. If the file is missing or empty (the original
-menu can leave it empty), it installs Malban's file (`settings-default/`, the one on his card). Malban's values are
-the starting point for everyone. If the picture or the menu text is unreadable on your Vectrex with them, you can try
-`--settings alt`: it replaces your `vectrexInterface.ini` and `vectrex.ini` with the ones this package was developed
-with (your originals are saved in the backup). Those values are the result of calibrating one Vectrex and are no
-more correct than Malban's; on another Vectrex they may be worse. Calibrate with SETTINGS in the menu either way.
-(`--settings tuned`, the name in 0.2.1, still works and means the same.)
+### Four versions of the settings file
+
+`vectrexInterface.ini`, in the root of the card, holds the beam delays, scale limits and calibration that every
+PiTrex program uses. Every Vectrex draws a little differently, so values that give a steady picture on one Vectrex
+can give a garbled one on another. This package has four versions of the file, as unchanged copies of the originals,
+in its **`settings/`** folder (`settings/README.txt` says which is which):
+
+| `--settings` | File in `settings/` | Where it comes from | In short |
+|---|---|---|---|
+| `malban-2021` | `vectrexInterface-malban-2021-03.ini` | Malban's March 2021 card | The oldest and shortest. Beam delays 2 / 3 / 2 / 6, MINSCALE 1, calibration 0; the rest is built into the programs. |
+| `rpiteam-2021` | `vectrexInterface-rpiteam-2021-12.ini` | the RpiTeaM Edition (Malban's December 2021 release) | Like the March 2021 file, delays 2 / 1 / 1 / 1, MINSCALE 2. |
+| `malban-2025` | `vectrexInterface-malban-2025-07.ini` | Malban's July 2025 card | The file that is on that card. The most settings; the values look tuned for Malban's own Vectrex (all delays 0, MINSCALE 11, six calibration values from 4 to 103). |
+| `alt` | `vectrexInterface-alt.ini` and `vectrex-alt.ini` | the author of this menu, after calibrating their own Vectrex | Delays 2 / 2 / 2 / 6, MINSCALE 20, small calibration values. Also makes the Vectrex emulator use the original BIOS (see below). |
+
+**Which one?** None of them is better in general. If the picture on your Vectrex is steady and readable with the
+file that is on your card, keep it: the installer leaves your file alone. If it is garbled, badly scaled, shifted or
+too faint to find SETTINGS (a user reported this with the 2025 file, while Malban's 2021 and the RpiTeaM releases
+looked fine), try `malban-2021` first, then `rpiteam-2021`, then `alt`. Whichever you start with, finish with
+SETTINGS in the menu: the calibration is specific to your Vectrex, and leaving SETTINGS writes your values to
+`vectrexInterface.ini`.
+
+**Trying one.** Run the installer again on the same card with the version you want (it saves the file it replaces
+in the backup folder and changes nothing else, so you can switch as often as you like):
+
+```
+./install.sh --settings malban-2021 /path/to/card              (Linux, macOS)
+install.bat --settings malban-2021 E:\                          (Windows)
+python3 make_card.py ... --settings malban-2021                (when building a card)
+```
+
+`--restore` goes back to what the card had before. `alt` also replaces `vectrex.ini` (see below); a later run with
+another version leaves that `vectrex.ini` as it is, so use `--restore` if you want the old one back. Or do it by hand:
+copy the file you want from `settings/` to the root of the SD card, rename it `vectrexInterface.ini`, and keep a copy of
+the one it replaces. If the card is missing the file, or has an empty one (the original settings screen can leave it
+empty), the installer puts in Malban's 2025 file.
 
 The alternative `vectrex.ini` differs from Malban's in the BIOS line: `ROM_FILE = bios/7ADB.bin` (the original Vectrex BIOS,
 so the Vectrex intro plays) instead of `bios/FASTBOOT.IMG`. Both files have `INTERNAL_STRING_DISPLAY = 1` (the emulator
@@ -265,6 +316,8 @@ values; the ones on Malban's card carry his own calibration (that is what `--arc
    changed since (your `favorites.ini`, for example) are kept. A card made with `make_card.py` has no
    backup: build it again, or unpack Malban's zip onto the card.
 3. A Vectrex game misbehaves: Button 2 on it (the other emulator).
+4. The picture is garbled, badly scaled or too faint to read, even in the menu: try another version of the screen
+   settings file, see [Settings](#settings). Run the installer again with `--settings malban-2021`.
 
 ## What changed
 

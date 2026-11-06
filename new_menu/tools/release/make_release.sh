@@ -11,7 +11,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 name="pitrex-new-menu-$ver"
 root="$out/$name"
 rm -rf "$root"
-mkdir -p "$root/payload" "$root/arcade-tweaks" "$root/settings-alt" "$root/settings-default"
+mkdir -p "$root/payload" "$root/arcade-tweaks" "$root/settings"
 
 # the bootstrap (pitrex.img, pitrex7.img) must come from the same source as the loader: Malban's May 2025 one does
 # not start this loader (blank screen)
@@ -43,8 +43,8 @@ python3 -I "$here/release_links.py" "$fork" "$root"
 # arcade tweaks: files exactly as tested on the card
 cp "$here/arcade-tweaks/blackwidow.ini" "$here/arcade-tweaks/battlezone.ini" "$root/arcade-tweaks/"
 
-cp "$here/settings-alt/vectrexInterface.ini" "$here/settings-alt/vectrex.ini" "$root/settings-alt/"
-cp "$here/settings-default/vectrexInterface.ini" "$root/settings-default/"
+# the four screen-settings files (unchanged copies of the originals) and the guide that says which is which
+cp "$here/settings/"vectrexInterface-*.ini "$here/settings/vectrex-alt.ini" "$here/settings/README.txt" "$root/settings/"
 cp "$here/install.sh" "$here/install.ps1" "$here/install.bat" "$here/make_card.py" "$root/"
 chmod +x "$root/install.sh"
 sed "s/@VERSION@/$ver/g" "$here/RELEASE.md" > "$root/RELEASE.md"

@@ -1,5 +1,8 @@
 # pitrex-baremetal
-![PiRrex](http://vide.malban.de/wp-content/uploads/2020/01/pitrex-1-1024x843.png)
+
+| ![The new menu in the default PiTrex font](new_menu/images/default-font.jpg) | ![The new menu in the minimalist font](new_menu/images/minimalist-font.jpg) |
+|:---:|:---:|
+| The new menu, default font | The new menu, minimalist font (`NEW_MENU_FONT = MINIMALIST`) |
 
 ## This fork: a new, card-driven menu
 
@@ -13,6 +16,8 @@ the tools to put it on Malban's card.
 * Development notes, findings and tools: [new_menu/DEVELOPMENT.md](new_menu/DEVELOPMENT.md). Licensing notes: [new_menu/LICENSING.md](new_menu/LICENSING.md).
 
 The rest of this page is the original project's README.
+
+![PiRrex](http://vide.malban.de/wp-content/uploads/2020/01/pitrex-1-1024x843.png)
 
 Read more about PiTrex in general at: [PiTrex Wiki](http://www.ombertech.com/cnk/pitrex/wiki/index.php).
 

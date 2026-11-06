@@ -18,6 +18,17 @@ or build a whole card, arcade ROMs included, from Malban's zip and the RpiTeaM E
 
 `--dry-run` shows what would change. `--restore` undoes it. No ROMs or BIOS files are included.
 
+## New in 0.2.3
+
+* **Four versions of the screen settings.** If the picture on your Vectrex is garbled, badly scaled or too faint to read
+  with the settings file that came with Malban's 2025 card, you can now try three others: Malban's March 2021 file, the
+  RpiTeaM Edition's (December 2021) file, and the author's own. They are in the `settings/` folder of the package, as
+  unchanged copies with names that say where they come from, and `settings/README.txt` describes each. `install.sh
+  --settings malban-2021` (also `rpiteam-2021`, `malban-2025`, `alt`) puts one on the card; run it again with another
+  value to switch. Nothing else on the card changes (`alt` also replaces `vectrex.ini`), and `--restore` goes back.
+  `README.md` explains which one to try and why.
+* The folders `settings-alt/` and `settings-default/` of 0.2.2 are now the one folder `settings/`.
+
 ## New in 0.2.2
 
 * **A second font for the menu text.** Add `NEW_MENU_FONT = MINIMALIST` to `loader.ini` to draw the text with a font
@@ -72,8 +83,7 @@ or build a whole card, arcade ROMs included, from Malban's zip and the RpiTeaM E
 | `install.sh`, `install.ps1`, `install.bat`, `make_card.py` | the installers |
 | `payload/` | bootstrap (`pitrex.img`, `pitrex7.img`), loader, AAE with the game picker, Vectrex emulators and players, Vectorblade, rebuilt Star Wars / Tempest / Black Widow (both Pi models), the menu file `menu/menu.default.ini` and the guide `menu/NEW_MENU_README.md` |
 | `payload-if-missing/` | `menu/favorites.ini`, an example FAVORITES collection: installed only if the card has no `favorites.ini` yet, so your own list is never overwritten |
-| `settings-default/` | Malban's `vectrexInterface.ini`, installed only if the card has none or an empty one |
-| `settings-alt/` | an alternative `vectrexInterface.ini` and `vectrex.ini`, the settings of the author's Vectrex, installed only with `--settings alt` (to try if Malban's give an unreadable picture; not better in general) |
+| `settings/` | four versions of `vectrexInterface.ini` (Malban 2021-03, RpiTeaM 2021-12, Malban 2025-07, and the author's `alt` one, with its `vectrex-alt.ini`) and a `README.txt` that says which is which. Installed only with `--settings <version>`; Malban's 2025 file also when the card has none or an empty one |
 | `arcade-tweaks/` | single-controller `blackwidow.ini` and `battlezone.ini` (only with `--arcade-tweaks`) |
 
 `SHA256SUMS` lists every file. `BUILDINFO.txt` says which source each program was built from.
