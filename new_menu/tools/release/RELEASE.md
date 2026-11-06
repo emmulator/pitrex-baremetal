@@ -28,6 +28,11 @@ or build a whole card, arcade ROMs included, from Malban's zip and the RpiTeaM E
   value to switch. Nothing else on the card changes (`alt` also replaces `vectrex.ini`), and `--restore` goes back.
   `README.md` explains which one to try and why.
 * The folders `settings-alt/` and `settings-default/` of 0.2.2 are now the one folder `settings/`.
+* **`README.md` explains the menu font** (`NEW_MENU_FONT = DEFAULT` or `MINIMALIST` in `loader.ini`): why one might choose
+  the minimalist font (fewer lines per letter, so a screen full of text may flicker less), with photos of both to look
+  at first.
+* `README.md` no longer says that Speedy and Exact each run any game: the games under EXACT VECTREX need Exact.
+* The programs and the menu are the same as in 0.2.2; only the installers, the settings files and the guides changed.
 
 ## New in 0.2.2
 

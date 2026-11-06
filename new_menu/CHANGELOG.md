@@ -4,7 +4,7 @@ Changes to the new PiTrex menu (this fork of [malbanGit/pitrex-baremetal](https:
 Releases: <https://github.com/emmulator/pitrex-baremetal/releases>. Install guide: [README.md](README.md); changing
 the menu: [NEW_MENU_README.md](../NEW_MENU_README.md).
 
-## 0.2.3 (not released yet)
+## 0.2.3 (2026-11-05)
 
 ### Installers
 * Four versions of the screen settings file are in the package's `settings/` folder (replacing `settings-alt/` and
